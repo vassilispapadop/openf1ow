@@ -94,7 +94,7 @@ export default {
     const geminiBody = {
       system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ parts: [{ text: buildPrompt(body) }] }],
-      generationConfig: { maxOutputTokens: 8192, temperature: 0.7 },
+      generationConfig: { maxOutputTokens: 8192, temperature: 0.3 },
     };
 
     const geminiRes = await fetch(`${GEMINI_URL}&key=${env.GEMINI_API_KEY}`, {
