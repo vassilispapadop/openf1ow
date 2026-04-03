@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "openf1ow",
+  "main": "src/server/index.ts",
   "compatibility_date": "2026-04-03",
   "observability": {
     "enabled": true

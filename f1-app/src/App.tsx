@@ -1498,7 +1498,7 @@ export default function App() {
         {/* ====== RACE ANALYSIS VIEW (always mounted to preserve state) ====== */}
         <div style={{ display: showAnalysis && drivers.length > 0 && sk && !loading ? undefined : "none" }}>
           <div className="fade-in-up">
-            <RaceAnalysis sessionKey={sk} drivers={drivers} weather={weather} />
+            <RaceAnalysis sessionKey={sk} drivers={drivers} weather={weather} raceControl={rc} results={results} />
           </div>
         </div>
 

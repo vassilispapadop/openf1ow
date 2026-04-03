@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import AIAnalysis from "./components/AIAnalysis";
 
 const PROXY = "https://corsproxy.io/?";
 const API = "https://api.openf1.org/v1";
@@ -2146,10 +2147,12 @@ function BoxPlotChart({ rows }: {
 
 //MAIN RACE ANALYSIS COMPONENT
 
-export default function RaceAnalysis({ sessionKey, drivers, weather }: {
+export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [] }: {
   sessionKey: string;
   drivers: Driver[];
   weather: Weather[];
+  raceControl?: any[];
+  results?: any[];
 }) {
   const [allLaps, setAllLaps] = useState<Lap[]>([]);
   const [allStints, setAllStints] = useState<Stint[]>([]);
@@ -2264,6 +2267,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather }: {
       {/* Sub-tabs */}
       <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap", padding: "2px 0" }}>
         {([
+          ["ai", "\u2728 AI Analysis"],
           ["pace", "Race Pace"],
           ["constructors", "Constructors"],
           ["evolution", "Lap Evolution"],
@@ -2278,6 +2282,18 @@ export default function RaceAnalysis({ sessionKey, drivers, weather }: {
       </div>
 
       {/* Content */}
+      {subTab === "ai" && (
+        <AIAnalysis
+          allLaps={allLaps}
+          drivers={drivers}
+          stints={allStints}
+          pits={allPits}
+          weather={weather}
+          raceControl={raceControl}
+          results={results}
+        />
+      )}
+
       {subTab === "pace" && (
         <div style={sty.card}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
