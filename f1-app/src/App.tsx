@@ -1495,12 +1495,12 @@ export default function App() {
           </div>
         )}
 
-        {/* ====== RACE ANALYSIS VIEW ====== */}
-        {showAnalysis && drivers.length > 0 && sk && !loading && (
+        {/* ====== RACE ANALYSIS VIEW (always mounted to preserve state) ====== */}
+        <div style={{ display: showAnalysis && drivers.length > 0 && sk && !loading ? undefined : "none" }}>
           <div className="fade-in-up">
             <RaceAnalysis sessionKey={sk} drivers={drivers} weather={weather} />
           </div>
-        )}
+        </div>
 
         {/* ====== DRIVER VIEW ====== */}
         {!showAnalysis && drv && !loading && (
