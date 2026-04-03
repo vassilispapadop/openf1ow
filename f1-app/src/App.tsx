@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import RaceAnalysis from "./RaceAnalysis";
+import { getInitialParams, useUrlState, type UrlParams } from "./lib/useUrlState";
 
 const PROXY = "https://corsproxy.io/?";
 const API = "https://api.openf1.org/v1";
@@ -1024,7 +1025,10 @@ function DeltaChart({ traces, syncRef }) {
 // ============================================================================
 
 export default function App() {
-  const [year, setYear] = useState(2026);
+  const initParams = useRef(getInitialParams());
+  const { pushState, replaceState, onPopState } = useUrlState();
+
+  const [year, setYear] = useState(() => initParams.current.year ? Number(initParams.current.year) : 2026);
   const [meetings, setMeetings] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -1041,14 +1045,17 @@ export default function App() {
   const [results, setResults] = useState([]);
   const [selLap, setSelLap] = useState(null);
   const [comparisons, setComparisons] = useState([]);
-  const [tab, setTab] = useState("laps");
-  const [showAnalysis, setShowAnalysis] = useState(false);
+  const [tab, setTab] = useState(() => initParams.current.tab || "laps");
+  const [showAnalysis, setShowAnalysis] = useState(() => initParams.current.view === "analysis");
   const [loading, setLoading] = useState("Loading races...");
   const [error, setError] = useState("");
   const syncRef = useRef({});
 
-  const loadSession = useCallback((sessionKey) => {
+  const pendingDriverRef = useRef<string>("");
+
+  const loadSession = useCallback((sessionKey, targetDn?: string) => {
     setSk(sessionKey); setDn(""); setDrivers([]); setLaps([]); setCarData([]); setComparisons([]);
+    pendingDriverRef.current = targetDn || "";
     if (!sessionKey) return;
     setLoading("Loading drivers...");
     Promise.all([
@@ -1062,15 +1069,23 @@ export default function App() {
     }).catch(e => { setError(e.message); setLoading(""); });
   }, []);
 
-  const loadMeeting = useCallback((meetingKey, autoSelectSession = false) => {
+  const loadMeeting = useCallback((meetingKey, autoSelectSession: boolean | string = false, targetDn?: string) => {
     setMk(meetingKey); setSk(""); setDn(""); setSessions([]); setDrivers([]); setLaps([]); setCarData([]); setComparisons([]);
     if (!meetingKey) return;
     setLoading("Loading sessions...");
     api("/sessions?meeting_key=" + meetingKey)
       .then(d => {
         setSessions(d);
-        if (autoSelectSession && d.length) {
-          // Auto-select Race session, or fall back to last session
+        if (typeof autoSelectSession === "string") {
+          // Auto-select a specific session key from URL
+          const target = d.find(s => String(s.session_key) === autoSelectSession);
+          if (target) {
+            setLoading("");
+            loadSession(String(target.session_key), targetDn);
+          } else {
+            setLoading("");
+          }
+        } else if (autoSelectSession && d.length) {
           const race = d.find(s => s.session_name === "Race") || d[d.length - 1];
           setLoading("");
           loadSession(String(race.session_key));
@@ -1081,15 +1096,18 @@ export default function App() {
       .catch(e => { setError(e.message); setLoading(""); });
   }, [loadSession]);
 
-  const onYear = useCallback((y, autoLoad = false) => {
+  const onYear = useCallback((y, autoLoad: boolean | { mk?: string; sk?: string; dn?: string } = false) => {
     setYear(y);
     setMk(""); setSk(""); setDn(""); setSessions([]); setDrivers([]); setLaps([]); setCarData([]); setComparisons([]);
     setLoading("Loading " + y + " races...");
     api("/meetings?year=" + y)
       .then(d => {
         setMeetings(d);
-        if (autoLoad && d.length) {
-          // Pick the most recent race that has already happened
+        if (typeof autoLoad === "object" && autoLoad.mk) {
+          // Restore from URL — load specific meeting/session/driver
+          setLoading("");
+          loadMeeting(autoLoad.mk, autoLoad.sk || false, autoLoad.dn);
+        } else if (autoLoad === true && d.length) {
           const now = new Date();
           const past = d.filter(m => m.date_start && new Date(m.date_start) < now);
           const latest = past.length ? past[past.length - 1] : d[0];
@@ -1102,9 +1120,59 @@ export default function App() {
       .catch(e => { setError(e.message); setLoading(""); });
   }, [loadMeeting]);
 
+  // Initial load — restore from URL or auto-select latest
   useEffect(() => {
-    onYear(2026, true);
+    const p = initParams.current;
+    const y = p.year ? Number(p.year) : 2026;
+    if (p.mk) {
+      onYear(y, { mk: p.mk, sk: p.sk, dn: p.dn });
+    } else {
+      onYear(y, true);
+    }
   }, []);
+
+  // Sync URL whenever key state changes (replaceState to avoid duplicate history)
+  const isInitialLoad = useRef(true);
+  const isPopState = useRef(false);
+  useEffect(() => {
+    const params: UrlParams = {};
+    if (year) params.year = String(year);
+    if (mk) params.mk = mk;
+    if (sk) params.sk = sk;
+    if (dn) params.dn = dn;
+    if (showAnalysis) params.view = "analysis";
+    if (tab && tab !== "laps") params.tab = tab;
+    if (isInitialLoad.current || isPopState.current) {
+      replaceState(params);
+    } else {
+      pushState(params);
+    }
+  }, [year, mk, sk, dn, showAnalysis, tab, replaceState, pushState]);
+
+  // Mark initial load as done once loading finishes for the first time
+  useEffect(() => {
+    if (isInitialLoad.current && !loading) {
+      isInitialLoad.current = false;
+    }
+  }, [loading]);
+
+  // Handle browser back/forward
+  onPopState((p) => {
+    isPopState.current = true;
+    const y = p.year ? Number(p.year) : 2026;
+    setShowAnalysis(p.view === "analysis");
+    setTab(p.tab || "laps");
+    if (y !== year) {
+      onYear(y, p.mk ? { mk: p.mk, sk: p.sk, dn: p.dn } : true);
+    } else if (p.mk && p.mk !== mk) {
+      loadMeeting(p.mk, p.sk || false, p.dn);
+    } else if (p.sk && p.sk !== sk) {
+      loadSession(p.sk, p.dn);
+    } else if ((p.dn || "") !== dn) {
+      if (p.dn) onDriver(p.dn); else setDn("");
+    }
+    setTimeout(() => { isPopState.current = false; }, 100);
+  });
 
   const onMeeting = useCallback((v) => {
     loadMeeting(v);
@@ -1127,6 +1195,17 @@ export default function App() {
       setLaps(l); setStints(s); setPits(p); setPositions(pos); setLoading("");
     }).catch(e => { setError(e.message); setLoading(""); });
   }, [sk]);
+
+  // Auto-select pending driver from URL after drivers load
+  useEffect(() => {
+    if (pendingDriverRef.current && drivers.length && sk) {
+      const target = pendingDriverRef.current;
+      pendingDriverRef.current = "";
+      if (drivers.some(d => String(d.driver_number) === target)) {
+        onDriver(target);
+      }
+    }
+  }, [drivers, sk, onDriver]);
 
   const fetchTelemetry = useCallback((sessionKey, driverNumber, lap) => {
     const end = new Date(new Date(lap.date_start).getTime() + lap.lap_duration * 1000 + 2000).toISOString();
