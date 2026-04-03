@@ -95,9 +95,25 @@ export default {
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
 
+    const processLine = async (line: string) => {
+      if (!line.startsWith("data: ")) return;
+      const data = line.slice(6).trim();
+      if (!data || data === "[DONE]") return;
+      try {
+        const parsed = JSON.parse(data);
+        const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) {
+          await writer.write(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+        }
+      } catch {
+        // skip unparseable chunks
+      }
+    };
+
     (async () => {
       try {
-        const reader = geminiRes.body!.getReader();
+        if (!geminiRes.body) throw new Error("No response body from Gemini");
+        const reader = geminiRes.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
 
@@ -110,41 +126,17 @@ export default {
           buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const data = line.slice(6).trim();
-            if (data === "[DONE]") continue;
-
-            try {
-              const parsed = JSON.parse(data);
-              const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) {
-                await writer.write(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-              }
-            } catch {
-              // skip unparseable chunks
-            }
+            await processLine(line);
           }
         }
 
         // Process remaining buffer
-        if (buffer.startsWith("data: ")) {
-          const data = buffer.slice(6).trim();
-          if (data && data !== "[DONE]") {
-            try {
-              const parsed = JSON.parse(data);
-              const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) {
-                await writer.write(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-              }
-            } catch {}
-          }
-        }
-
+        await processLine(buffer);
         await writer.write(encoder.encode("data: [DONE]\n\n"));
       } catch (e) {
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ error: String(e) })}\n\n`));
+        try { await writer.write(encoder.encode(`data: ${JSON.stringify({ error: String(e) })}\n\n`)); } catch {}
       } finally {
-        await writer.close();
+        try { await writer.close(); } catch {}
       }
     })();
 
@@ -153,7 +145,6 @@ export default {
         ...CORS_HEADERS,
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
-        Connection: "keep-alive",
       },
     });
   },

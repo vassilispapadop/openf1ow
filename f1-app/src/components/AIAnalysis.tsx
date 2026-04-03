@@ -99,6 +99,17 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const contentRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const chunkRef = useRef("");
+  const rafRef = useRef(0);
+
+  // Abort on unmount
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   // Auto-scroll as text streams in
   useEffect(() => {
@@ -108,9 +119,15 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
   }, [analysis, loading]);
 
   const generate = useCallback(async () => {
+    // Abort any in-flight request
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
     setLoading(true);
     setError("");
     setAnalysis("");
+    chunkRef.current = "";
 
     try {
       const summary = buildFullSummary({
@@ -121,6 +138,7 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(summary),
+        signal: controller.signal,
       });
 
       if (!res.ok) {
@@ -128,9 +146,20 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
         throw new Error(errText || `HTTP ${res.status}`);
       }
 
-      const reader = res.body!.getReader();
+      if (!res.body) throw new Error("No response body");
+
+      const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+
+      // Batch updates via requestAnimationFrame to avoid O(n^2) re-renders
+      const flushChunks = () => {
+        const pending = chunkRef.current;
+        if (pending) {
+          chunkRef.current = "";
+          setAnalysis(prev => prev + pending);
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -148,17 +177,24 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
           try {
             const parsed = JSON.parse(data);
             if (parsed.text) {
-              setAnalysis(prev => prev + parsed.text);
+              chunkRef.current += parsed.text;
+              cancelAnimationFrame(rafRef.current);
+              rafRef.current = requestAnimationFrame(flushChunks);
             }
             if (parsed.error) {
               throw new Error(parsed.error);
             }
-          } catch (e: any) {
-            if (e.message && !e.message.includes("JSON")) throw e;
+          } catch (e) {
+            if (e instanceof SyntaxError) continue;
+            throw e;
           }
         }
       }
+
+      // Flush any remaining text
+      flushChunks();
     } catch (e: any) {
+      if (e.name === "AbortError") return;
       setError(e.message || "Failed to generate analysis");
     }
     setLoading(false);

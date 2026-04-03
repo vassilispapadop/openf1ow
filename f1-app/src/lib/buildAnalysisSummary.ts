@@ -229,7 +229,7 @@ function buildTeammateGaps(allLaps: Lap[], drivers: Driver[]) {
         team,
         faster: d1Faster ? d1.name_acronym : d2.name_acronym,
         slower: d1Faster ? d2.name_acronym : d1.name_acronym,
-        gap: +(Math.abs(avg1 - avg2)).toFixed(3) + "s",
+        gap: Math.abs(avg1 - avg2).toFixed(3) + "s",
         commonLaps: common.length,
       };
     }).filter(Boolean);
@@ -256,63 +256,38 @@ function buildPitStops(pits: Pit[], drivers: Driver[]) {
       return {
         team,
         stops: durations.length,
-        avgDuration: +avg.toFixed(2) + "s",
-        bestDuration: +Math.min(...durations).toFixed(2) + "s",
+        avgDuration: avg.toFixed(2) + "s",
+        bestDuration: Math.min(...durations).toFixed(2) + "s",
+        _avg: avg,
       };
     })
-    .filter(Boolean)
-    .sort((a: any, b: any) => parseFloat(a.avgDuration) - parseFloat(b.avgDuration));
+    .filter((x): x is NonNullable<typeof x> => x !== null)
+    .sort((a, b) => a._avg - b._avg)
+    .map(({ _avg, ...rest }) => rest);
 }
 
-function buildDirtyAir(allLaps: Lap[], drivers: Driver[], stints: Stint[], threshold: number) {
-  // Compute gap to car ahead for each lap using date_start
-  const lapsByNumber: Record<number, Lap[]> = {};
+function buildDirtyAir(allLaps: Lap[], drivers: Driver[], _stints: Stint[], threshold: number) {
+  // Group laps by lap number, pre-convert dates to timestamps
+  const lapsByNumber: Record<number, { lap: Lap; ts: number }[]> = {};
   allLaps.forEach(l => {
+    if (!l.date_start) return;
     if (!lapsByNumber[l.lap_number]) lapsByNumber[l.lap_number] = [];
-    lapsByNumber[l.lap_number].push(l);
-  });
-
-  const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
-  const fuelPerLap = FUEL_TOTAL_KG / totalRaceLaps;
-  const fuelCorrectionPerLap = fuelPerLap * FUEL_SEC_PER_KG;
-
-  const drvMap: Record<number, Driver> = {};
-  drivers.forEach(d => { drvMap[d.driver_number] = d; });
-
-  // Build per-driver stint baseline
-  const lapLookup: Record<string, Lap> = {};
-  allLaps.forEach(l => { lapLookup[l.driver_number + "-" + l.lap_number] = l; });
-
-  const stintBaseline: Record<string, number> = {};
-  stints.forEach(st => {
-    const cleanLaps: number[] = [];
-    for (let ln = st.lap_start; ln <= st.lap_end; ln++) {
-      const l = lapLookup[st.driver_number + "-" + ln];
-      if (l && isCleanLap(l, threshold)) cleanLaps.push(l.lap_duration!);
-    }
-    if (cleanLaps.length >= 3) {
-      const key = st.driver_number + "-" + st.stint_number;
-      stintBaseline[key] = median(cleanLaps);
-    }
+    lapsByNumber[l.lap_number].push({ lap: l, ts: new Date(l.date_start).getTime() });
   });
 
   // Compute gaps and classify laps
   const driverData: Record<number, { free: number[]; dirty: number[] }> = {};
   drivers.forEach(d => { driverData[d.driver_number] = { free: [], dirty: [] }; });
 
-  for (const [, laps] of Object.entries(lapsByNumber)) {
-    const sorted = laps
-      .filter(l => l.date_start)
-      .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
+  for (const [, entries] of Object.entries(lapsByNumber)) {
+    const sorted = entries.sort((a, b) => a.ts - b.ts);
 
     for (let i = 0; i < sorted.length; i++) {
-      const l = sorted[i];
+      const l = sorted[i].lap;
       if (!l.lap_duration || l.lap_duration <= 0 || l.is_pit_out_lap || l.lap_number <= 1) continue;
       if (!isCleanLap(l, threshold)) continue;
 
-      const gap = i > 0 && sorted[i - 1].date_start
-        ? (new Date(l.date_start).getTime() - new Date(sorted[i - 1].date_start).getTime()) / 1000
-        : 999;
+      const gap = i > 0 ? (sorted[i].ts - sorted[i - 1].ts) / 1000 : 999;
 
       const dd = driverData[l.driver_number];
       if (!dd) continue;
@@ -331,13 +306,13 @@ function buildDirtyAir(allLaps: Lap[], drivers: Driver[], stints: Stint[], thres
       if (!dd || (dd.free.length + dd.dirty.length) < 5) return null;
       const freeMed = dd.free.length >= 3 ? median(dd.free) : null;
       const dirtyMed = dd.dirty.length >= 3 ? median(dd.dirty) : null;
-      const timeLoss = freeMed && dirtyMed ? +(dirtyMed - freeMed).toFixed(3) : null;
+      const timeLoss = freeMed && dirtyMed ? (dirtyMed - freeMed).toFixed(3) : null;
       return {
         driver: d.name_acronym,
         team: d.team_name,
         cleanLaps: dd.free.length,
         dirtyLaps: dd.dirty.length,
-        pctInCleanAir: +((dd.free.length / (dd.free.length + dd.dirty.length)) * 100).toFixed(0),
+        pctInCleanAir: Math.round((dd.free.length / (dd.free.length + dd.dirty.length)) * 100),
         timeLossPerLapInTraffic: timeLoss ? timeLoss + "s" : "N/A",
       };
     })
