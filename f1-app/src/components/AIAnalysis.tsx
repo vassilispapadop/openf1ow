@@ -103,13 +103,18 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
   const chunkRef = useRef("");
   const rafRef = useRef(0);
 
-  // Abort on unmount
+  // Reset when race data changes, abort on unmount
   useEffect(() => {
+    abortRef.current?.abort();
+    cancelAnimationFrame(rafRef.current);
+    setAnalysis("");
+    setError("");
+    setLoading(false);
     return () => {
       abortRef.current?.abort();
       cancelAnimationFrame(rafRef.current);
     };
-  }, []);
+  }, [allLaps]);
 
   // Auto-scroll as text streams in
   useEffect(() => {
