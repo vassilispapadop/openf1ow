@@ -1,0 +1,131 @@
+/* ====== RESET & BASE ====== */
+body {
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* ====== CUSTOM SCROLLBAR (dark themed) ====== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ====== KEYFRAME ANIMATIONS ====== */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(225, 6, 0, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(225, 6, 0, 0);
+  }
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ====== ANIMATION UTILITY CLASSES ====== */
+
+.fade-in-up {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+
+/* ====== TABLE ROW HOVER ====== */
+tbody tr {
+  transition: background 0.15s ease;
+}
+tbody tr:hover {
+  background: rgba(225, 6, 0, 0.04) !important;
+}
+tbody tr:hover td {
+  border-bottom-color: rgba(225, 6, 0, 0.08) !important;
+}
+
+/* ====== SELECT DROPDOWN STYLING ====== */
+select {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+select:focus {
+  border-color: rgba(225, 6, 0, 0.4) !important;
+  box-shadow: 0 0 0 3px rgba(225, 6, 0, 0.1) !important;
+}
+select:hover {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+select option {
+  background: #14142a;
+  color: #e0e0e6;
+  padding: 8px;
+}
+
+/* ====== SELECTION COLOR ====== */
+::selection {
+  background: rgba(225, 6, 0, 0.3);
+  color: #fff;
+}
