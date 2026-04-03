@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import RaceAnalysis from "./RaceAnalysis";
-import { getInitialParams, useUrlState, type UrlParams } from "./lib/useUrlState";
+import { readParams, useUrlState, type UrlParams } from "./lib/useUrlState";
 
 const PROXY = "https://corsproxy.io/?";
 const API = "https://api.openf1.org/v1";
@@ -1025,8 +1025,7 @@ function DeltaChart({ traces, syncRef }) {
 // ============================================================================
 
 export default function App() {
-  const initParams = useRef(getInitialParams());
-  const { pushState, replaceState, onPopState } = useUrlState();
+  const initParams = useRef(readParams());
 
   const [year, setYear] = useState(() => initParams.current.year ? Number(initParams.current.year) : 2026);
   const [meetings, setMeetings] = useState([]);
@@ -1120,45 +1119,9 @@ export default function App() {
       .catch(e => { setError(e.message); setLoading(""); });
   }, [loadMeeting]);
 
-  // Initial load — restore from URL or auto-select latest
-  useEffect(() => {
-    const p = initParams.current;
-    const y = p.year ? Number(p.year) : 2026;
-    if (p.mk) {
-      onYear(y, { mk: p.mk, sk: p.sk, dn: p.dn });
-    } else {
-      onYear(y, true);
-    }
-  }, []);
-
-  // Sync URL whenever key state changes (replaceState to avoid duplicate history)
-  const isInitialLoad = useRef(true);
-  const isPopState = useRef(false);
-  useEffect(() => {
-    const params: UrlParams = {};
-    if (year) params.year = String(year);
-    if (mk) params.mk = mk;
-    if (sk) params.sk = sk;
-    if (dn) params.dn = dn;
-    if (showAnalysis) params.view = "analysis";
-    if (tab && tab !== "laps") params.tab = tab;
-    if (isInitialLoad.current || isPopState.current) {
-      replaceState(params);
-    } else {
-      pushState(params);
-    }
-  }, [year, mk, sk, dn, showAnalysis, tab, replaceState, pushState]);
-
-  // Mark initial load as done once loading finishes for the first time
-  useEffect(() => {
-    if (isInitialLoad.current && !loading) {
-      isInitialLoad.current = false;
-    }
-  }, [loading]);
-
   // Handle browser back/forward
-  onPopState((p) => {
-    isPopState.current = true;
+  const { pushState, replaceState, markPopState, clearPopState } = useUrlState((p) => {
+    markPopState();
     const y = p.year ? Number(p.year) : 2026;
     setShowAnalysis(p.view === "analysis");
     setTab(p.tab || "laps");
@@ -1171,8 +1134,45 @@ export default function App() {
     } else if ((p.dn || "") !== dn) {
       if (p.dn) onDriver(p.dn); else setDn("");
     }
-    setTimeout(() => { isPopState.current = false; }, 100);
+    // Clear after a microtask so the sync effect sees the flag
+    Promise.resolve().then(clearPopState);
   });
+
+  // Initial load — restore from URL or auto-select latest
+  useEffect(() => {
+    const p = initParams.current;
+    const y = p.year ? Number(p.year) : 2026;
+    if (p.mk) {
+      onYear(y, { mk: p.mk, sk: p.sk, dn: p.dn });
+    } else {
+      onYear(y, true);
+    }
+  }, []);
+
+  // Sync URL whenever key state changes
+  const isInitialLoad = useRef(true);
+  useEffect(() => {
+    const params: UrlParams = {};
+    if (year) params.year = String(year);
+    if (mk) params.mk = mk;
+    if (sk) params.sk = sk;
+    if (dn) params.dn = dn;
+    if (showAnalysis) params.view = "analysis";
+    if (tab && tab !== "laps") params.tab = tab;
+    if (isInitialLoad.current) {
+      replaceState(params);
+    } else {
+      // pushState is a no-op during popstate handling (guarded in hook)
+      pushState(params);
+    }
+  }, [year, mk, sk, dn, showAnalysis, tab, replaceState, pushState]);
+
+  // Mark initial load as done once loading finishes for the first time
+  useEffect(() => {
+    if (isInitialLoad.current && !loading) {
+      isInitialLoad.current = false;
+    }
+  }, [loading]);
 
   const onMeeting = useCallback((v) => {
     loadMeeting(v);

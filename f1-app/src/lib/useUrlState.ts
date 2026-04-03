@@ -11,7 +11,7 @@ export interface UrlParams {
 
 const KEYS: (keyof UrlParams)[] = ["year", "mk", "sk", "dn", "view", "tab"];
 
-function readParams(): UrlParams {
+export function readParams(): UrlParams {
   const sp = new URLSearchParams(window.location.search);
   const p: UrlParams = {};
   for (const k of KEYS) {
@@ -30,14 +30,15 @@ function buildSearch(params: UrlParams): string {
   return s ? "?" + s : "";
 }
 
-export function getInitialParams(): UrlParams {
-  return readParams();
-}
+export function useUrlState(onPop: (p: UrlParams) => void) {
+  const popRef = useRef(onPop);
+  popRef.current = onPop;
 
-export function useUrlState() {
-  const listenerRef = useRef<((p: UrlParams) => void) | null>(null);
+  // Track whether we're handling a popstate event
+  const handlingPop = useRef(false);
 
   const pushState = useCallback((params: UrlParams) => {
+    if (handlingPop.current) return;
     const search = buildSearch(params);
     if (window.location.search !== search) {
       window.history.pushState(null, "", search || "/");
@@ -51,17 +52,21 @@ export function useUrlState() {
     }
   }, []);
 
-  const onPopState = useCallback((cb: (p: UrlParams) => void) => {
-    listenerRef.current = cb;
+  const markPopState = useCallback(() => {
+    handlingPop.current = true;
+  }, []);
+
+  const clearPopState = useCallback(() => {
+    handlingPop.current = false;
   }, []);
 
   useEffect(() => {
     const handler = () => {
-      listenerRef.current?.(readParams());
+      popRef.current(readParams());
     };
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);
   }, []);
 
-  return { pushState, replaceState, onPopState };
+  return { pushState, replaceState, markPopState, clearPopState };
 }
