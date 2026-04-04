@@ -3136,7 +3136,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                 <div style={{ display: "flex", marginBottom: 2 }}>
                   <div style={{ width: 80, flexShrink: 0 }} />
                   <div style={{ flex: 1, position: "relative", height: 14 }}>
-                    {Array.from({ length: Math.ceil(totalLaps / step) + 1 }, (_, i) => i * step).filter(l => l <= totalLaps).map(l => (
+                    {Array.from({ length: Math.ceil(totalLaps / step) }, (_, i) => (i + 1) * step).filter(l => l <= totalLaps).map(l => (
                       <span key={l} style={{ position: "absolute", left: (l / totalLaps * 100) + "%", transform: "translateX(-50%)", fontSize: 8, fontFamily: M, color: "#3d4f6f" }}>L{l}</span>
                     ))}
                   </div>
@@ -3246,18 +3246,22 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           </p>
           {(() => {
             const threshold = computeSlowLapThreshold(allLaps);
+            // Build a fast lookup: driver+lap -> Lap
+            const lapLookup: Record<string, Lap> = {};
+            allLaps.forEach(l => { lapLookup[l.driver_number + "-" + l.lap_number] = l; });
             const lapsByNumber: Record<number, { dn: number; ts: number }[]> = {};
             allLaps.forEach(l => {
               if (!l.date_start) return;
               if (!lapsByNumber[l.lap_number]) lapsByNumber[l.lap_number] = [];
               lapsByNumber[l.lap_number].push({ dn: l.driver_number, ts: new Date(l.date_start).getTime() });
             });
-            const drvData: Record<number, { clean: number; dirty: number; totalTime: number }> = {};
-            drivers.forEach(d => { drvData[d.driver_number] = { clean: 0, dirty: 0, totalTime: 0 }; });
-            for (const [, entries] of Object.entries(lapsByNumber)) {
+            const drvData: Record<number, { clean: number; dirty: number }> = {};
+            drivers.forEach(d => { drvData[d.driver_number] = { clean: 0, dirty: 0 }; });
+            for (const [lapNumStr, entries] of Object.entries(lapsByNumber)) {
+              const lapNum = Number(lapNumStr);
               const sorted = entries.sort((a, b) => a.ts - b.ts);
               for (let i = 0; i < sorted.length; i++) {
-                const lap = allLaps.find(l => l.driver_number === sorted[i].dn && l.lap_number === Number(Object.keys(lapsByNumber).find(k => lapsByNumber[Number(k)] === entries)));
+                const lap = lapLookup[sorted[i].dn + "-" + lapNum];
                 if (!lap || !isCleanLap(lap, threshold)) continue;
                 const gap = i > 0 ? (sorted[i].ts - sorted[i - 1].ts) / 1000 : 999;
                 const dd = drvData[sorted[i].dn];
