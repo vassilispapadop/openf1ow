@@ -58,15 +58,16 @@ function rowBg(i: number) {
 }
 
 // Shared tooltip for hover interactions
-function useTooltip() {
+function useTooltip(externalRef?: React.RefObject<HTMLDivElement | null>) {
   const [tip, setTip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalRef = useRef<HTMLDivElement>(null);
+  const containerRef = externalRef || internalRef;
 
   const show = useCallback((e: React.MouseEvent | MouseEvent, content: React.ReactNode) => {
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     setTip({ x: (e as MouseEvent).clientX - rect.left, y: (e as MouseEvent).clientY - rect.top, content });
-  }, []);
+  }, [containerRef]);
   const hide = useCallback(() => setTip(null), []);
 
   const el = tip ? (
@@ -1070,7 +1071,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
-  const { containerRef: wxTipRef, show: wxShow, hide: wxHide, el: wxTipEl } = useTooltip();
+  const { show: wxShow, hide: wxHide, el: wxTipEl } = useTooltip(wrapRef);
   const CSS_H = 320;
 
   // Build lap-by-lap correlation: assign each lap a track temp based on closest weather reading
@@ -1306,7 +1307,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
           <div style={{ fontSize: 11, fontWeight: 600, color: "#f97316", marginBottom: 8 }}>
             Track Temperature vs Average Lap Pace
           </div>
-          <div ref={(el) => { (wrapRef as any).current = el; (wxTipRef as any).current = el; }} style={{ position: "relative" }}>
+          <div ref={wrapRef} style={{ position: "relative" }}>
             {wxTipEl}
             <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }}
               onMouseMove={(e) => {
@@ -1589,7 +1590,7 @@ function useDirtyAirData(allLaps: Lap[], drivers: Driver[], stints: Stint[]) {
 function DirtyAirTimeline({ data, totalLaps, drivers }: { data: DirtyAirDriverResult[]; totalLaps: number; drivers: Driver[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
-  const { containerRef: tipRef, show: tipShow, hide: tipHide, el: tipEl } = useTooltip();
+  const { show: tipShow, hide: tipHide, el: tipEl } = useTooltip(wrapRef);
   const ROW_H = 28;
   const TOP_PAD = 24;
   const BOT_PAD = 32;
@@ -1699,7 +1700,6 @@ function DirtyAirTimeline({ data, totalLaps, drivers }: { data: DirtyAirDriverRe
     const rect = wrap.getBoundingClientRect();
     const mx = e.clientX - rect.left;
     const my = e.clientY - rect.top;
-    const dpr = window.devicePixelRatio || 1;
     const cssW = wrap.clientWidth;
     const labelW = 52;
     const chartL = labelW + 4;
@@ -1733,7 +1733,7 @@ function DirtyAirTimeline({ data, totalLaps, drivers }: { data: DirtyAirDriverRe
   }, [data, totalLaps, drvMap, tipShow, tipHide]);
 
   return (
-    <div ref={(el) => { (wrapRef as any).current = el; (tipRef as any).current = el; }} style={{ marginBottom: 14, position: "relative" }}>
+    <div ref={wrapRef} style={{ marginBottom: 14, position: "relative" }}>
       {tipEl}
       <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }}
         onMouseMove={onHover} onMouseLeave={tipHide} />
@@ -2329,7 +2329,7 @@ function SectorAnalysis({ allLaps, drivers, viewMode }: { allLaps: Lap[]; driver
 function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
-  const { containerRef: fuelTipRef, show: fuelShow, hide: fuelHide, el: fuelTipEl } = useTooltip();
+  const { show: fuelShow, hide: fuelHide, el: fuelTipEl } = useTooltip(wrapRef);
 
   const totalRaceLaps = useMemo(() => Math.max(...allLaps.map(l => l.lap_number), 1), [allLaps]);
   const fuelPerLap = FUEL_TOTAL_KG / totalRaceLaps;
@@ -2477,7 +2477,7 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
 
   return (
     <div>
-      <div ref={(el) => { (wrapRef as any).current = el; (fuelTipRef as any).current = el; }} style={{ width: "100%", marginBottom: 16, position: "relative" }}>
+      <div ref={wrapRef} style={{ width: "100%", marginBottom: 16, position: "relative" }}>
         {fuelTipEl}
         <canvas ref={cvRef} onMouseMove={onFuelHover} onMouseLeave={fuelHide} />
       </div>
