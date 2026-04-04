@@ -5,16 +5,18 @@ import { readParams, useUrlState, type UrlParams } from "./lib/useUrlState";
 const PROXY = "https://corsproxy.io/?";
 const API = "https://api.openf1.org/v1";
 
-async function api(path) {
+async function api(path, retries = 2) {
   const urls = [
     API + path,
     PROXY + encodeURIComponent(API + path)
   ];
-  for (const url of urls) {
-    try {
-      const r = await fetch(url);
-      if (r.ok) return await r.json();
-    } catch (e) { /* try next */ }
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    for (const url of urls) {
+      try {
+        const r = await fetch(url);
+        if (r.ok) return await r.json();
+      } catch (e) { /* try next */ }
+    }
   }
   throw new Error("Failed to fetch: " + path);
 }
@@ -1079,14 +1081,12 @@ export default function App() {
           // Auto-select a specific session key from URL
           const target = d.find(s => String(s.session_key) === autoSelectSession);
           if (target) {
-            setLoading("");
             loadSession(String(target.session_key), targetDn);
           } else {
             setLoading("");
           }
         } else if (autoSelectSession && d.length) {
           const race = d.find(s => s.session_name === "Race") || d[d.length - 1];
-          setLoading("");
           loadSession(String(race.session_key));
         } else {
           setLoading("");
@@ -1104,13 +1104,11 @@ export default function App() {
         setMeetings(d);
         if (typeof autoLoad === "object" && autoLoad.mk) {
           // Restore from URL — load specific meeting/session/driver
-          setLoading("");
           loadMeeting(autoLoad.mk, autoLoad.sk || false, autoLoad.dn);
         } else if (autoLoad === true && d.length) {
           const now = new Date();
           const past = d.filter(m => m.date_start && new Date(m.date_start) < now);
           const latest = past.length ? past[past.length - 1] : d[0];
-          setLoading("");
           loadMeeting(String(latest.meeting_key), true);
         } else {
           setLoading("");
