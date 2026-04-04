@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import AIAnalysis from "./components/AIAnalysis";
 import type { Driver, Lap, Stint, Pit, Weather } from "./lib/types";
 import { median, linearSlope, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "./lib/raceUtils";
@@ -2332,6 +2332,194 @@ function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[
           </div>
         );
       })}
+      {/* Speed Trap Analysis */}
+      {(() => {
+        const threshold = computeSlowLapThreshold(allLaps);
+        const lapMap: Record<number, Lap[]> = {};
+        allLaps.forEach(l => {
+          if (!lapMap[l.driver_number]) lapMap[l.driver_number] = [];
+          lapMap[l.driver_number].push(l);
+        });
+        const speedData = drivers.map(d => {
+          const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold));
+          const speeds = { st: [] as number[], i1: [] as number[], i2: [] as number[] };
+          clean.forEach(l => {
+            if (l.st_speed != null) speeds.st.push(l.st_speed);
+            if (l.i1_speed != null) speeds.i1.push(l.i1_speed);
+            if (l.i2_speed != null) speeds.i2.push(l.i2_speed);
+          });
+          if (speeds.st.length < 3 && speeds.i1.length < 3 && speeds.i2.length < 3) return null;
+          return {
+            driver: d, color: d.team_colour || "666",
+            maxST: speeds.st.length ? Math.max(...speeds.st) : null,
+            medST: speeds.st.length ? median(speeds.st) : null,
+            maxI1: speeds.i1.length ? Math.max(...speeds.i1) : null,
+            medI1: speeds.i1.length ? median(speeds.i1) : null,
+            maxI2: speeds.i2.length ? Math.max(...speeds.i2) : null,
+            medI2: speeds.i2.length ? median(speeds.i2) : null,
+          };
+        }).filter(Boolean) as NonNullable<typeof speedData[number]>[];
+
+        if (!speedData.length || !speedData.some(s => s.medST || s.medI1 || s.medI2)) return null;
+
+        // Find which speed columns have data
+        const hasST = speedData.some(s => s.medST != null);
+        const hasI1 = speedData.some(s => s.medI1 != null);
+        const hasI2 = speedData.some(s => s.medI2 != null);
+        const cols: { key: "ST" | "I1" | "I2"; label: string; getMed: (s: typeof speedData[0]) => number | null; getMax: (s: typeof speedData[0]) => number | null; color: string }[] = [];
+        if (hasST) cols.push({ key: "ST", label: "Speed Trap", getMed: s => s.medST, getMax: s => s.maxST, color: "#e10600" });
+        if (hasI1) cols.push({ key: "I1", label: "Intermediate 1", getMed: s => s.medI1, getMax: s => s.maxI1, color: "#fbbf24" });
+        if (hasI2) cols.push({ key: "I2", label: "Intermediate 2", getMed: s => s.medI2, getMax: s => s.maxI2, color: "#a855f7" });
+
+        // Sort by highest median speed trap (or first available)
+        const sortCol = cols[0];
+        speedData.sort((a, b) => (sortCol.getMed(b) || 0) - (sortCol.getMed(a) || 0));
+
+        const topMeds = cols.map(c => Math.max(...speedData.map(s => c.getMed(s) || 0)));
+        const minMeds = cols.map(c => Math.min(...speedData.filter(s => c.getMed(s) != null).map(s => c.getMed(s)!)));
+
+        return (
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.5px", textTransform: "uppercase" as const, marginBottom: 10 }}>
+              Speed Trap Analysis (km/h)
+            </div>
+            <div style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 12 }}>
+              Median and peak speeds at each measurement point. Higher = more straight-line power or lower drag. The bar shows relative speed within the field.
+            </div>
+            <div style={{ overflow: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...sty.th, textAlign: "left" }}>Driver</th>
+                    {cols.map(c => (
+                      <th key={c.key} colSpan={2} style={{ ...sty.th, textAlign: "center", color: c.color }}>{c.label}</th>
+                    ))}
+                  </tr>
+                  <tr>
+                    <th style={{ ...sty.th }}></th>
+                    {cols.map(c => (
+                      <React.Fragment key={c.key}>
+                        <th style={{ ...sty.th, textAlign: "right", fontSize: 9 }}>Median</th>
+                        <th style={{ ...sty.th, textAlign: "right", fontSize: 9 }}>Peak</th>
+                      </React.Fragment>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {speedData.map((s, i) => (
+                    <tr key={s.driver.driver_number} style={rowBg(i)}>
+                      <td style={{ ...sty.td, borderLeft: "3px solid #" + s.color, paddingLeft: 12, fontWeight: 600 }}>
+                        {s.driver.name_acronym}
+                      </td>
+                      {cols.map((c, ci) => {
+                        const med = c.getMed(s);
+                        const max = c.getMax(s);
+                        const isTopMed = med != null && med === topMeds[ci];
+                        return (
+                          <React.Fragment key={c.key}>
+                            <td style={{ ...sty.td, ...sty.mono, textAlign: "right", position: "relative" as const }}>
+                              <div style={{
+                                position: "absolute", left: 0, top: 0, bottom: 0,
+                                width: med != null && minMeds[ci] < topMeds[ci] ? ((med - minMeds[ci]) / (topMeds[ci] - minMeds[ci]) * 100) + "%" : "0%",
+                                background: c.color, opacity: 0.08,
+                              }} />
+                              <span style={{
+                                position: "relative",
+                                fontWeight: isTopMed ? 700 : 400,
+                                color: isTopMed ? c.color : "#b0b0c0",
+                              }}>{med?.toFixed(0) ?? "—"}</span>
+                            </td>
+                            <td style={{
+                              ...sty.td, ...sty.mono, textAlign: "right",
+                              color: max != null && max === Math.max(...speedData.map(x => c.getMax(x) || 0)) ? "#22c55e" : "#5a5a6e",
+                              fontSize: 10,
+                            }}>{max?.toFixed(0) ?? "—"}</td>
+                          </React.Fragment>
+                        );
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Sector Consistency — coefficient of variation */}
+      {(() => {
+        const consistencyData = data.results.map(r => {
+          const s1Spread = r.medS1 > 0 ? ((r.medS1 - r.bestS1) / r.medS1) * 100 : 0;
+          const s2Spread = r.medS2 > 0 ? ((r.medS2 - r.bestS2) / r.medS2) * 100 : 0;
+          const s3Spread = r.medS3 > 0 ? ((r.medS3 - r.bestS3) / r.medS3) * 100 : 0;
+          const avgSpread = (s1Spread + s2Spread + s3Spread) / 3;
+          return { ...r, s1Spread, s2Spread, s3Spread, avgSpread };
+        }).sort((a, b) => a.avgSpread - b.avgSpread);
+
+        const maxSpread = Math.max(...consistencyData.map(r => Math.max(r.s1Spread, r.s2Spread, r.s3Spread)), 0.01);
+
+        return (
+          <div style={{ marginTop: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.5px", textTransform: "uppercase" as const, marginBottom: 10 }}>
+              Sector Consistency
+            </div>
+            <div style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 12 }}>
+              How much variation between a driver's best and median sector time (lower = more consistent). Consistent drivers extract more from their car; high variance suggests mistakes or inconsistent conditions.
+            </div>
+            {consistencyData.map((r, i) => (
+              <div key={r.driver.driver_number} style={{
+                display: "flex", alignItems: "center", gap: 8, marginBottom: 3, padding: "3px 0",
+              }}>
+                <div style={{
+                  width: 22, textAlign: "right", fontWeight: 800, fontSize: 11,
+                  color: podiumColor(i), fontFamily: F, flexShrink: 0,
+                }}>{i + 1}</div>
+                <div style={{
+                  width: 44, fontWeight: 700, fontSize: 11, fontFamily: F,
+                  color: "#" + r.color, flexShrink: 0,
+                }}>{r.driver.name_acronym}</div>
+                <div style={{ flex: 1, display: "flex", gap: 2, alignItems: "center" }}>
+                  {[r.s1Spread, r.s2Spread, r.s3Spread].map((spread, si) => (
+                    <div key={si} style={{ flex: 1, position: "relative", height: 14 }}>
+                      <div style={{
+                        position: "absolute", top: 0, left: 0,
+                        width: "100%", height: 14, borderRadius: 3,
+                        background: "rgba(255,255,255,0.02)",
+                      }} />
+                      <div style={{
+                        position: "absolute", top: 0, left: 0,
+                        width: Math.max(2, (spread / maxSpread) * 100) + "%",
+                        height: 14, borderRadius: 3,
+                        background: spread < 0.3 ? "rgba(34,197,94,0.4)" : spread < 0.6 ? "rgba(251,191,36,0.3)" : "rgba(239,68,68,0.35)",
+                      }} />
+                      <div style={{
+                        position: "absolute", top: 1, right: 4,
+                        fontSize: 8, fontFamily: M, fontWeight: 600,
+                        color: spread < 0.3 ? "#22c55e" : spread < 0.6 ? "#fbbf24" : "#ef4444",
+                      }}>{spread.toFixed(2)}%</div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{
+                  fontFamily: M, fontSize: 10, fontWeight: 600, flexShrink: 0, width: 48, textAlign: "right",
+                  color: r.avgSpread < 0.3 ? "#22c55e" : r.avgSpread < 0.6 ? "#fbbf24" : "#ef4444",
+                }}>
+                  {r.avgSpread.toFixed(2)}%
+                </div>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 16, marginTop: 8, fontSize: 9, color: "#5a5a6e" }}>
+              {S_NAMES.map((n, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: 2, background: S_COLORS[i], opacity: 0.6 }} />
+                  <span>{n}</span>
+                </div>
+              ))}
+              <span style={{ marginLeft: "auto" }}>Lower % = more consistent</span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
