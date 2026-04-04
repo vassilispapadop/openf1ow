@@ -60,12 +60,14 @@ const SLOW_LAP_FACTOR = 1.07;
 const DIRTY_AIR_THRESHOLD = 1.5;
 
 function median(arr: number[]): number {
+  if (!arr.length) return 0;
   const sorted = [...arr].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 function linearSlope(xs: number[], ys: number[]): number {
+  if (xs.length < 2) return 0;
   const n = xs.length;
   const xMean = xs.reduce((s, x) => s + x, 0) / n;
   const yMean = ys.reduce((s, y) => s + y, 0) / n;
@@ -77,10 +79,9 @@ function linearSlope(xs: number[], ys: number[]): number {
 function computeSlowLapThreshold(allLaps: Lap[]): number {
   const validTimes = allLaps
     .filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1)
-    .map(l => l.lap_duration!)
-    .sort((a, b) => a - b);
+    .map(l => l.lap_duration!);
   if (!validTimes.length) return Infinity;
-  return validTimes[Math.floor(validTimes.length / 2)] * SLOW_LAP_FACTOR;
+  return median(validTimes) * SLOW_LAP_FACTOR;
 }
 
 function isCleanLap(l: Lap, threshold: number): boolean {
@@ -192,7 +193,7 @@ function buildTireDegradation(allLaps: Lap[], drivers: Driver[], stints: Stint[]
   return stintRows;
 }
 
-function buildTeammateGaps(allLaps: Lap[], drivers: Driver[]) {
+function buildTeammateGaps(allLaps: Lap[], drivers: Driver[], threshold: number) {
   const teams: Record<string, Driver[]> = {};
   drivers.forEach(d => {
     const t = d.team_name || "Unknown";
@@ -210,27 +211,32 @@ function buildTeammateGaps(allLaps: Lap[], drivers: Driver[]) {
     .filter(([, ds]) => ds.length >= 2)
     .map(([team, ds]) => {
       const [d1, d2] = ds.slice(0, 2);
-      const laps1 = (lapMap[d1.driver_number] || []).filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1);
-      const laps2 = (lapMap[d2.driver_number] || []).filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1);
+      const laps1 = (lapMap[d1.driver_number] || []).filter(l => isCleanLap(l, threshold));
+      const laps2 = (lapMap[d2.driver_number] || []).filter(l => isCleanLap(l, threshold));
 
+      // Find laps where both drivers have clean times
       const l1Map: Record<number, number> = {};
       laps1.forEach(l => { l1Map[l.lap_number] = l.lap_duration!; });
-      const common: { t1: number; t2: number }[] = [];
+      const times1: number[] = [];
+      const times2: number[] = [];
       laps2.forEach(l => {
-        if (l1Map[l.lap_number]) common.push({ t1: l1Map[l.lap_number], t2: l.lap_duration! });
+        if (l1Map[l.lap_number]) {
+          times1.push(l1Map[l.lap_number]);
+          times2.push(l.lap_duration!);
+        }
       });
 
-      if (!common.length) return null;
-      const avg1 = common.reduce((s, c) => s + c.t1, 0) / common.length;
-      const avg2 = common.reduce((s, c) => s + c.t2, 0) / common.length;
-      const d1Faster = avg1 <= avg2;
+      if (times1.length < 3) return null;
+      const med1 = median(times1);
+      const med2 = median(times2);
+      const d1Faster = med1 <= med2;
 
       return {
         team,
         faster: d1Faster ? d1.name_acronym : d2.name_acronym,
         slower: d1Faster ? d2.name_acronym : d1.name_acronym,
-        gap: Math.abs(avg1 - avg2).toFixed(3) + "s",
-        commonLaps: common.length,
+        gap: Math.abs(med1 - med2).toFixed(3) + "s",
+        commonLaps: times1.length,
       };
     }).filter(Boolean);
 }
@@ -392,7 +398,7 @@ export function buildFullSummary(input: RaceSummaryInput) {
     paceRanking: buildPaceRanking(allLaps, drivers, threshold),
     constructorPace: buildConstructorPace(allLaps, drivers, threshold),
     tireDegradation: buildTireDegradation(allLaps, drivers, stints, threshold),
-    teammateGaps: buildTeammateGaps(allLaps, drivers),
+    teammateGaps: buildTeammateGaps(allLaps, drivers, threshold),
     pitStops: buildPitStops(pits, drivers),
     dirtyAir: buildDirtyAir(allLaps, drivers, stints, threshold),
     weather: buildWeatherSummary(weather),

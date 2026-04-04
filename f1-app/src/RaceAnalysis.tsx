@@ -157,12 +157,14 @@ function rowBg(i: number) {
 }
 
 function median(arr: number[]): number {
+  if (!arr.length) return 0;
   const sorted = [...arr].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
 function linearSlope(xs: number[], ys: number[]): number {
+  if (xs.length < 2) return 0;
   const n = xs.length;
   const xMean = xs.reduce((s, x) => s + x, 0) / n;
   const yMean = ys.reduce((s, y) => s + y, 0) / n;
@@ -465,10 +467,9 @@ const SLOW_LAP_FACTOR = 1.07;
 function computeSlowLapThreshold(allLaps: Lap[]): number {
   const validTimes = allLaps
     .filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1)
-    .map(l => l.lap_duration!)
-    .sort((a, b) => a - b);
+    .map(l => l.lap_duration!);
   if (!validTimes.length) return Infinity;
-  return validTimes[Math.floor(validTimes.length / 2)] * SLOW_LAP_FACTOR;
+  return median(validTimes) * SLOW_LAP_FACTOR;
 }
 
 function isCleanLap(l: Lap, threshold: number): boolean {
