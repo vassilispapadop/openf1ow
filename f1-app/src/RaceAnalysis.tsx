@@ -2136,7 +2136,9 @@ function BoxPlotChart({ rows }: {
 
 // SECTOR ANALYSIS
 
-function SectorAnalysis({ allLaps, drivers, viewMode }: { allLaps: Lap[]; drivers: Driver[]; viewMode: "list" | "graph" }) {
+function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
+  const { containerRef: secTipRef, show: secShow, hide: secHide, el: secTipEl } = useTooltip();
+
   const data = useMemo(() => {
     const threshold = computeSlowLapThreshold(allLaps);
     const lapMap: Record<number, Lap[]> = {};
@@ -2156,170 +2158,180 @@ function SectorAnalysis({ allLaps, drivers, viewMode }: { allLaps: Lap[]; driver
       const s2 = clean.map(l => l.duration_sector_2!);
       const s3 = clean.map(l => l.duration_sector_3!);
 
-      const bestS1 = Math.min(...s1);
-      const bestS2 = Math.min(...s2);
-      const bestS3 = Math.min(...s3);
-      const medS1 = median(s1);
-      const medS2 = median(s2);
-      const medS3 = median(s3);
-      const theoretical = bestS1 + bestS2 + bestS3;
-      const actualBest = Math.min(...clean.map(l => l.lap_duration!));
-
       return {
         driver: d,
         color: d.team_colour || "666",
-        bestS1, bestS2, bestS3,
-        medS1, medS2, medS3,
-        theoretical,
-        actualBest,
-        delta: actualBest - theoretical,
+        bestS1: Math.min(...s1), bestS2: Math.min(...s2), bestS3: Math.min(...s3),
+        medS1: median(s1), medS2: median(s2), medS3: median(s3),
+        theoretical: Math.min(...s1) + Math.min(...s2) + Math.min(...s3),
+        actualBest: Math.min(...clean.map(l => l.lap_duration!)),
         laps: clean.length,
       };
     }).filter(Boolean) as NonNullable<typeof results[number]>[];
 
-    results.sort((a, b) => a.theoretical - b.theoretical);
+    // Session-wide best median per sector (for delta calculations)
+    const bestMedS1 = results.length ? Math.min(...results.map(r => r.medS1)) : 0;
+    const bestMedS2 = results.length ? Math.min(...results.map(r => r.medS2)) : 0;
+    const bestMedS3 = results.length ? Math.min(...results.map(r => r.medS3)) : 0;
+    const bestBestS1 = results.length ? Math.min(...results.map(r => r.bestS1)) : 0;
+    const bestBestS2 = results.length ? Math.min(...results.map(r => r.bestS2)) : 0;
+    const bestBestS3 = results.length ? Math.min(...results.map(r => r.bestS3)) : 0;
 
-    const allBestS1 = results.length ? Math.min(...results.map(r => r.bestS1)) : 0;
-    const allBestS2 = results.length ? Math.min(...results.map(r => r.bestS2)) : 0;
-    const allBestS3 = results.length ? Math.min(...results.map(r => r.bestS3)) : 0;
+    // Per-driver: where they gain/lose relative to best median
+    const enriched = results.map(r => ({
+      ...r,
+      deltaS1: r.medS1 - bestMedS1,
+      deltaS2: r.medS2 - bestMedS2,
+      deltaS3: r.medS3 - bestMedS3,
+      totalDelta: (r.medS1 - bestMedS1) + (r.medS2 - bestMedS2) + (r.medS3 - bestMedS3),
+      // Which sector is their weakest (largest gap to best)?
+      weakest: [r.medS1 - bestMedS1, r.medS2 - bestMedS2, r.medS3 - bestMedS3].indexOf(
+        Math.max(r.medS1 - bestMedS1, r.medS2 - bestMedS2, r.medS3 - bestMedS3)
+      ),
+      // Which is their strongest?
+      strongest: [r.medS1 - bestMedS1, r.medS2 - bestMedS2, r.medS3 - bestMedS3].indexOf(
+        Math.min(r.medS1 - bestMedS1, r.medS2 - bestMedS2, r.medS3 - bestMedS3)
+      ),
+    }));
+    enriched.sort((a, b) => a.totalDelta - b.totalDelta);
 
-    return { results, allBestS1, allBestS2, allBestS3 };
+    // Sector kings: who has best median in each sector
+    const s1King = enriched.reduce((best, r) => r.medS1 < best.medS1 ? r : best, enriched[0]);
+    const s2King = enriched.reduce((best, r) => r.medS2 < best.medS2 ? r : best, enriched[0]);
+    const s3King = enriched.reduce((best, r) => r.medS3 < best.medS3 ? r : best, enriched[0]);
+
+    return { results: enriched, bestMedS1, bestMedS2, bestMedS3, bestBestS1, bestBestS2, bestBestS3, s1King, s2King, s3King };
   }, [allLaps, drivers]);
 
   if (!data.results.length) return <div style={{ color: "#5a5a6e", fontSize: 13, padding: 20 }}>No sector data</div>;
 
-  const fastest = data.results[0]?.theoretical || 0;
-
-  const { containerRef: sectorTipRef, show: sectorShow, hide: sectorHide, el: sectorTipEl } = useTooltip();
-
-  if (viewMode === "graph") {
-    const S_COLORS = ["#e10600", "#fbbf24", "#a855f7"];
-    const maxTime = Math.max(...data.results.map(r => r.bestS1 + r.bestS2 + r.bestS3));
-    const minTime = fastest * 0.985;
-    const range = maxTime - minTime;
-
-    return (
-      <div ref={sectorTipRef} style={{ position: "relative" }}>
-        {sectorTipEl}
-        <div style={{ display: "flex", gap: 16, marginBottom: 14, fontSize: 10, color: "#b0b0c0" }}>
-          {["S1", "S2", "S3"].map((label, i) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <div style={{ width: 10, height: 10, borderRadius: 2, background: S_COLORS[i] }} />
-              <span style={{ fontWeight: 600 }}>{label}</span>
-            </div>
-          ))}
-        </div>
-        {data.results.map((r, i) => {
-          const total = r.bestS1 + r.bestS2 + r.bestS3;
-          const barW = range > 0 ? ((total - minTime) / range) * 100 : 100;
-          const s1Pct = (r.bestS1 / total) * 100;
-          const s2Pct = (r.bestS2 / total) * 100;
-          const s3Pct = (r.bestS3 / total) * 100;
-          const tipContent = (
-            <div>
-              <div style={{ fontWeight: 700, color: "#" + r.color, marginBottom: 4, fontFamily: F }}>{r.driver.name_acronym}</div>
-              <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
-                <span style={{ color: "#e10600" }}>S1</span><span>{r.bestS1.toFixed(3)}</span>
-                <span style={{ color: "#fbbf24" }}>S2</span><span>{r.bestS2.toFixed(3)}</span>
-                <span style={{ color: "#a855f7" }}>S3</span><span>{r.bestS3.toFixed(3)}</span>
-                <span style={{ color: "#5a5a6e" }}>Total</span><span style={{ fontWeight: 700 }}>{ft3(total)}</span>
-                <span style={{ color: "#5a5a6e" }}>{"\u0394"}</span><span style={{ color: "#fbbf24" }}>+{r.delta.toFixed(3)}</span>
-              </div>
-            </div>
-          );
-          return (
-            <div key={r.driver.driver_number} style={{
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 6, cursor: "default",
-            }} onMouseMove={e => sectorShow(e, tipContent)} onMouseLeave={sectorHide}>
-              <div style={{
-                width: 28, textAlign: "right", fontWeight: 800, fontSize: 13,
-                color: podiumColor(i), fontFamily: F, flexShrink: 0,
-              }}>{i + 1}</div>
-              <div style={{
-                width: 48, fontWeight: 700, fontSize: 11, fontFamily: F,
-                color: "#" + r.color, flexShrink: 0,
-              }}>{r.driver.name_acronym}</div>
-              <div style={{ flex: 1, position: "relative" }}>
-                <div style={{
-                  display: "flex", height: 22, borderRadius: 4, overflow: "hidden",
-                  width: Math.max(8, barW) + "%",
-                }}>
-                  <div style={{ width: s1Pct + "%", background: S_COLORS[0], transition: "width 0.3s" }} />
-                  <div style={{ width: s2Pct + "%", background: S_COLORS[1], transition: "width 0.3s" }} />
-                  <div style={{ width: s3Pct + "%", background: S_COLORS[2], transition: "width 0.3s" }} />
-                </div>
-              </div>
-              <div style={{
-                fontFamily: M, fontSize: 11, fontWeight: 600, flexShrink: 0, width: 60, textAlign: "right",
-                color: i === 0 ? "#22c55e" : "#b0b0c0",
-              }}>
-                {ft3(total)}
-              </div>
-              <div style={{
-                fontFamily: M, fontSize: 10, fontWeight: 600, flexShrink: 0, width: 56, textAlign: "right",
-                color: i === 0 ? "#22c55e" : "#ef4444",
-              }}>
-                {i === 0 ? "—" : "+" + (total - fastest).toFixed(3)}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
+  const S_COLORS = ["#e10600", "#fbbf24", "#a855f7"];
+  const S_NAMES = ["S1", "S2", "S3"];
+  const kings = [data.s1King, data.s2King, data.s3King];
+  const maxDelta = Math.max(...data.results.map(r => Math.max(r.deltaS1, r.deltaS2, r.deltaS3)), 0.001);
 
   return (
-    <div style={{ overflow: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-        <thead>
-          <tr>
-            {["#", "Driver", "Best S1", "Best S2", "Best S3", "Theoretical", "Actual Best", "\u0394", "Gap"].map((h, i) => (
-              <th key={i} style={{ ...sty.th, textAlign: i <= 1 ? "left" : "right" }}>{h}</th>
+    <div ref={secTipRef} style={{ position: "relative" }}>
+      {secTipEl}
+
+      {/* Sector Kings */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 16 }}>
+        {kings.map((k, i) => (
+          <div key={i} style={{
+            ...sty.card, marginBottom: 0, textAlign: "center",
+            borderTop: "3px solid " + S_COLORS[i],
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 600, color: S_COLORS[i], letterSpacing: "0.5px", textTransform: "uppercase" as const }}>
+              Fastest {S_NAMES[i]}
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: "#" + k.color, fontFamily: F, margin: "4px 0" }}>
+              {k.driver.name_acronym}
+            </div>
+            <div style={{ fontSize: 12, fontFamily: M, color: "#b0b0c0" }}>
+              {[k.medS1, k.medS2, k.medS3][i].toFixed(3)}s
+            </div>
+            <div style={{ fontSize: 10, fontFamily: F, color: "#5a5a6e", marginTop: 2 }}>
+              {k.driver.team_name}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Theoretical Best Lap */}
+      {(() => {
+        const theoKing = data.results.reduce((best, r) => r.theoretical < best.theoretical ? r : best, data.results[0]);
+        return (
+          <div style={{ ...sty.card, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 18px" }}>
+            <div>
+              <div style={sty.statLabel}>Theoretical Best Lap</div>
+              <div style={{ fontSize: 10, color: "#5a5a6e" }}>Sum of best S1 + S2 + S3 across all drivers</div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: 20, fontWeight: 800, fontFamily: M, color: "#22c55e" }}>{ft3(data.bestBestS1 + data.bestBestS2 + data.bestBestS3)}</div>
+              <div style={{ fontSize: 10, color: "#5a5a6e" }}>
+                {data.bestBestS1.toFixed(3)} + {data.bestBestS2.toFixed(3)} + {data.bestBestS3.toFixed(3)}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Where Each Driver Gains/Loses — the main insight */}
+      <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.5px", textTransform: "uppercase" as const, marginBottom: 10 }}>
+        Sector Delta to Best (Median Pace)
+      </div>
+      <div style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 12 }}>
+        How much time each driver loses per sector vs. the session-best median. Green = competitive, red = losing time. The bar shows where to find lap time.
+      </div>
+
+      {data.results.map((r, i) => {
+        const deltas = [r.deltaS1, r.deltaS2, r.deltaS3];
+        return (
+          <div key={r.driver.driver_number} style={{
+            display: "flex", alignItems: "center", gap: 8, marginBottom: 4, padding: "4px 0", cursor: "default",
+          }}
+            onMouseMove={e => secShow(e, (
+              <div>
+                <div style={{ fontWeight: 700, color: "#" + r.color, marginBottom: 4, fontFamily: F }}>{r.driver.full_name}</div>
+                <div style={{ display: "grid", gridTemplateColumns: "auto auto auto auto", gap: "3px 10px", fontSize: 10 }}>
+                  <span></span><span style={{ color: "#5a5a6e", fontWeight: 600 }}>Median</span><span style={{ color: "#5a5a6e", fontWeight: 600 }}>Best</span><span style={{ color: "#5a5a6e", fontWeight: 600 }}>Delta</span>
+                  <span style={{ color: S_COLORS[0] }}>S1</span><span>{r.medS1.toFixed(3)}</span><span>{r.bestS1.toFixed(3)}</span><span style={{ color: r.deltaS1 < 0.05 ? "#22c55e" : "#ef4444" }}>+{r.deltaS1.toFixed(3)}</span>
+                  <span style={{ color: S_COLORS[1] }}>S2</span><span>{r.medS2.toFixed(3)}</span><span>{r.bestS2.toFixed(3)}</span><span style={{ color: r.deltaS2 < 0.05 ? "#22c55e" : "#ef4444" }}>+{r.deltaS2.toFixed(3)}</span>
+                  <span style={{ color: S_COLORS[2] }}>S3</span><span>{r.medS3.toFixed(3)}</span><span>{r.bestS3.toFixed(3)}</span><span style={{ color: r.deltaS3 < 0.05 ? "#22c55e" : "#ef4444" }}>+{r.deltaS3.toFixed(3)}</span>
+                  <span style={{ color: "#5a5a6e" }}>Total</span><span style={{ fontWeight: 700 }}>{ft3(r.medS1 + r.medS2 + r.medS3)}</span><span>{ft3(r.theoretical)}</span><span style={{ fontWeight: 700, color: "#ef4444" }}>+{r.totalDelta.toFixed(3)}</span>
+                </div>
+              </div>
             ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.results.map((r, i) => (
-            <tr key={r.driver.driver_number} style={rowBg(i)}>
-              <td style={{ ...sty.td, fontWeight: 800, fontSize: 14, color: podiumColor(i) }}>{i + 1}</td>
-              <td style={{ ...sty.td, borderLeft: "3px solid #" + r.color, paddingLeft: 12, fontWeight: 600 }}>
-                <span style={{ color: "#5a5a6e", marginRight: 6, fontSize: 11 }}>#{r.driver.driver_number}</span>
-                {r.driver.full_name}
-              </td>
-              <td style={{
-                ...sty.td, ...sty.mono, textAlign: "right",
-                color: r.bestS1 === data.allBestS1 ? "#a855f7" : "#b0b0c0",
-                fontWeight: r.bestS1 === data.allBestS1 ? 700 : 400,
-              }}>{r.bestS1.toFixed(3)}</td>
-              <td style={{
-                ...sty.td, ...sty.mono, textAlign: "right",
-                color: r.bestS2 === data.allBestS2 ? "#a855f7" : "#b0b0c0",
-                fontWeight: r.bestS2 === data.allBestS2 ? 700 : 400,
-              }}>{r.bestS2.toFixed(3)}</td>
-              <td style={{
-                ...sty.td, ...sty.mono, textAlign: "right",
-                color: r.bestS3 === data.allBestS3 ? "#a855f7" : "#b0b0c0",
-                fontWeight: r.bestS3 === data.allBestS3 ? 700 : 400,
-              }}>{r.bestS3.toFixed(3)}</td>
-              <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700, color: "#22c55e" }}>
-                {ft3(r.theoretical)}
-              </td>
-              <td style={{ ...sty.td, ...sty.mono, textAlign: "right" }}>
-                {ft3(r.actualBest)}
-              </td>
-              <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#fbbf24", fontSize: 11 }}>
-                +{r.delta.toFixed(3)}
-              </td>
-              <td style={{
-                ...sty.td, ...sty.mono, textAlign: "right",
-                color: i === 0 ? "#22c55e" : "#ef4444", fontWeight: 600,
-              }}>
-                {i === 0 ? "—" : "+" + (r.theoretical - fastest).toFixed(3) + "s"}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+            onMouseLeave={secHide}>
+            <div style={{
+              width: 22, textAlign: "right", fontWeight: 800, fontSize: 12,
+              color: podiumColor(i), fontFamily: F, flexShrink: 0,
+            }}>{i + 1}</div>
+            <div style={{
+              width: 44, fontWeight: 700, fontSize: 11, fontFamily: F,
+              color: "#" + r.color, flexShrink: 0,
+            }}>{r.driver.name_acronym}</div>
+            {/* Three delta bars side by side */}
+            <div style={{ flex: 1, display: "flex", gap: 3, alignItems: "center" }}>
+              {deltas.map((d, si) => {
+                const pct = maxDelta > 0 ? (d / maxDelta) * 100 : 0;
+                const isStrong = si === r.strongest;
+                return (
+                  <div key={si} style={{ flex: 1, position: "relative", height: 18 }}>
+                    <div style={{
+                      position: "absolute", top: 0, left: 0,
+                      width: "100%", height: 18, borderRadius: 3,
+                      background: "rgba(255,255,255,0.02)",
+                    }} />
+                    <div style={{
+                      position: "absolute", top: 0, left: 0,
+                      width: Math.max(2, Math.min(100, pct)) + "%",
+                      height: 18, borderRadius: 3,
+                      background: d < 0.05 ? "rgba(34,197,94,0.4)" : d < 0.15 ? "rgba(251,191,36,0.3)" : "rgba(239,68,68,0.35)",
+                      transition: "width 0.3s",
+                    }} />
+                    <div style={{
+                      position: "absolute", top: 1, left: 4,
+                      fontSize: 8, fontWeight: 600, color: S_COLORS[si], opacity: 0.6,
+                    }}>{S_NAMES[si]}</div>
+                    <div style={{
+                      position: "absolute", top: 2, right: 4,
+                      fontSize: 9, fontWeight: isStrong ? 700 : 500, fontFamily: M,
+                      color: d < 0.05 ? "#22c55e" : d < 0.15 ? "#fbbf24" : "#ef4444",
+                    }}>+{d.toFixed(3)}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{
+              fontFamily: M, fontSize: 10, fontWeight: 600, flexShrink: 0, width: 56, textAlign: "right",
+              color: i === 0 ? "#22c55e" : "#ef4444",
+            }}>
+              {i === 0 ? "leader" : "+" + r.totalDelta.toFixed(3)}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -2694,14 +2706,11 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
 
       {subTab === "sectors" && (
         <div style={sty.card}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
-            <span style={sty.sectionHead}>Sector Analysis</span>
-            <ViewToggle mode={viewMode} onChange={setViewMode} />
-          </div>
+          <div style={{ ...sty.sectionHead, marginBottom: 14 }}>Sector Analysis</div>
           <p style={{ fontSize: 11, color: "#5a5a6e", marginBottom: 12, lineHeight: 1.5 }}>
-            Best sector times per driver and theoretical best lap (sum of best S1 + S2 + S3). The delta (\u0394) shows the gap between a driver's actual best lap and their theoretical best — a smaller delta means more consistent peak performance.
+            Where does each driver gain or lose time? Compares median sector pace to the session best. Hover any row for full breakdown including best times and theoretical lap.
           </p>
-          <SectorAnalysis allLaps={allLaps} drivers={drivers} viewMode={viewMode} />
+          <SectorAnalysis allLaps={allLaps} drivers={drivers} />
         </div>
       )}
 
