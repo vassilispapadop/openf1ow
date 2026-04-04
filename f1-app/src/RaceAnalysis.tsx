@@ -3,6 +3,7 @@ import AIAnalysis from "./components/AIAnalysis";
 import type { Driver, Lap, Stint, Pit, Weather } from "./lib/types";
 import { median, linearSlope, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "./lib/raceUtils";
 import { F, M, sty } from "./lib/styles";
+import { buildFullSummary } from "./lib/buildAnalysisSummary";
 
 const PROXY = "https://corsproxy.io/?";
 const API = "https://api.openf1.org/v1";
@@ -2009,6 +2010,270 @@ function BoxPlotChart({ rows }: {
   );
 }
 
+// SECTOR ANALYSIS
+
+function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
+  const data = useMemo(() => {
+    const threshold = computeSlowLapThreshold(allLaps);
+    const lapMap: Record<number, Lap[]> = {};
+    allLaps.forEach(l => {
+      if (!lapMap[l.driver_number]) lapMap[l.driver_number] = [];
+      lapMap[l.driver_number].push(l);
+    });
+
+    const results = drivers.map(d => {
+      const clean = (lapMap[d.driver_number] || []).filter(l =>
+        isCleanLap(l, threshold) &&
+        l.duration_sector_1 != null && l.duration_sector_2 != null && l.duration_sector_3 != null
+      );
+      if (clean.length < 3) return null;
+
+      const s1 = clean.map(l => l.duration_sector_1!);
+      const s2 = clean.map(l => l.duration_sector_2!);
+      const s3 = clean.map(l => l.duration_sector_3!);
+
+      const bestS1 = Math.min(...s1);
+      const bestS2 = Math.min(...s2);
+      const bestS3 = Math.min(...s3);
+      const medS1 = median(s1);
+      const medS2 = median(s2);
+      const medS3 = median(s3);
+      const theoretical = bestS1 + bestS2 + bestS3;
+      const actualBest = Math.min(...clean.map(l => l.lap_duration!));
+
+      return {
+        driver: d,
+        color: d.team_colour || "666",
+        bestS1, bestS2, bestS3,
+        medS1, medS2, medS3,
+        theoretical,
+        actualBest,
+        delta: actualBest - theoretical,
+        laps: clean.length,
+      };
+    }).filter(Boolean) as NonNullable<typeof results[number]>[];
+
+    results.sort((a, b) => a.theoretical - b.theoretical);
+
+    // Session-wide best sectors
+    const allBestS1 = results.length ? Math.min(...results.map(r => r.bestS1)) : 0;
+    const allBestS2 = results.length ? Math.min(...results.map(r => r.bestS2)) : 0;
+    const allBestS3 = results.length ? Math.min(...results.map(r => r.bestS3)) : 0;
+
+    return { results, allBestS1, allBestS2, allBestS3 };
+  }, [allLaps, drivers]);
+
+  if (!data.results.length) return <div style={{ color: "#5a5a6e", fontSize: 13, padding: 20 }}>No sector data</div>;
+
+  const fastest = data.results[0]?.theoretical || 0;
+
+  return (
+    <div style={{ overflow: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <thead>
+          <tr>
+            {["#", "Driver", "Best S1", "Best S2", "Best S3", "Theoretical", "Actual Best", "\u0394", "Gap"].map((h, i) => (
+              <th key={i} style={{ ...sty.th, textAlign: i <= 1 ? "left" : "right" }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.results.map((r, i) => (
+            <tr key={r.driver.driver_number} style={rowBg(i)}>
+              <td style={{ ...sty.td, fontWeight: 800, fontSize: 14, color: podiumColor(i) }}>{i + 1}</td>
+              <td style={{ ...sty.td, borderLeft: "3px solid #" + r.color, paddingLeft: 12, fontWeight: 600 }}>
+                <span style={{ color: "#5a5a6e", marginRight: 6, fontSize: 11 }}>#{r.driver.driver_number}</span>
+                {r.driver.full_name}
+              </td>
+              <td style={{
+                ...sty.td, ...sty.mono, textAlign: "right",
+                color: r.bestS1 === data.allBestS1 ? "#a855f7" : "#b0b0c0",
+                fontWeight: r.bestS1 === data.allBestS1 ? 700 : 400,
+              }}>{r.bestS1.toFixed(3)}</td>
+              <td style={{
+                ...sty.td, ...sty.mono, textAlign: "right",
+                color: r.bestS2 === data.allBestS2 ? "#a855f7" : "#b0b0c0",
+                fontWeight: r.bestS2 === data.allBestS2 ? 700 : 400,
+              }}>{r.bestS2.toFixed(3)}</td>
+              <td style={{
+                ...sty.td, ...sty.mono, textAlign: "right",
+                color: r.bestS3 === data.allBestS3 ? "#a855f7" : "#b0b0c0",
+                fontWeight: r.bestS3 === data.allBestS3 ? 700 : 400,
+              }}>{r.bestS3.toFixed(3)}</td>
+              <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700, color: "#22c55e" }}>
+                {ft3(r.theoretical)}
+              </td>
+              <td style={{ ...sty.td, ...sty.mono, textAlign: "right" }}>
+                {ft3(r.actualBest)}
+              </td>
+              <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#fbbf24", fontSize: 11 }}>
+                +{r.delta.toFixed(3)}
+              </td>
+              <td style={{
+                ...sty.td, ...sty.mono, textAlign: "right",
+                color: i === 0 ? "#22c55e" : "#ef4444", fontWeight: 600,
+              }}>
+                {i === 0 ? "—" : "+" + (r.theoretical - fastest).toFixed(3) + "s"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// FUEL CONSUMPTION VISUALIZATION
+
+function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const cvRef = useRef<HTMLCanvasElement>(null);
+
+  const totalRaceLaps = useMemo(() => Math.max(...allLaps.map(l => l.lap_number), 1), [allLaps]);
+  const fuelPerLap = FUEL_TOTAL_KG / totalRaceLaps;
+  const fuelCorrectionPerLap = fuelPerLap * FUEL_SEC_PER_KG;
+
+  useEffect(() => {
+    const cv = cvRef.current;
+    const wrap = wrapRef.current;
+    if (!cv || !wrap) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = wrap.clientWidth;
+    const cssH = 300;
+    cv.width = cssW * dpr;
+    cv.height = cssH * dpr;
+    cv.style.width = cssW + "px";
+    cv.style.height = cssH + "px";
+    const ctx = cv.getContext("2d")!;
+    ctx.scale(dpr, dpr);
+
+    const LEFT = 60;
+    const RIGHT = 16;
+    const TOP = 20;
+    const BOT = 36;
+    const plotW = cssW - LEFT - RIGHT;
+    const plotH = cssH - TOP - BOT;
+
+    // Background
+    ctx.fillStyle = "rgba(10,10,20,0.5)";
+    ctx.fillRect(0, 0, cssW, cssH);
+
+    // Axes
+    ctx.strokeStyle = "rgba(255,255,255,0.08)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(LEFT, TOP);
+    ctx.lineTo(LEFT, TOP + plotH);
+    ctx.lineTo(LEFT + plotW, TOP + plotH);
+    ctx.stroke();
+
+    // Y-axis: fuel (0 to 110 kg)
+    const maxFuel = FUEL_TOTAL_KG;
+    ctx.fillStyle = "#5a5a6e";
+    ctx.font = "10px 'JetBrains Mono', monospace";
+    ctx.textAlign = "right";
+    for (let kg = 0; kg <= maxFuel; kg += 20) {
+      const y = TOP + plotH - (kg / maxFuel) * plotH;
+      ctx.fillText(kg + " kg", LEFT - 6, y + 3);
+      ctx.strokeStyle = "rgba(255,255,255,0.04)";
+      ctx.beginPath();
+      ctx.moveTo(LEFT, y);
+      ctx.lineTo(LEFT + plotW, y);
+      ctx.stroke();
+    }
+
+    // X-axis: laps
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#5a5a6e";
+    const step = totalRaceLaps > 50 ? 10 : totalRaceLaps > 20 ? 5 : 2;
+    for (let lap = 0; lap <= totalRaceLaps; lap += step) {
+      const x = LEFT + (lap / totalRaceLaps) * plotW;
+      ctx.fillText("L" + lap, x, TOP + plotH + 16);
+    }
+
+    // Fuel load curve
+    ctx.strokeStyle = "#e10600";
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let lap = 0; lap <= totalRaceLaps; lap++) {
+      const fuel = maxFuel - lap * fuelPerLap;
+      const x = LEFT + (lap / totalRaceLaps) * plotW;
+      const y = TOP + plotH - (fuel / maxFuel) * plotH;
+      if (lap === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Time correction curve (right y-axis, mapped to 0 - max correction seconds)
+    const maxCorrection = totalRaceLaps * fuelCorrectionPerLap;
+    ctx.strokeStyle = "#a855f7";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    for (let lap = 0; lap <= totalRaceLaps; lap++) {
+      const correction = lap * fuelCorrectionPerLap;
+      const x = LEFT + (lap / totalRaceLaps) * plotW;
+      const y = TOP + plotH - (correction / maxCorrection) * plotH;
+      if (lap === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Right y-axis labels (time gain)
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#a855f7";
+    for (let s = 0; s <= maxCorrection; s += Math.ceil(maxCorrection / 5)) {
+      const y = TOP + plotH - (s / maxCorrection) * plotH;
+      ctx.fillText(s.toFixed(1) + "s", LEFT + plotW + 4, y + 3);
+    }
+
+    // Legend
+    ctx.font = "11px 'Inter', sans-serif";
+    const legendY = TOP + 8;
+    ctx.fillStyle = "#e10600";
+    ctx.fillRect(LEFT + 10, legendY - 4, 16, 3);
+    ctx.fillStyle = "#b0b0c0";
+    ctx.textAlign = "left";
+    ctx.fillText("Fuel Load (kg)", LEFT + 32, legendY);
+
+    ctx.strokeStyle = "#a855f7";
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(LEFT + 150, legendY - 3);
+    ctx.lineTo(LEFT + 166, legendY - 3);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#b0b0c0";
+    ctx.fillText("Cumulative Time Gain (s)", LEFT + 172, legendY);
+
+  }, [totalRaceLaps, fuelPerLap, fuelCorrectionPerLap]);
+
+  return (
+    <div>
+      <div ref={wrapRef} style={{ width: "100%", marginBottom: 16 }}>
+        <canvas ref={cvRef} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>
+        {[
+          { label: "Total Fuel", value: FUEL_TOTAL_KG + " kg", color: "#e10600" },
+          { label: "Race Laps", value: String(totalRaceLaps), color: "#b0b0c0" },
+          { label: "Fuel per Lap", value: fuelPerLap.toFixed(2) + " kg", color: "#b0b0c0" },
+          { label: "Time per kg", value: FUEL_SEC_PER_KG + " s/kg", color: "#b0b0c0" },
+          { label: "Time per Lap (fuel)", value: fuelCorrectionPerLap.toFixed(4) + " s", color: "#a855f7" },
+          { label: "Total Time Gain", value: (totalRaceLaps * fuelCorrectionPerLap).toFixed(1) + " s", color: "#22c55e" },
+        ].map(({ label, value, color }) => (
+          <div key={label} style={{
+            background: "rgba(10,14,20,0.5)", borderRadius: 8, padding: "10px 14px",
+          }}>
+            <div style={sty.statLabel}>{label}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, fontFamily: M, color }}>{value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 //MAIN RACE ANALYSIS COMPONENT
 
 export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [] }: {
@@ -2114,7 +2379,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   return (
     <div>
       {/* Summary stats */}
-      <div style={{ ...sty.card, display: "flex", justifyContent: "space-around", padding: "14px 18px" }}>
+      <div style={{ ...sty.card, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "14px 18px" }}>
         {([
           ["Drivers", driverCount],
           ["Total Laps", allLaps.length],
@@ -2126,6 +2391,32 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             <div style={{ fontSize: 18, fontWeight: 700, fontFamily: M }}>{val}</div>
           </div>
         ))}
+        <button onClick={() => {
+          const summary = buildFullSummary({
+            allLaps, drivers, stints: allStints, pits: allPits, weather,
+            raceControl, results,
+          });
+          const blob = new Blob([JSON.stringify(summary, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "race-analysis-" + sessionKey + ".json";
+          a.click();
+          URL.revokeObjectURL(url);
+        }} style={{
+          background: "rgba(255,255,255,0.06)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          color: "#b0b0c0",
+          cursor: "pointer",
+          borderRadius: 6,
+          padding: "6px 12px",
+          fontSize: 10,
+          fontWeight: 600,
+          fontFamily: F,
+          whiteSpace: "nowrap" as const,
+        }} title="Download race analysis data as JSON">
+          Export JSON
+        </button>
       </div>
 
       {/* Sub-tabs */}
@@ -2133,9 +2424,11 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         {([
           ["ai", "\u2728 AI Analysis"],
           ["pace", "Race Pace"],
+          ["sectors", "Sectors"],
           ["constructors", "Constructors"],
           ["evolution", "Lap Evolution"],
           ["degradation", "Tire Deg"],
+          ["fuel", "Fuel"],
           ["dirtyair", "Dirty Air"],
           ["teammates", "Teammates"],
           ["pitstops", "Pit Stops"],
@@ -2168,6 +2461,26 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Who was genuinely fastest on track? Each driver's median lap time on normal racing laps — slow laps (safety car, traffic, mistakes) are filtered out so you see true race speed.
           </p>
           <RacePaceRanking allLaps={allLaps} drivers={drivers} viewMode={viewMode} />
+        </div>
+      )}
+
+      {subTab === "sectors" && (
+        <div style={sty.card}>
+          <div style={{ ...sty.sectionHead, marginBottom: 14 }}>Sector Analysis</div>
+          <p style={{ fontSize: 11, color: "#5a5a6e", marginBottom: 12, lineHeight: 1.5 }}>
+            Best sector times per driver and theoretical best lap (sum of best S1 + S2 + S3). The delta (\u0394) shows the gap between a driver's actual best lap and their theoretical best — a smaller delta means more consistent peak performance.
+          </p>
+          <SectorAnalysis allLaps={allLaps} drivers={drivers} />
+        </div>
+      )}
+
+      {subTab === "fuel" && (
+        <div style={sty.card}>
+          <div style={{ ...sty.sectionHead, marginBottom: 14 }}>Fuel Consumption Model</div>
+          <p style={{ fontSize: 11, color: "#5a5a6e", marginBottom: 12, lineHeight: 1.5 }}>
+            F1 cars start with ~110kg of fuel. As fuel burns off, the car gets lighter and faster — about 0.055s per kg per lap. The chart shows estimated fuel load and cumulative time gained from fuel burn-off over the race distance.
+          </p>
+          <FuelVisualization allLaps={allLaps} drivers={drivers} />
         </div>
       )}
 
