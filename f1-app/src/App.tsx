@@ -48,27 +48,28 @@ const DRS_ELIGIBLE = 8;
 const sty = {
   bg: {
     fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif",
-    background: "linear-gradient(180deg, #08080f 0%, #0a0a16 40%, #0c0c18 100%)",
+    background: "#050508",
     color: "#e8e8ec",
     minHeight: "100vh",
     padding: 0,
+    position: "relative" as const,
   },
   card: {
-    background: "rgba(18, 18, 30, 0.7)",
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 10,
-    border: "1px solid rgba(255,255,255,0.06)",
-    transition: "border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease",
+    background: "rgba(12, 12, 24, 0.8)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 12,
+    border: "1px solid rgba(255,255,255,0.05)",
+    transition: "border-color 0.3s ease, box-shadow 0.3s ease",
   },
   sel: {
-    background: "rgba(20, 20, 36, 0.9)",
+    background: "rgba(16, 16, 32, 0.95)",
     color: "#e0e0e6",
-    border: "1px solid rgba(255,255,255,0.08)",
-    borderRadius: 8,
-    padding: "10px 32px 10px 12px",
+    border: "1px solid rgba(255,255,255,0.06)",
+    borderRadius: 10,
+    padding: "11px 36px 11px 14px",
     fontSize: 13,
     cursor: "pointer",
     fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif",
@@ -79,47 +80,50 @@ const sty = {
     WebkitAppearance: "none" as const,
     backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23e10600'/%3E%3C/svg%3E\")",
     backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 12px center",
+    backgroundPosition: "right 14px center",
   },
   th: {
-    padding: "8px 10px",
-    borderBottom: "1px solid rgba(255,255,255,0.06)",
-    color: "#5a5a6e",
+    padding: "10px 12px",
+    borderBottom: "1px solid rgba(255,255,255,0.05)",
+    color: "#4a4a62",
     textAlign: "left" as const,
     position: "sticky" as const,
     top: 0,
-    background: "rgba(18, 18, 30, 0.97)",
+    background: "rgba(12, 12, 24, 0.98)",
     fontSize: 10,
-    fontWeight: 600,
+    fontWeight: 700,
     textTransform: "uppercase" as const,
-    letterSpacing: "0.5px",
+    letterSpacing: "0.8px",
     fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif",
     backdropFilter: "blur(12px)",
   },
   td: {
-    padding: "8px 10px",
-    borderBottom: "1px solid rgba(255,255,255,0.03)",
+    padding: "10px 12px",
+    borderBottom: "1px solid rgba(255,255,255,0.025)",
     transition: "background 0.15s ease",
   },
   mono: {
     fontFamily: "'JetBrains Mono','SF Mono','Cascadia Code','Consolas',monospace",
   },
   err: {
-    background: "rgba(220, 38, 38, 0.12)",
-    border: "1px solid rgba(220, 38, 38, 0.2)",
-    padding: "12px 16px",
-    borderRadius: 10,
-    marginBottom: 10,
+    background: "rgba(220, 38, 38, 0.1)",
+    border: "1px solid rgba(220, 38, 38, 0.15)",
+    padding: "14px 18px",
+    borderRadius: 12,
+    marginBottom: 12,
     fontSize: 13,
     color: "#fca5a5",
     animation: "fadeInUp 0.3s ease-out",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
   },
   sectionHead: {
     fontSize: 12,
     fontWeight: 700,
-    color: "rgba(255,255,255,0.5)",
+    color: "rgba(255,255,255,0.45)",
     textTransform: "uppercase" as const,
-    letterSpacing: "1px",
+    letterSpacing: "1.2px",
   },
 };
 
@@ -135,22 +139,24 @@ function Tab({ active, onClick, children }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        padding: "7px 16px",
+        padding: "8px 18px",
         border: "none",
         cursor: "pointer",
-        fontSize: 11,
-        fontWeight: 600,
+        fontSize: 10,
+        fontWeight: 700,
         fontFamily: F,
         textTransform: "uppercase" as const,
-        letterSpacing: "0.5px",
+        letterSpacing: "0.8px",
         whiteSpace: "nowrap" as const,
-        borderRadius: 20,
-        background: active ? "#e10600" : hovered ? "rgba(225,6,0,0.1)" : "transparent",
-        color: active ? "#fff" : hovered ? "#e8e8ec" : "#6a6a7e",
-        transition: "all 0.2s ease",
+        borderRadius: 8,
+        background: active
+          ? "linear-gradient(135deg, #e10600, #b80500)"
+          : hovered ? "rgba(225,6,0,0.08)" : "rgba(255,255,255,0.02)",
+        color: active ? "#fff" : hovered ? "#e8e8ec" : "#5a5a6e",
+        transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
         outline: "none",
-        boxShadow: active ? "0 0 12px rgba(225,6,0,0.3)" : "none",
-        transform: active ? "scale(1)" : hovered ? "scale(1.02)" : "scale(1)",
+        boxShadow: active ? "0 2px 12px rgba(225,6,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)" : "none",
+        border: active ? "none" : "1px solid transparent",
       }}>{children}</button>
   );
 }
@@ -1285,92 +1291,72 @@ export default function App() {
 
   return (
     <div style={sty.bg}>
+      {/* Background ambient glow */}
+      <div style={{
+        position: "fixed", top: 0, left: 0, right: 0, height: "100vh", zIndex: 0, pointerEvents: "none" as const,
+        background: "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(225,6,0,0.06) 0%, transparent 60%)",
+      }} />
+
       {/* ====== HEADER BAR ====== */}
       <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        padding: "12px 24px",
-        borderBottom: "1px solid rgba(255,255,255,0.06)",
-        background: "rgba(8,8,15,0.85)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        position: "sticky" as const,
-        top: 0,
-        zIndex: 100,
+        position: "sticky" as const, top: 0, zIndex: 100,
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
-          <div style={{ position: "relative", display: "flex", alignItems: "baseline" }}>
-            <span style={{
-              fontSize: 24,
-              fontWeight: 800,
-              color: "#e8e8ec",
-              letterSpacing: "-0.5px",
-              fontFamily: F,
-            }}>Open</span>
-            <span style={{
-              fontSize: 24,
-              fontWeight: 800,
-              color: "#e10600",
-              letterSpacing: "-0.5px",
-              fontFamily: F,
-              textShadow: "0 0 20px rgba(225,6,0,0.3)",
-            }}>F1</span>
-            <span style={{
-              fontSize: 24,
-              fontWeight: 800,
-              color: "#e8e8ec",
-              letterSpacing: "-0.5px",
-              fontFamily: F,
-            }}>ow</span>
-            <div style={{
-              position: "absolute",
-              bottom: -2,
-              left: 0,
-              width: "100%",
-              height: 3,
-              background: "linear-gradient(90deg, rgba(255,255,255,0.1), #e10600, rgba(255,255,255,0.1))",
-              borderRadius: 2,
-              boxShadow: "0 0 8px rgba(225,6,0,0.3)",
-            }} />
+        {/* Racing stripe accent line */}
+        <div style={{
+          height: 2,
+          background: "linear-gradient(90deg, transparent, #e10600 20%, #e10600 80%, transparent)",
+          boxShadow: "0 0 12px rgba(225,6,0,0.4), 0 0 30px rgba(225,6,0,0.15)",
+        }} />
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "14px 28px",
+          background: "rgba(5,5,8,0.9)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          borderBottom: "1px solid rgba(255,255,255,0.04)",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
+              <span style={{ fontSize: 26, fontWeight: 800, color: "#e8e8ec", letterSpacing: "-0.5px", fontFamily: F }}>Open</span>
+              <span style={{ fontSize: 26, fontWeight: 800, color: "#e10600", letterSpacing: "-0.5px", fontFamily: F, textShadow: "0 0 24px rgba(225,6,0,0.4)" }}>F1</span>
+              <span style={{ fontSize: 26, fontWeight: 800, color: "#e8e8ec", letterSpacing: "-0.5px", fontFamily: F }}>ow</span>
+            </div>
+            {mk && meetings.length > 0 && (
+              <div className="fade-in hide-mobile" style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "5px 14px",
+                background: "rgba(255,255,255,0.03)",
+                borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.04)",
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: "#b0b0c0", fontFamily: F }}>
+                  {meetings.find(m => String(m.meeting_key) === mk)?.location || ""}
+                </span>
+                {sk && sessions.length > 0 && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#e10600", fontFamily: M }}>
+                    {sessions.find(s => String(s.session_key) === sk)?.session_name || ""}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {/* Live indicator dot */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#e10600", animation: "livePulse 2s ease-in-out infinite" }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "1.5px", fontFamily: M, textTransform: "uppercase" as const }}>LIVE</span>
+            </div>
             <div style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: "#e10600",
-              animation: "livePulse 2s ease-in-out infinite",
-            }} />
-            <span style={{
-              fontSize: 9,
-              fontWeight: 700,
-              color: "rgba(255,255,255,0.35)",
-              letterSpacing: "1.5px",
-              fontFamily: M,
-              textTransform: "uppercase" as const,
-            }}>LIVE DATA</span>
+              fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.2)", letterSpacing: "1.2px",
+              textTransform: "uppercase" as const, padding: "5px 12px",
+              border: "1px solid rgba(255,255,255,0.05)", borderRadius: 6, fontFamily: M,
+              background: "rgba(255,255,255,0.02)",
+            }}>OpenF1 API</div>
           </div>
-          <div style={{
-            fontSize: 9,
-            fontWeight: 600,
-            color: "rgba(255,255,255,0.25)",
-            letterSpacing: "1px",
-            textTransform: "uppercase" as const,
-            padding: "4px 10px",
-            border: "1px solid rgba(255,255,255,0.06)",
-            borderRadius: 6,
-            fontFamily: M,
-            background: "rgba(255,255,255,0.02)",
-          }}>OpenF1 API</div>
         </div>
       </div>
 
       {/* ====== MAIN CONTENT ====== */}
-      <div style={{ padding: "16px 24px" }}>
+      <div style={{ padding: "20px 28px", position: "relative" as const, zIndex: 1 }}>
 
         {error && (
           <div style={sty.err}>
@@ -1407,13 +1393,14 @@ export default function App() {
         )}
 
         {/* ====== SELECTOR BAR ====== */}
-        <div className="fade-in-up" style={{
+        <div className="fade-in-up card-glow" style={{
           ...sty.card,
           display: "flex",
           alignItems: "flex-end",
           gap: 0,
           padding: 0,
           overflow: "hidden",
+          borderTop: "1px solid rgba(225,6,0,0.08)",
         }}>
           {/* Year */}
           <div style={{ flex: 0.4, padding: "14px 18px", borderRight: "1px solid rgba(255,255,255,0.04)" }}>
@@ -1474,33 +1461,34 @@ export default function App() {
         {drivers.length > 0 && !loading && (
           <div style={{
             display: "inline-flex",
-            gap: 0,
-            marginBottom: 14,
-            background: "rgba(255,255,255,0.03)",
-            borderRadius: 10,
+            gap: 2,
+            marginBottom: 16,
+            background: "rgba(12,12,24,0.6)",
+            borderRadius: 12,
             padding: 3,
-            border: "1px solid rgba(255,255,255,0.06)",
+            border: "1px solid rgba(255,255,255,0.05)",
+            backdropFilter: "blur(12px)",
           }}>
             {[
               { label: "Driver View", active: !showAnalysis, onClick: () => setShowAnalysis(false) },
               { label: "Race Analysis", active: showAnalysis, onClick: () => setShowAnalysis(true) },
             ].map((btn) => (
               <button key={btn.label} onClick={btn.onClick} style={{
-                padding: "8px 22px",
+                padding: "9px 26px",
                 border: "none",
-                borderRadius: 8,
+                borderRadius: 10,
                 background: btn.active
-                  ? "linear-gradient(135deg, #e10600, #c20500)"
+                  ? "linear-gradient(135deg, #e10600 0%, #b80500 100%)"
                   : "transparent",
-                color: btn.active ? "#fff" : "#6a6a7e",
+                color: btn.active ? "#fff" : "#5a5a6e",
                 fontSize: 11,
                 fontWeight: 700,
                 cursor: "pointer",
                 fontFamily: F,
-                transition: "all 0.25s ease",
+                transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
                 textTransform: "uppercase" as const,
-                letterSpacing: "0.5px",
-                boxShadow: btn.active ? "0 2px 12px rgba(225,6,0,0.3)" : "none",
+                letterSpacing: "0.8px",
+                boxShadow: btn.active ? "0 4px 16px rgba(225,6,0,0.35), inset 0 1px 0 rgba(255,255,255,0.1)" : "none",
                 outline: "none",
               }}>{btn.label}</button>
             ))}
@@ -1510,18 +1498,20 @@ export default function App() {
         {loading && (
           <div style={{
             textAlign: "center",
-            padding: "60px 20px",
+            padding: "80px 20px",
             animation: "fadeIn 0.3s ease-out",
           }}>
-            {/* Spinner ring */}
+            {/* F1-style spinner */}
             <div style={{
-              width: 36,
-              height: 36,
-              border: "3px solid rgba(255,255,255,0.06)",
+              width: 40,
+              height: 40,
+              border: "3px solid rgba(255,255,255,0.04)",
               borderTopColor: "#e10600",
+              borderRightColor: "rgba(225,6,0,0.3)",
               borderRadius: "50%",
-              animation: "spin 0.8s linear infinite",
-              margin: "0 auto 16px",
+              animation: "spin 0.7s linear infinite",
+              margin: "0 auto 18px",
+              boxShadow: "0 0 20px rgba(225,6,0,0.1)",
             }} />
             <div style={{
               color: "#6a6a7e",
@@ -2375,32 +2365,39 @@ export default function App() {
       </div>
 
       {/* ====== FOOTER ====== */}
-      <div style={{
-        borderTop: "1px solid rgba(255,255,255,0.04)",
-        padding: "20px 24px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        marginTop: 40,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 800, fontFamily: F }}>
-            <span style={{ color: "rgba(255,255,255,0.2)" }}>Open</span>
-            <span style={{ color: "rgba(225,6,0,0.4)" }}>F1</span>
-            <span style={{ color: "rgba(255,255,255,0.2)" }}>ow</span>
-          </span>
-        </div>
+      <div style={{ position: "relative", marginTop: 60 }}>
+        {/* Racing stripe */}
         <div style={{
-          fontSize: 10,
-          color: "rgba(255,255,255,0.12)",
-          fontFamily: M,
+          height: 1,
+          background: "linear-gradient(90deg, transparent, rgba(225,6,0,0.2) 30%, rgba(225,6,0,0.2) 70%, transparent)",
+        }} />
+        <div style={{
+          padding: "24px 28px",
           display: "flex",
           alignItems: "center",
-          gap: 12,
+          justifyContent: "space-between",
         }}>
-          <span>Powered by OpenF1 API</span>
-          <span style={{ color: "rgba(255,255,255,0.06)" }}>{"\u2022"}</span>
-          <span>Not affiliated with Formula 1</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 14, fontWeight: 800, fontFamily: F }}>
+              <span style={{ color: "rgba(255,255,255,0.15)" }}>Open</span>
+              <span style={{ color: "rgba(225,6,0,0.35)" }}>F1</span>
+              <span style={{ color: "rgba(255,255,255,0.15)" }}>ow</span>
+            </span>
+            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.08)", fontFamily: M }}>2026</span>
+          </div>
+          <div style={{
+            fontSize: 9,
+            color: "rgba(255,255,255,0.1)",
+            fontFamily: M,
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            letterSpacing: "0.5px",
+          }}>
+            <span>Powered by OpenF1 API</span>
+            <span style={{ color: "rgba(225,6,0,0.15)" }}>{"\u2022"}</span>
+            <span>Not affiliated with Formula 1</span>
+          </div>
         </div>
       </div>
     </div>
