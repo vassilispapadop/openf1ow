@@ -93,6 +93,172 @@ function useTooltip(externalRef?: React.RefObject<HTMLDivElement | null>) {
   return { containerRef, show, hide, el };
 }
 
+// Reusable scatter plot component
+interface ScatterPoint { x: number; y: number; color: string; label: string }
+
+function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
+  data: ScatterPoint[];
+  xLabel: string;
+  yLabel: string;
+  xFmt?: (v: number) => string;
+  yFmt?: (v: number) => string;
+  diagonal?: boolean;
+}) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const cvRef = useRef<HTMLCanvasElement>(null);
+  const { show, hide, el } = useTooltip(wrapRef);
+  const CSS_H = 280;
+  const xF = xFmt || ((v: number) => v.toFixed(2));
+  const yF = yFmt || ((v: number) => v.toFixed(2));
+
+  const bounds = useMemo(() => {
+    if (!data.length) return null;
+    const xs = data.map(d => d.x);
+    const ys = data.map(d => d.y);
+    const xMin = Math.min(...xs), xMax = Math.max(...xs);
+    const yMin = Math.min(...ys), yMax = Math.max(...ys);
+    const xPad = (xMax - xMin) * 0.08 || 0.1;
+    const yPad = (yMax - yMin) * 0.08 || 0.1;
+    return { xMin: xMin - xPad, xMax: xMax + xPad, yMin: yMin - yPad, yMax: yMax + yPad };
+  }, [data]);
+
+  useEffect(() => {
+    const cv = cvRef.current;
+    const wrap = wrapRef.current;
+    if (!cv || !wrap || !bounds) return;
+    const { ctx, W, H } = initCanvas(cv, wrap, CSS_H);
+    const L = 56, R = 16, T = 12, B = 38;
+    const pW = W - L - R, pH = H - T - B;
+    const { xMin, xMax, yMin, yMax } = bounds;
+
+    const toX = (v: number) => L + ((v - xMin) / (xMax - xMin)) * pW;
+    const toY = (v: number) => T + pH - ((v - yMin) / (yMax - yMin)) * pH;
+
+    // Background
+    ctx.fillStyle = "#0a0e14";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#0d1119";
+    ctx.fillRect(L, T, pW, pH);
+
+    // Grid
+    ctx.strokeStyle = "rgba(99,130,191,.07)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    const xSteps = 5, ySteps = 5;
+    for (let i = 0; i <= xSteps; i++) {
+      const v = xMin + ((xMax - xMin) * i) / xSteps;
+      const x = toX(v);
+      ctx.beginPath(); ctx.moveTo(x, T); ctx.lineTo(x, T + pH); ctx.stroke();
+    }
+    for (let i = 0; i <= ySteps; i++) {
+      const v = yMin + ((yMax - yMin) * i) / ySteps;
+      const y = toY(v);
+      ctx.beginPath(); ctx.moveTo(L, y); ctx.lineTo(L + pW, y); ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    // Axes
+    ctx.strokeStyle = "#2a3a5c";
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, T + pH); ctx.lineTo(L + pW, T + pH); ctx.stroke();
+
+    // Diagonal reference line (for best vs median etc.)
+    if (diagonal) {
+      const dMin = Math.max(xMin, yMin), dMax = Math.min(xMax, yMax);
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(toX(dMin), toY(dMin)); ctx.lineTo(toX(dMax), toY(dMax)); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // X labels
+    ctx.font = "9px " + M;
+    ctx.fillStyle = "#3d4f6f";
+    ctx.textAlign = "center";
+    for (let i = 0; i <= xSteps; i++) {
+      const v = xMin + ((xMax - xMin) * i) / xSteps;
+      ctx.fillText(xF(v), toX(v), T + pH + 16);
+    }
+    // Y labels
+    ctx.textAlign = "right";
+    for (let i = 0; i <= ySteps; i++) {
+      const v = yMin + ((yMax - yMin) * i) / ySteps;
+      ctx.fillText(yF(v), L - 5, toY(v) + 3);
+    }
+
+    // Axis titles
+    ctx.font = "600 10px " + F;
+    ctx.fillStyle = "#6b7d9e";
+    ctx.textAlign = "center";
+    ctx.fillText(xLabel, L + pW / 2, H - 4);
+    ctx.save();
+    ctx.translate(12, T + pH / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(yLabel, 0, 0);
+    ctx.restore();
+
+    // Points
+    data.forEach(d => {
+      const x = toX(d.x), y = toY(d.y);
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "#" + d.color;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255,255,255,0.15)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    });
+
+    // Labels
+    ctx.font = "bold 8px " + F;
+    ctx.textAlign = "left";
+    data.forEach(d => {
+      const x = toX(d.x), y = toY(d.y);
+      ctx.fillStyle = "#" + d.color;
+      ctx.fillText(d.label, x + 7, y + 3);
+    });
+  }, [data, bounds, xLabel, yLabel, xF, yF, diagonal]);
+
+  const onHover = useCallback((e: React.MouseEvent) => {
+    const wrap = wrapRef.current;
+    if (!wrap || !bounds) return;
+    const rect = wrap.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const L = 56, R = 16, T = 12, B = 38;
+    const pW = wrap.clientWidth - L - R, pH = CSS_H - T - B;
+    const { xMin, xMax, yMin, yMax } = bounds;
+
+    let closest: ScatterPoint | null = null;
+    let minDist = Infinity;
+    data.forEach(d => {
+      const px = L + ((d.x - xMin) / (xMax - xMin)) * pW;
+      const py = T + pH - ((d.y - yMin) / (yMax - yMin)) * pH;
+      const dist = Math.sqrt((mx - px) ** 2 + (my - py) ** 2);
+      if (dist < minDist && dist < 30) { minDist = dist; closest = d; }
+    });
+    if (!closest) { hide(); return; }
+    show(e, (
+      <div>
+        <div style={{ fontWeight: 700, color: "#" + closest.color, marginBottom: 4, fontFamily: F }}>{closest.label}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
+          <span style={{ color: "#5a5a6e" }}>{xLabel}</span><span>{xF(closest.x)}</span>
+          <span style={{ color: "#5a5a6e" }}>{yLabel}</span><span>{yF(closest.y)}</span>
+        </div>
+      </div>
+    ));
+  }, [data, bounds, xLabel, yLabel, xF, yF, show, hide]);
+
+  if (!data.length) return null;
+
+  return (
+    <div ref={wrapRef} style={{ position: "relative" }}>
+      {el}
+      <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }} onMouseMove={onHover} onMouseLeave={hide} />
+    </div>
+  );
+}
+
 // Chart helpers
 const LEFT_MARGIN = 56;
 const RIGHT_PAD = 16;
@@ -2520,6 +2686,22 @@ function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[
           </div>
         );
       })()}
+
+      {/* S1 Delta vs S2 Delta Scatter */}
+      <div style={{ marginTop: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(255,255,255,0.4)", letterSpacing: "0.5px", textTransform: "uppercase" as const, marginBottom: 10 }}>
+          Sector Correlation: S1 vs S2 Delta
+        </div>
+        <p style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 10 }}>
+          Shows car characteristics — drivers clustered together have similar cars. Bottom-left = fast everywhere. Top-right = slow everywhere. Off-diagonal = trade-off between sectors.
+        </p>
+        <ScatterPlot
+          data={data.results.map(r => ({ x: r.deltaS1, y: r.deltaS2, color: r.color, label: r.driver.name_acronym }))}
+          xLabel="S1 Delta (s)" yLabel="S2 Delta (s)"
+          xFmt={v => "+" + v.toFixed(3)} yFmt={v => "+" + v.toFixed(3)}
+          diagonal
+        />
+      </div>
     </div>
   );
 }
@@ -2931,6 +3113,24 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             );
           })()}
         </div>
+        <div style={sty.card}>
+          <div style={{ ...sty.sectionHead, marginBottom: 10 }}>Best Lap vs Median Pace</div>
+          <p style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 10 }}>
+            Points near the diagonal line are consistent — their best lap is close to their median. Points far above the diagonal peak high but can't sustain it.
+          </p>
+          {(() => {
+            const threshold = computeSlowLapThreshold(allLaps);
+            const lapMap: Record<number, Lap[]> = {};
+            allLaps.forEach(l => { if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []; lapMap[l.driver_number].push(l); });
+            const pts: ScatterPoint[] = [];
+            drivers.forEach(d => {
+              const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold)).map(l => l.lap_duration!);
+              if (clean.length < 3) return;
+              pts.push({ x: Math.min(...clean), y: median(clean), color: d.team_colour || "666", label: d.name_acronym });
+            });
+            return <ScatterPlot data={pts} xLabel="Best Lap (s)" yLabel="Median Pace (s)" xFmt={ft3} yFmt={ft3} diagonal />;
+          })()}
+        </div>
       </>)}
 
       {subTab === "sectors" && (
@@ -3036,6 +3236,39 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                 })}
               </div>
             );
+          })()}
+        </div>
+        <div style={sty.card}>
+          <div style={{ ...sty.sectionHead, marginBottom: 10 }}>Stint Length vs Degradation</div>
+          <p style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 10 }}>
+            Do longer stints suffer more degradation? Each dot is one stint. Colored by compound: {Object.entries(TC).map(([k, c]) => <span key={k} style={{ color: c, fontWeight: 600, marginRight: 8 }}>{k}</span>)}
+          </p>
+          {(() => {
+            const threshold = computeSlowLapThreshold(allLaps);
+            const lapMap: Record<string, Lap> = {};
+            allLaps.forEach(l => { lapMap[l.driver_number + "-" + l.lap_number] = l; });
+            const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
+            const fuelCorr = (FUEL_TOTAL_KG / totalRaceLaps) * FUEL_SEC_PER_KG;
+            const pts: ScatterPoint[] = [];
+            allStints.forEach(st => {
+              const drv = drivers.find(d => d.driver_number === st.driver_number);
+              if (!drv) return;
+              const laps: Lap[] = [];
+              for (let ln = st.lap_start; ln <= st.lap_end; ln++) {
+                const l = lapMap[st.driver_number + "-" + ln];
+                if (l && isCleanLap(l, threshold)) laps.push(l);
+              }
+              const usable = laps.slice(2);
+              if (usable.length < 3) return;
+              const xs = usable.map((_, i) => i);
+              const ys = usable.map(l => l.lap_duration! + (l.lap_number - 1) * fuelCorr);
+              const deg = Math.max(0, linearSlope(xs, ys));
+              const stintLen = st.lap_end - st.lap_start + 1;
+              // Use compound color instead of team color
+              const compColor = TC[st.compound]?.replace("#", "") || drv.team_colour || "666";
+              pts.push({ x: stintLen, y: deg, color: compColor, label: drv.name_acronym });
+            });
+            return <ScatterPlot data={pts} xLabel="Stint Length (laps)" yLabel="Deg/Lap (s)" xFmt={v => v.toFixed(0)} yFmt={v => v.toFixed(4)} />;
           })()}
         </div>
       </>)}
@@ -3164,6 +3397,25 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             );
           })()}
         </div>
+        <div style={sty.card}>
+          <div style={{ ...sty.sectionHead, marginBottom: 10 }}>Pit Lap vs Duration</div>
+          <p style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 10 }}>
+            Each dot is a pit stop. X = when it happened, Y = how long it took. Clusters reveal strategic pit windows. Outliers may indicate problems.
+          </p>
+          {(() => {
+            const drvMap: Record<number, Driver> = {};
+            drivers.forEach(d => { drvMap[d.driver_number] = d; });
+            const pts: ScatterPoint[] = [];
+            allPits.forEach(p => {
+              const d = drvMap[p.driver_number];
+              if (!d) return;
+              const dur = p.pit_duration || p.lane_duration || p.stop_duration;
+              if (!dur || !p.lap_number) return;
+              pts.push({ x: p.lap_number, y: dur, color: d.team_colour || "666", label: d.name_acronym });
+            });
+            return <ScatterPlot data={pts} xLabel="Lap Number" yLabel="Duration (s)" xFmt={v => "L" + v.toFixed(0)} yFmt={v => v.toFixed(1)} />;
+          })()}
+        </div>
       </>)}
 
       {subTab === "constructors" && (<>
@@ -3216,6 +3468,30 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                 <div style={{ fontSize: 10, fontWeight: 600, color: "#ef4444", width: 36, textAlign: "center", fontFamily: F }}>{g.slower.name_acronym}</div>
               </div>
             ));
+          })()}
+        </div>
+        <div style={sty.card}>
+          <div style={{ ...sty.sectionHead, marginBottom: 10 }}>Driver 1 vs Driver 2 Pace</div>
+          <p style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 10 }}>
+            Each dot is a team. X = faster driver's median, Y = slower driver's median. Points near the diagonal = balanced team. Far above = one driver struggling.
+          </p>
+          {(() => {
+            const threshold = computeSlowLapThreshold(allLaps);
+            const lapMap: Record<number, Lap[]> = {};
+            allLaps.forEach(l => { if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []; lapMap[l.driver_number].push(l); });
+            const teams: Record<string, { drivers: Driver[]; color: string }> = {};
+            drivers.forEach(d => { const t = d.team_name || "Unknown"; if (!teams[t]) teams[t] = { drivers: [], color: d.team_colour || "666" }; teams[t].drivers.push(d); });
+            const pts: ScatterPoint[] = [];
+            Object.entries(teams).forEach(([team, t]) => {
+              if (t.drivers.length < 2) return;
+              const meds = t.drivers.map(d => {
+                const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold)).map(l => l.lap_duration!);
+                return clean.length >= 3 ? median(clean) : null;
+              }).filter(m => m != null).sort((a, b) => a! - b!) as number[];
+              if (meds.length < 2) return;
+              pts.push({ x: meds[0], y: meds[1], color: t.color, label: team.length > 10 ? team.slice(0, 10) + ".." : team });
+            });
+            return <ScatterPlot data={pts} xLabel="Faster Driver Median (s)" yLabel="Slower Driver Median (s)" xFmt={ft3} yFmt={ft3} diagonal />;
           })()}
         </div>
       </>)}
@@ -3292,6 +3568,64 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                 </div>
               </div>
             ));
+          })()}
+        </div>
+        <div style={sty.card}>
+          <div style={{ ...sty.sectionHead, marginBottom: 10 }}>Gap vs Time Loss</div>
+          <p style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 10 }}>
+            Per-driver: how close they followed (avg gap to car ahead on dirty laps) vs how much time they lost. Shows at what gap dirty air becomes costly — expect a curve rising steeply below ~1s.
+          </p>
+          {(() => {
+            const threshold = computeSlowLapThreshold(allLaps);
+            const lapsByNumber: Record<number, { dn: number; ts: number }[]> = {};
+            allLaps.forEach(l => {
+              if (!l.date_start) return;
+              if (!lapsByNumber[l.lap_number]) lapsByNumber[l.lap_number] = [];
+              lapsByNumber[l.lap_number].push({ dn: l.driver_number, ts: new Date(l.date_start).getTime() });
+            });
+            const lapLookup: Record<string, Lap> = {};
+            allLaps.forEach(l => { lapLookup[l.driver_number + "-" + l.lap_number] = l; });
+            // Collect dirty-air laps per driver with their gap
+            const drvDirty: Record<number, { gaps: number[]; deltas: number[] }> = {};
+            for (const [lapNumStr, entries] of Object.entries(lapsByNumber)) {
+              const lapNum = Number(lapNumStr);
+              const sorted = entries.sort((a, b) => a.ts - b.ts);
+              for (let i = 1; i < sorted.length; i++) {
+                const lap = lapLookup[sorted[i].dn + "-" + lapNum];
+                if (!lap || !isCleanLap(lap, threshold)) continue;
+                const gap = (sorted[i].ts - sorted[i - 1].ts) / 1000;
+                if (gap >= DIRTY_AIR_THRESHOLD) continue;
+                if (!drvDirty[sorted[i].dn]) drvDirty[sorted[i].dn] = { gaps: [], deltas: [] };
+                drvDirty[sorted[i].dn].gaps.push(gap);
+              }
+            }
+            const pts: ScatterPoint[] = [];
+            drivers.forEach(d => {
+              const dd = drvDirty[d.driver_number];
+              if (!dd || dd.gaps.length < 3) return;
+              const avgGap = median(dd.gaps);
+              // Use DirtyAirAnalysis data for time loss
+              // Compute inline: median dirty lap time - median clean lap time
+              const lapMap: Record<number, Lap[]> = {};
+              allLaps.forEach(l => { if (l.driver_number === d.driver_number) { if (!lapMap[l.lap_number]) lapMap[l.lap_number] = []; lapMap[l.lap_number].push(l); } });
+              // Simple: get dirty and clean lap times
+              const cleanTimes: number[] = [], dirtyTimes: number[] = [];
+              for (const [lapNumStr, entries2] of Object.entries(lapsByNumber)) {
+                const lapNum = Number(lapNumStr);
+                const sorted2 = entries2.sort((a, b) => a.ts - b.ts);
+                const idx = sorted2.findIndex(e => e.dn === d.driver_number);
+                if (idx < 0) continue;
+                const lap = lapLookup[d.driver_number + "-" + lapNum];
+                if (!lap || !isCleanLap(lap, threshold)) continue;
+                const gap = idx > 0 ? (sorted2[idx].ts - sorted2[idx - 1].ts) / 1000 : 999;
+                if (gap < DIRTY_AIR_THRESHOLD) dirtyTimes.push(lap.lap_duration!);
+                else cleanTimes.push(lap.lap_duration!);
+              }
+              if (cleanTimes.length < 3 || dirtyTimes.length < 3) return;
+              const timeLoss = median(dirtyTimes) - median(cleanTimes);
+              pts.push({ x: avgGap, y: Math.max(0, timeLoss), color: d.team_colour || "666", label: d.name_acronym });
+            });
+            return <ScatterPlot data={pts} xLabel="Avg Gap in Traffic (s)" yLabel="Time Loss (s)" xFmt={v => v.toFixed(2)} yFmt={v => v.toFixed(3)} />;
           })()}
         </div>
       </>)}
