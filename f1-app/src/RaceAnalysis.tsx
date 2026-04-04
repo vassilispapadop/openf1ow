@@ -57,6 +57,41 @@ function rowBg(i: number) {
   return { background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" };
 }
 
+// Shared tooltip for hover interactions
+function useTooltip() {
+  const [tip, setTip] = useState<{ x: number; y: number; content: React.ReactNode } | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const show = useCallback((e: React.MouseEvent | MouseEvent, content: React.ReactNode) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setTip({ x: (e as MouseEvent).clientX - rect.left, y: (e as MouseEvent).clientY - rect.top, content });
+  }, []);
+  const hide = useCallback(() => setTip(null), []);
+
+  const el = tip ? (
+    <div style={{
+      position: "absolute",
+      left: tip.x,
+      top: tip.y - 8,
+      transform: "translate(-50%, -100%)",
+      background: "rgba(10,14,20,0.95)",
+      border: "1px solid rgba(255,255,255,0.1)",
+      borderRadius: 8,
+      padding: "8px 12px",
+      fontSize: 11,
+      fontFamily: M,
+      color: "#e8e8ec",
+      pointerEvents: "none" as const,
+      zIndex: 10,
+      whiteSpace: "nowrap" as const,
+      boxShadow: "0 4px 12px rgba(0,0,0,0.5)",
+    }}>{tip.content}</div>
+  ) : null;
+
+  return { containerRef, show, hide, el };
+}
+
 // Chart helpers
 const LEFT_MARGIN = 56;
 const RIGHT_PAD = 16;
@@ -1035,6 +1070,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
 }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
+  const { containerRef: wxTipRef, show: wxShow, hide: wxHide, el: wxTipEl } = useTooltip();
   const CSS_H = 320;
 
   // Build lap-by-lap correlation: assign each lap a track temp based on closest weather reading
@@ -1270,8 +1306,40 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
           <div style={{ fontSize: 11, fontWeight: 600, color: "#f97316", marginBottom: 8 }}>
             Track Temperature vs Average Lap Pace
           </div>
-          <div ref={wrapRef} style={{ position: "relative" }}>
-            <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }} />
+          <div ref={(el) => { (wrapRef as any).current = el; (wxTipRef as any).current = el; }} style={{ position: "relative" }}>
+            {wxTipEl}
+            <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }}
+              onMouseMove={(e) => {
+                if (!analysis || !wrapRef.current) return;
+                const rect = wrapRef.current.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const W = wrapRef.current.clientWidth;
+                const plotW = W - LEFT_MARGIN - RIGHT_PAD;
+                const data = analysis.tempPace;
+                if (!data.length) return;
+                const minT = data[0].temp;
+                const maxT = data[data.length - 1].temp;
+                const tempRange = Math.max(maxT - minT, 1);
+                const hoverTemp = minT + ((mx - LEFT_MARGIN) / plotW) * tempRange;
+                // Find closest data point
+                let closest = data[0];
+                let minDist = Infinity;
+                data.forEach(d => {
+                  const dist = Math.abs(d.temp - hoverTemp);
+                  if (dist < minDist) { minDist = dist; closest = d; }
+                });
+                if (minDist > tempRange * 0.1) { wxHide(); return; }
+                wxShow(e, (
+                  <div>
+                    <div style={{ fontWeight: 700, color: "#f97316", marginBottom: 4 }}>{closest.temp}{"\u00B0"}C</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
+                      <span style={{ color: "#5a5a6e" }}>Avg Pace</span><span>{ft3(closest.avg)}</span>
+                      <span style={{ color: "#5a5a6e" }}>Laps</span><span>{closest.count}</span>
+                    </div>
+                  </div>
+                ));
+              }}
+              onMouseLeave={wxHide} />
           </div>
         </div>
       )}
@@ -1518,9 +1586,10 @@ function useDirtyAirData(allLaps: Lap[], drivers: Driver[], stints: Stint[]) {
 }
 
 // Timeline chart: each driver row shows green/red blocks per lap
-function DirtyAirTimeline({ data, totalLaps }: { data: DirtyAirDriverResult[]; totalLaps: number }) {
+function DirtyAirTimeline({ data, totalLaps, drivers }: { data: DirtyAirDriverResult[]; totalLaps: number; drivers: Driver[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
+  const { containerRef: tipRef, show: tipShow, hide: tipHide, el: tipEl } = useTooltip();
   const ROW_H = 28;
   const TOP_PAD = 24;
   const BOT_PAD = 32;
@@ -1618,9 +1687,56 @@ function DirtyAirTimeline({ data, totalLaps }: { data: DirtyAirDriverResult[]; t
     });
   }, [data, totalLaps, cssH]);
 
+  const drvMap = useMemo(() => {
+    const m: Record<number, Driver> = {};
+    drivers.forEach(d => { m[d.driver_number] = d; });
+    return m;
+  }, [drivers]);
+
+  const onHover = useCallback((e: React.MouseEvent) => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+    const dpr = window.devicePixelRatio || 1;
+    const cssW = wrap.clientWidth;
+    const labelW = 52;
+    const chartL = labelW + 4;
+    const chartR = cssW - RIGHT_PAD;
+    const chartW = chartR - chartL;
+    const lapW = chartW / totalLaps;
+
+    const rowIdx = Math.floor((my - TOP_PAD) / ROW_H);
+    const lapIdx = Math.floor((mx - chartL) / lapW);
+    if (rowIdx < 0 || rowIdx >= data.length || lapIdx < 0 || lapIdx >= totalLaps) { tipHide(); return; }
+
+    const d = data[rowIdx];
+    const lapNum = lapIdx + 1;
+    const info = d.lapDetails.find(l => l.lapNum === lapNum);
+
+    const aheadName = info?.carAhead ? (drvMap[info.carAhead]?.name_acronym || "#" + info.carAhead) : "";
+    tipShow(e, (
+      <div>
+        <div style={{ fontWeight: 700, color: "#" + d.color, marginBottom: 4, fontFamily: F }}>{d.driver.name_acronym} — Lap {lapNum}</div>
+        {!info ? <div style={{ color: "#5a5a6e" }}>No data (pit/slow lap)</div> : info.free ? (
+          <div style={{ color: "#22c55e" }}>Clean air — gap {info.gap.toFixed(1)}s</div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
+            <span style={{ color: "#ef4444" }}>Dirty air</span><span>gap {info.gap.toFixed(1)}s</span>
+            {aheadName && <><span style={{ color: "#5a5a6e" }}>Behind</span><span>{aheadName}</span></>}
+            <span style={{ color: "#5a5a6e" }}>Delta</span><span style={{ color: info.delta > 0 ? "#ef4444" : "#22c55e" }}>{info.delta > 0 ? "+" : ""}{info.delta.toFixed(3)}s</span>
+          </div>
+        )}
+      </div>
+    ));
+  }, [data, totalLaps, drvMap, tipShow, tipHide]);
+
   return (
-    <div ref={wrapRef} style={{ marginBottom: 14 }}>
-      <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }} />
+    <div ref={(el) => { (wrapRef as any).current = el; (tipRef as any).current = el; }} style={{ marginBottom: 14, position: "relative" }}>
+      {tipEl}
+      <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }}
+        onMouseMove={onHover} onMouseLeave={tipHide} />
     </div>
   );
 }
@@ -1690,7 +1806,7 @@ function DirtyAirAnalysis({ allLaps, drivers, stints }: {
       <p style={{ fontSize: 10, color: "#5a5a6e", marginBottom: 8, lineHeight: 1.4 }}>
         Each row is a driver. Green = clean air, red = stuck behind another car. Darker red = closer gap.
       </p>
-      <DirtyAirTimeline data={analysis} totalLaps={totalRaceLaps} />
+      <DirtyAirTimeline data={analysis} totalLaps={totalRaceLaps} drivers={drivers} />
 
       {/* Traffic incidents: who got stuck behind whom */}
       {allTrains.length > 0 && (
@@ -1868,6 +1984,8 @@ function percentile(sorted: number[], p: number): number {
 function BoxPlotChart({ rows }: {
   rows: { label: string; color: string; times: number[] }[];
 }) {
+  const { containerRef, show, hide, el } = useTooltip();
+
   if (!rows.length) return null;
 
   const stats = rows.map(r => {
@@ -1883,7 +2001,6 @@ function BoxPlotChart({ rows }: {
     };
   });
 
-  // Shared x-axis range: from global p10 min to global p90 max
   const globalMin = Math.min(...stats.map(s => s.p10));
   const globalMax = Math.max(...stats.map(s => s.p90));
   const pad = (globalMax - globalMin) * 0.08 || 0.5;
@@ -1896,7 +2013,8 @@ function BoxPlotChart({ rows }: {
   const fastestMedian = stats[0]?.median || 0;
 
   return (
-    <div>
+    <div ref={containerRef} style={{ position: "relative" }}>
+      {el}
       {/* X-axis labels */}
       <div style={{ position: "relative", height: 18, marginLeft: 72, marginBottom: 4 }}>
         {Array.from({ length: 5 }, (_, i) => {
@@ -1915,7 +2033,21 @@ function BoxPlotChart({ rows }: {
         {stats.map((s, i) => {
           const gap = s.median - fastestMedian;
           return (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, cursor: "default" }}
+              onMouseMove={e => show(e, (
+                <div>
+                  <div style={{ fontWeight: 700, color: "#" + s.color, marginBottom: 4, fontFamily: F }}>{s.label}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
+                    <span style={{ color: "#5a5a6e" }}>P10</span><span>{ft3(s.p10)}</span>
+                    <span style={{ color: "#5a5a6e" }}>P25</span><span>{ft3(s.p25)}</span>
+                    <span style={{ color: "#5a5a6e" }}>Median</span><span style={{ fontWeight: 700 }}>{ft3(s.median)}</span>
+                    <span style={{ color: "#5a5a6e" }}>P75</span><span>{ft3(s.p75)}</span>
+                    <span style={{ color: "#5a5a6e" }}>P90</span><span>{ft3(s.p90)}</span>
+                    <span style={{ color: "#5a5a6e" }}>Laps</span><span>{s.count}</span>
+                  </div>
+                </div>
+              ))}
+              onMouseLeave={hide}>
               <span style={{
                 fontWeight: 800, fontSize: 11, color: podiumColor(i),
                 fontFamily: F, minWidth: 18, textAlign: "right",
@@ -1926,13 +2058,11 @@ function BoxPlotChart({ rows }: {
               }}>{s.label}</span>
               {/* Box plot area */}
               <div style={{ flex: 1, position: "relative", height: ROW_H }}>
-                {/* Background */}
                 <div style={{
                   position: "absolute", top: 0, left: 0,
                   width: "100%", height: ROW_H, borderRadius: 3,
                   background: "rgba(255,255,255,0.02)",
                 }} />
-                {/* Whisker line: p10 to p90 */}
                 <div style={{
                   position: "absolute",
                   top: ROW_H / 2 - 1,
@@ -1942,7 +2072,6 @@ function BoxPlotChart({ rows }: {
                   background: "#" + s.color,
                   opacity: 0.3,
                 }} />
-                {/* p10 tick */}
                 <div style={{
                   position: "absolute",
                   top: ROW_H / 2 - 5,
@@ -1951,7 +2080,6 @@ function BoxPlotChart({ rows }: {
                   background: "#" + s.color,
                   opacity: 0.4,
                 }} />
-                {/* p90 tick */}
                 <div style={{
                   position: "absolute",
                   top: ROW_H / 2 - 5,
@@ -1960,7 +2088,6 @@ function BoxPlotChart({ rows }: {
                   background: "#" + s.color,
                   opacity: 0.4,
                 }} />
-                {/* Box: p25 to p75 */}
                 <div style={{
                   position: "absolute",
                   top: 4,
@@ -1972,7 +2099,6 @@ function BoxPlotChart({ rows }: {
                   opacity: 0.3,
                   border: "1px solid #" + s.color,
                 }} />
-                {/* Median line */}
                 <div style={{
                   position: "absolute",
                   top: 2,
@@ -1982,7 +2108,6 @@ function BoxPlotChart({ rows }: {
                   background: "#" + s.color,
                 }} />
               </div>
-              {/* Stats text */}
               <div style={{ minWidth: 80, textAlign: "right" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, fontFamily: M, color: "#e8e8ec" }}>
                   {ft3(s.median)}
@@ -1997,7 +2122,6 @@ function BoxPlotChart({ rows }: {
           );
         })}
       </div>
-      {/* Legend */}
       <div style={{
         display: "flex", gap: 16, marginTop: 10, paddingLeft: 72,
         fontSize: 9, color: "#5a5a6e", fontFamily: F,
@@ -2066,17 +2190,17 @@ function SectorAnalysis({ allLaps, drivers, viewMode }: { allLaps: Lap[]; driver
 
   const fastest = data.results[0]?.theoretical || 0;
 
+  const { containerRef: sectorTipRef, show: sectorShow, hide: sectorHide, el: sectorTipEl } = useTooltip();
+
   if (viewMode === "graph") {
-    // Stacked horizontal bar chart — S1/S2/S3 per driver
     const S_COLORS = ["#e10600", "#fbbf24", "#a855f7"];
     const maxTime = Math.max(...data.results.map(r => r.bestS1 + r.bestS2 + r.bestS3));
-    // Use the fastest theoretical as baseline for a zoomed-in view
     const minTime = fastest * 0.985;
     const range = maxTime - minTime;
 
     return (
-      <div>
-        {/* Legend */}
+      <div ref={sectorTipRef} style={{ position: "relative" }}>
+        {sectorTipEl}
         <div style={{ display: "flex", gap: 16, marginBottom: 14, fontSize: 10, color: "#b0b0c0" }}>
           {["S1", "S2", "S3"].map((label, i) => (
             <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -2091,10 +2215,22 @@ function SectorAnalysis({ allLaps, drivers, viewMode }: { allLaps: Lap[]; driver
           const s1Pct = (r.bestS1 / total) * 100;
           const s2Pct = (r.bestS2 / total) * 100;
           const s3Pct = (r.bestS3 / total) * 100;
+          const tipContent = (
+            <div>
+              <div style={{ fontWeight: 700, color: "#" + r.color, marginBottom: 4, fontFamily: F }}>{r.driver.name_acronym}</div>
+              <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
+                <span style={{ color: "#e10600" }}>S1</span><span>{r.bestS1.toFixed(3)}</span>
+                <span style={{ color: "#fbbf24" }}>S2</span><span>{r.bestS2.toFixed(3)}</span>
+                <span style={{ color: "#a855f7" }}>S3</span><span>{r.bestS3.toFixed(3)}</span>
+                <span style={{ color: "#5a5a6e" }}>Total</span><span style={{ fontWeight: 700 }}>{ft3(total)}</span>
+                <span style={{ color: "#5a5a6e" }}>{"\u0394"}</span><span style={{ color: "#fbbf24" }}>+{r.delta.toFixed(3)}</span>
+              </div>
+            </div>
+          );
           return (
             <div key={r.driver.driver_number} style={{
-              display: "flex", alignItems: "center", gap: 10, marginBottom: 6,
-            }}>
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 6, cursor: "default",
+            }} onMouseMove={e => sectorShow(e, tipContent)} onMouseLeave={sectorHide}>
               <div style={{
                 width: 28, textAlign: "right", fontWeight: 800, fontSize: 13,
                 color: podiumColor(i), fontFamily: F, flexShrink: 0,
@@ -2108,12 +2244,9 @@ function SectorAnalysis({ allLaps, drivers, viewMode }: { allLaps: Lap[]; driver
                   display: "flex", height: 22, borderRadius: 4, overflow: "hidden",
                   width: Math.max(8, barW) + "%",
                 }}>
-                  <div style={{ width: s1Pct + "%", background: S_COLORS[0], transition: "width 0.3s" }}
-                    title={"S1: " + r.bestS1.toFixed(3)} />
-                  <div style={{ width: s2Pct + "%", background: S_COLORS[1], transition: "width 0.3s" }}
-                    title={"S2: " + r.bestS2.toFixed(3)} />
-                  <div style={{ width: s3Pct + "%", background: S_COLORS[2], transition: "width 0.3s" }}
-                    title={"S3: " + r.bestS3.toFixed(3)} />
+                  <div style={{ width: s1Pct + "%", background: S_COLORS[0], transition: "width 0.3s" }} />
+                  <div style={{ width: s2Pct + "%", background: S_COLORS[1], transition: "width 0.3s" }} />
+                  <div style={{ width: s3Pct + "%", background: S_COLORS[2], transition: "width 0.3s" }} />
                 </div>
               </div>
               <div style={{
@@ -2196,6 +2329,7 @@ function SectorAnalysis({ allLaps, drivers, viewMode }: { allLaps: Lap[]; driver
 function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
+  const { containerRef: fuelTipRef, show: fuelShow, hide: fuelHide, el: fuelTipEl } = useTooltip();
 
   const totalRaceLaps = useMemo(() => Math.max(...allLaps.map(l => l.lap_number), 1), [allLaps]);
   const fuelPerLap = FUEL_TOTAL_KG / totalRaceLaps;
@@ -2316,10 +2450,36 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
 
   }, [totalRaceLaps, fuelPerLap, fuelCorrectionPerLap]);
 
+  const onFuelHover = useCallback((e: React.MouseEvent) => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const cssW = wrap.clientWidth;
+    const LEFT = 60, RIGHT = 16;
+    const plotW = cssW - LEFT - RIGHT;
+    const lapFrac = (mx - LEFT) / plotW;
+    if (lapFrac < 0 || lapFrac > 1) { fuelHide(); return; }
+    const lap = Math.round(lapFrac * totalRaceLaps);
+    const fuel = FUEL_TOTAL_KG - lap * fuelPerLap;
+    const timeGain = lap * fuelCorrectionPerLap;
+    fuelShow(e, (
+      <div>
+        <div style={{ fontWeight: 700, color: "#e10600", marginBottom: 4 }}>Lap {lap}</div>
+        <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
+          <span style={{ color: "#e10600" }}>Fuel</span><span>{fuel.toFixed(1)} kg</span>
+          <span style={{ color: "#a855f7" }}>Time Gain</span><span>{timeGain.toFixed(2)}s</span>
+          <span style={{ color: "#5a5a6e" }}>Lap Effect</span><span>{fuelCorrectionPerLap.toFixed(4)}s/lap</span>
+        </div>
+      </div>
+    ));
+  }, [totalRaceLaps, fuelPerLap, fuelCorrectionPerLap, fuelShow, fuelHide]);
+
   return (
     <div>
-      <div ref={wrapRef} style={{ width: "100%", marginBottom: 16 }}>
-        <canvas ref={cvRef} />
+      <div ref={(el) => { (wrapRef as any).current = el; (fuelTipRef as any).current = el; }} style={{ width: "100%", marginBottom: 16, position: "relative" }}>
+        {fuelTipEl}
+        <canvas ref={cvRef} onMouseMove={onFuelHover} onMouseLeave={fuelHide} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>
         {[
