@@ -2,7 +2,7 @@
 
 Real-time Formula 1 telemetry dashboard and race analysis platform powered by the [OpenF1 API](https://openf1.org).
 
-**Live:** [openf1ow.pages.dev](https://openf1ow.pages.dev)
+**Live:** [openf1ow.com](https://openf1ow.com)
 
 ## Features
 
