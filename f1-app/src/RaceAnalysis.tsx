@@ -2012,7 +2012,7 @@ function BoxPlotChart({ rows }: {
 
 // SECTOR ANALYSIS
 
-function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
+function SectorAnalysis({ allLaps, drivers, viewMode }: { allLaps: Lap[]; drivers: Driver[]; viewMode: "list" | "graph" }) {
   const data = useMemo(() => {
     const threshold = computeSlowLapThreshold(allLaps);
     const lapMap: Record<number, Lap[]> = {};
@@ -2055,7 +2055,6 @@ function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[
 
     results.sort((a, b) => a.theoretical - b.theoretical);
 
-    // Session-wide best sectors
     const allBestS1 = results.length ? Math.min(...results.map(r => r.bestS1)) : 0;
     const allBestS2 = results.length ? Math.min(...results.map(r => r.bestS2)) : 0;
     const allBestS3 = results.length ? Math.min(...results.map(r => r.bestS3)) : 0;
@@ -2066,6 +2065,75 @@ function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[
   if (!data.results.length) return <div style={{ color: "#5a5a6e", fontSize: 13, padding: 20 }}>No sector data</div>;
 
   const fastest = data.results[0]?.theoretical || 0;
+
+  if (viewMode === "graph") {
+    // Stacked horizontal bar chart — S1/S2/S3 per driver
+    const S_COLORS = ["#e10600", "#fbbf24", "#a855f7"];
+    const maxTime = Math.max(...data.results.map(r => r.bestS1 + r.bestS2 + r.bestS3));
+    // Use the fastest theoretical as baseline for a zoomed-in view
+    const minTime = fastest * 0.985;
+    const range = maxTime - minTime;
+
+    return (
+      <div>
+        {/* Legend */}
+        <div style={{ display: "flex", gap: 16, marginBottom: 14, fontSize: 10, color: "#b0b0c0" }}>
+          {["S1", "S2", "S3"].map((label, i) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <div style={{ width: 10, height: 10, borderRadius: 2, background: S_COLORS[i] }} />
+              <span style={{ fontWeight: 600 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+        {data.results.map((r, i) => {
+          const total = r.bestS1 + r.bestS2 + r.bestS3;
+          const barW = range > 0 ? ((total - minTime) / range) * 100 : 100;
+          const s1Pct = (r.bestS1 / total) * 100;
+          const s2Pct = (r.bestS2 / total) * 100;
+          const s3Pct = (r.bestS3 / total) * 100;
+          return (
+            <div key={r.driver.driver_number} style={{
+              display: "flex", alignItems: "center", gap: 10, marginBottom: 6,
+            }}>
+              <div style={{
+                width: 28, textAlign: "right", fontWeight: 800, fontSize: 13,
+                color: podiumColor(i), fontFamily: F, flexShrink: 0,
+              }}>{i + 1}</div>
+              <div style={{
+                width: 48, fontWeight: 700, fontSize: 11, fontFamily: F,
+                color: "#" + r.color, flexShrink: 0,
+              }}>{r.driver.name_acronym}</div>
+              <div style={{ flex: 1, position: "relative" }}>
+                <div style={{
+                  display: "flex", height: 22, borderRadius: 4, overflow: "hidden",
+                  width: Math.max(8, barW) + "%",
+                }}>
+                  <div style={{ width: s1Pct + "%", background: S_COLORS[0], transition: "width 0.3s" }}
+                    title={"S1: " + r.bestS1.toFixed(3)} />
+                  <div style={{ width: s2Pct + "%", background: S_COLORS[1], transition: "width 0.3s" }}
+                    title={"S2: " + r.bestS2.toFixed(3)} />
+                  <div style={{ width: s3Pct + "%", background: S_COLORS[2], transition: "width 0.3s" }}
+                    title={"S3: " + r.bestS3.toFixed(3)} />
+                </div>
+              </div>
+              <div style={{
+                fontFamily: M, fontSize: 11, fontWeight: 600, flexShrink: 0, width: 60, textAlign: "right",
+                color: i === 0 ? "#22c55e" : "#b0b0c0",
+              }}>
+                {ft3(total)}
+              </div>
+              <div style={{
+                fontFamily: M, fontSize: 10, fontWeight: 600, flexShrink: 0, width: 56, textAlign: "right",
+                color: i === 0 ? "#22c55e" : "#ef4444",
+              }}>
+                {i === 0 ? "—" : "+" + (total - fastest).toFixed(3)}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div style={{ overflow: "auto" }}>
@@ -2466,11 +2534,14 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
 
       {subTab === "sectors" && (
         <div style={sty.card}>
-          <div style={{ ...sty.sectionHead, marginBottom: 14 }}>Sector Analysis</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+            <span style={sty.sectionHead}>Sector Analysis</span>
+            <ViewToggle mode={viewMode} onChange={setViewMode} />
+          </div>
           <p style={{ fontSize: 11, color: "#5a5a6e", marginBottom: 12, lineHeight: 1.5 }}>
             Best sector times per driver and theoretical best lap (sum of best S1 + S2 + S3). The delta (\u0394) shows the gap between a driver's actual best lap and their theoretical best — a smaller delta means more consistent peak performance.
           </p>
-          <SectorAnalysis allLaps={allLaps} drivers={drivers} />
+          <SectorAnalysis allLaps={allLaps} drivers={drivers} viewMode={viewMode} />
         </div>
       )}
 
