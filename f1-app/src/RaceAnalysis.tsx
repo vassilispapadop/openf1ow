@@ -96,6 +96,8 @@ function useTooltip(externalRef?: React.RefObject<HTMLDivElement | null>) {
 // Reusable scatter plot component
 interface ScatterPoint { x: number; y: number; color: string; label: string }
 
+const defaultFmt = (v: number) => v.toFixed(2);
+
 function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
   data: ScatterPoint[];
   xLabel: string;
@@ -108,9 +110,14 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
   const cvRef = useRef<HTMLCanvasElement>(null);
   const { show, hide, el } = useTooltip(wrapRef);
   const CSS_H = 280;
-  const xF = xFmt || ((v: number) => v.toFixed(2));
-  const yF = yFmt || ((v: number) => v.toFixed(2));
+  // Store formatters in refs to avoid re-rendering canvas on every parent render
+  const xFRef = useRef(xFmt || defaultFmt);
+  const yFRef = useRef(yFmt || defaultFmt);
+  xFRef.current = xFmt || defaultFmt;
+  yFRef.current = yFmt || defaultFmt;
 
+  // Compute bounds from data values (stable if data values don't change)
+  const boundsKey = useMemo(() => data.map(d => d.x + "," + d.y).join("|"), [data]);
   const bounds = useMemo(() => {
     if (!data.length) return null;
     const xs = data.map(d => d.x);
@@ -120,12 +127,13 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
     const xPad = (xMax - xMin) * 0.08 || 0.1;
     const yPad = (yMax - yMin) * 0.08 || 0.1;
     return { xMin: xMin - xPad, xMax: xMax + xPad, yMin: yMin - yPad, yMax: yMax + yPad };
-  }, [data]);
+  }, [boundsKey]);
 
   useEffect(() => {
     const cv = cvRef.current;
     const wrap = wrapRef.current;
     if (!cv || !wrap || !bounds) return;
+    const xF = xFRef.current, yF = yFRef.current;
     const { ctx, W, H } = initCanvas(cv, wrap, CSS_H);
     const L = 56, R = 16, T = 12, B = 38;
     const pW = W - L - R, pH = H - T - B;
@@ -218,7 +226,7 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
       ctx.fillStyle = "#" + d.color;
       ctx.fillText(d.label, x + 7, y + 3);
     });
-  }, [data, bounds, xLabel, yLabel, xF, yF, diagonal]);
+  }, [boundsKey, bounds, xLabel, yLabel, diagonal]);
 
   const onHover = useCallback((e: React.MouseEvent) => {
     const wrap = wrapRef.current;
@@ -242,12 +250,12 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
       <div>
         <div style={{ fontWeight: 700, color: "#" + closest.color, marginBottom: 4, fontFamily: F }}>{closest.label}</div>
         <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
-          <span style={{ color: "#5a5a6e" }}>{xLabel}</span><span>{xF(closest.x)}</span>
-          <span style={{ color: "#5a5a6e" }}>{yLabel}</span><span>{yF(closest.y)}</span>
+          <span style={{ color: "#5a5a6e" }}>{xLabel}</span><span>{xFRef.current(closest.x)}</span>
+          <span style={{ color: "#5a5a6e" }}>{yLabel}</span><span>{yFRef.current(closest.y)}</span>
         </div>
       </div>
     ));
-  }, [data, bounds, xLabel, yLabel, xF, yF, show, hide]);
+  }, [data, bounds, xLabel, yLabel, show, hide]);
 
   if (!data.length) return null;
 
