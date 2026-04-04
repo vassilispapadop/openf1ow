@@ -5,7 +5,10 @@ import { readParams, useUrlState, type UrlParams } from "./lib/useUrlState";
 const PROXY = "https://corsproxy.io/?";
 const API = "https://api.openf1.org/v1";
 
-async function api(path, retries = 2) {
+const apiCache: Record<string, unknown> = {};
+
+async function api(path: string, retries = 2) {
+  if (apiCache[path]) return apiCache[path];
   const urls = [
     API + path,
     PROXY + encodeURIComponent(API + path)
@@ -14,7 +17,11 @@ async function api(path, retries = 2) {
     for (const url of urls) {
       try {
         const r = await fetch(url);
-        if (r.ok) return await r.json();
+        if (r.ok) {
+          const data = await r.json();
+          apiCache[path] = data;
+          return data;
+        }
       } catch (e) { /* try next */ }
     }
   }
@@ -1368,12 +1375,31 @@ export default function App() {
         {error && (
           <div style={sty.err}>
             {error}
+            <button onClick={() => {
+              setError("");
+              // Retry from the deepest loaded level
+              if (dn && sk) { onDriver(dn); }
+              else if (sk) { loadSession(sk); }
+              else if (mk) { loadMeeting(mk, true); }
+              else { onYear(year, true); }
+            }} style={{
+              background: "rgba(255,255,255,0.08)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              color: "#fca5a5",
+              cursor: "pointer",
+              marginLeft: 12,
+              fontSize: 11,
+              fontWeight: 600,
+              padding: "4px 12px",
+              borderRadius: 4,
+              fontFamily: F,
+            }}>Retry</button>
             <button onClick={() => setError("")} style={{
               background: "none",
               border: "none",
               color: "#fca5a5",
               cursor: "pointer",
-              marginLeft: 8,
+              marginLeft: 4,
               fontSize: 14,
               fontWeight: 600,
             }}>{"\u2715"}</button>

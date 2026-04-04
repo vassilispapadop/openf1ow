@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import AIAnalysis from "./components/AIAnalysis";
+import type { Driver, Lap, Stint, Pit, Weather } from "./lib/types";
+import { median, linearSlope, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "./lib/raceUtils";
+import { F, M, sty } from "./lib/styles";
 
 const PROXY = "https://corsproxy.io/?";
 const API = "https://api.openf1.org/v1";
@@ -15,112 +18,9 @@ async function api(path: string) {
   throw new Error("Failed to fetch: " + path);
 }
 
-interface Driver {
-  driver_number: number;
-  full_name: string;
-  name_acronym: string;
-  team_name: string;
-  team_colour: string;
-}
-
-interface Lap {
-  driver_number: number;
-  lap_number: number;
-  lap_duration: number | null;
-  duration_sector_1: number | null;
-  duration_sector_2: number | null;
-  duration_sector_3: number | null;
-  is_pit_out_lap: boolean;
-  date_start: string;
-  st_speed: number | null;
-  i1_speed: number | null;
-  i2_speed: number | null;
-}
-
-interface Stint {
-  driver_number: number;
-  stint_number: number;
-  compound: string;
-  lap_start: number;
-  lap_end: number;
-  tyre_age_at_start: number;
-}
-
-interface Pit {
-  driver_number: number;
-  lap_number: number;
-  pit_duration: number | null;
-  stop_duration: number | null;
-  lane_duration: number | null;
-  date: string;
-}
-
-interface Weather {
-  date: string;
-  air_temperature: number;
-  track_temperature: number;
-  humidity: number;
-  pressure: number;
-  rainfall: boolean;
-  wind_speed: number;
-  wind_direction: number | null;
-}
-
-// Shared constants
-const F = "'Inter','SF Pro Display',system-ui,sans-serif";
-const M = "'JetBrains Mono','SF Mono','Cascadia Code','Consolas',monospace";
 const TC: Record<string, string> = {
   SOFT: "#FF3333", MEDIUM: "#FFD700", HARD: "#FFFFFF",
   INTERMEDIATE: "#39B54A", WET: "#0072C6",
-};
-
-const sty = {
-  card: {
-    background: "rgba(18, 18, 30, 0.7)",
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 10,
-    border: "1px solid rgba(255,255,255,0.06)",
-    transition: "border-color 0.25s ease, box-shadow 0.25s ease",
-  },
-  th: {
-    padding: "8px 10px",
-    borderBottom: "1px solid rgba(255,255,255,0.06)",
-    color: "#5a5a6e",
-    textAlign: "left" as const,
-    position: "sticky" as const,
-    top: 0,
-    background: "rgba(18, 18, 30, 0.97)",
-    fontSize: 10,
-    fontWeight: 600,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.5px",
-    fontFamily: F,
-    backdropFilter: "blur(12px)",
-  },
-  td: {
-    padding: "8px 10px",
-    borderBottom: "1px solid rgba(255,255,255,0.03)",
-    transition: "background 0.15s ease",
-  },
-  mono: { fontFamily: M },
-  sectionHead: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: "rgba(255,255,255,0.5)",
-    textTransform: "uppercase" as const,
-    letterSpacing: "1px",
-  },
-  statLabel: {
-    fontSize: 9,
-    fontWeight: 600,
-    color: "#5a5a6e",
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.5px",
-    marginBottom: 4,
-  },
 };
 
 const DRIVER_COLORS = [
@@ -154,23 +54,6 @@ function podiumColor(rank: number): string {
 
 function rowBg(i: number) {
   return { background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" };
-}
-
-function median(arr: number[]): number {
-  if (!arr.length) return 0;
-  const sorted = [...arr].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
-}
-
-function linearSlope(xs: number[], ys: number[]): number {
-  if (xs.length < 2) return 0;
-  const n = xs.length;
-  const xMean = xs.reduce((s, x) => s + x, 0) / n;
-  const yMean = ys.reduce((s, y) => s + y, 0) / n;
-  const num = xs.reduce((s, x, i) => s + (x - xMean) * (ys[i] - yMean), 0);
-  const den = xs.reduce((s, x) => s + (x - xMean) ** 2, 0);
-  return den ? num / den : 0;
 }
 
 // Chart helpers
@@ -458,23 +341,6 @@ function LapEvolutionChart({ allLaps, drivers }: {
 }
 
 //STINT DEGRADATION TABLE
-
-// 107% of session median — filters SC, VSC, pit-in, yellow flags
-const FUEL_TOTAL_KG = 110;
-const FUEL_SEC_PER_KG = 0.055;
-const SLOW_LAP_FACTOR = 1.07;
-
-function computeSlowLapThreshold(allLaps: Lap[]): number {
-  const validTimes = allLaps
-    .filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1)
-    .map(l => l.lap_duration!);
-  if (!validTimes.length) return Infinity;
-  return median(validTimes) * SLOW_LAP_FACTOR;
-}
-
-function isCleanLap(l: Lap, threshold: number): boolean {
-  return !!(l.lap_duration && l.lap_duration > 0 && l.lap_duration < threshold && !l.is_pit_out_lap && l.lap_number > 1);
-}
 
 interface StintRow {
   driver: Driver;
@@ -1462,9 +1328,6 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
     </div>
   );
 }
-
-// Dirty air threshold: gap to car ahead < 1.5s means following in dirty air
-const DIRTY_AIR_THRESHOLD = 1.5;
 
 interface DirtyAirLapInfo {
   lapNum: number;

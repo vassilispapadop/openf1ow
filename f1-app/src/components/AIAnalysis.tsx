@@ -1,28 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { buildFullSummary, type RaceSummaryInput } from "../lib/buildAnalysisSummary";
-
-const F = "'Inter','SF Pro Display',system-ui,sans-serif";
-const M = "'JetBrains Mono','SF Mono','Cascadia Code','Consolas',monospace";
-
-const sty = {
-  card: {
-    background: "rgba(18, 18, 30, 0.7)",
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 10,
-    border: "1px solid rgba(255,255,255,0.06)",
-    transition: "border-color 0.25s ease, box-shadow 0.25s ease",
-  },
-  sectionHead: {
-    fontSize: 12,
-    fontWeight: 700,
-    color: "rgba(255,255,255,0.5)",
-    textTransform: "uppercase" as const,
-    letterSpacing: "1px",
-  },
-};
+import { F, M, sty } from "../lib/styles";
 
 // Simple markdown-to-JSX renderer for headers, bold, lists
 function renderMarkdown(text: string) {
