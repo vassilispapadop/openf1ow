@@ -2913,6 +2913,37 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
 
   const driverCount = useMemo(() => new Set(allLaps.map(l => l.driver_number)).size, [allLaps]);
 
+  // Shared derived data — computed once, used by multiple analytics sections
+  const sharedThreshold = useMemo(() => computeSlowLapThreshold(allLaps), [allLaps]);
+  const sharedLapMap = useMemo(() => {
+    const m: Record<number, Lap[]> = {};
+    allLaps.forEach(l => { if (!m[l.driver_number]) m[l.driver_number] = []; m[l.driver_number].push(l); });
+    return m;
+  }, [allLaps]);
+  const sharedLapLookup = useMemo(() => {
+    const m: Record<string, Lap> = {};
+    allLaps.forEach(l => { m[l.driver_number + "-" + l.lap_number] = l; });
+    return m;
+  }, [allLaps]);
+  const sharedLapsByNumber = useMemo(() => {
+    const m: Record<number, { dn: number; ts: number }[]> = {};
+    allLaps.forEach(l => {
+      if (!l.date_start) return;
+      if (!m[l.lap_number]) m[l.lap_number] = [];
+      m[l.lap_number].push({ dn: l.driver_number, ts: new Date(l.date_start).getTime() });
+    });
+    return m;
+  }, [allLaps]);
+  const sharedTeams = useMemo(() => {
+    const m: Record<string, { drivers: Driver[]; color: string }> = {};
+    drivers.forEach(d => {
+      const t = d.team_name || "Unknown";
+      if (!m[t]) m[t] = { drivers: [], color: d.team_colour || "666" };
+      m[t].drivers.push(d);
+    });
+    return m;
+  }, [drivers]);
+
   const fetchAll = useCallback(async () => {
     if (!sessionKey || !drivers.length) return;
     setLoading(true);
@@ -3087,16 +3118,13 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Standard deviation of clean lap times — lower = more consistent. A metronomic driver extracts more from their car. High std dev suggests traffic, mistakes, or varied tyre performance.
           </p>
           {(() => {
-            const threshold = computeSlowLapThreshold(allLaps);
-            const lapMap: Record<number, Lap[]> = {};
-            allLaps.forEach(l => { if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []; lapMap[l.driver_number].push(l); });
             const rows = drivers.map(d => {
-              const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold)).map(l => l.lap_duration!);
+              const clean = (sharedLapMap[d.driver_number] || []).filter(l => isCleanLap(l, sharedThreshold)).map(l => l.lap_duration!);
               if (clean.length < 5) return null;
               const med = median(clean);
               const mean = clean.reduce((s, t) => s + t, 0) / clean.length;
               const stdDev = Math.sqrt(clean.reduce((s, t) => s + (t - mean) ** 2, 0) / clean.length);
-              const totalLaps = (lapMap[d.driver_number] || []).length;
+              const totalLaps = (sharedLapMap[d.driver_number] || []).length;
               const cleanPct = (clean.length / totalLaps * 100);
               return { driver: d, color: d.team_colour || "666", stdDev, med, cleanLaps: clean.length, totalLaps, cleanPct };
             }).filter(Boolean) as { driver: Driver; color: string; stdDev: number; med: number; cleanLaps: number; totalLaps: number; cleanPct: number }[];
@@ -3127,12 +3155,9 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Points near the diagonal line are consistent — their best lap is close to their median. Points far above the diagonal peak high but can't sustain it.
           </p>
           {(() => {
-            const threshold = computeSlowLapThreshold(allLaps);
-            const lapMap: Record<number, Lap[]> = {};
-            allLaps.forEach(l => { if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []; lapMap[l.driver_number].push(l); });
             const pts: ScatterPoint[] = [];
             drivers.forEach(d => {
-              const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold)).map(l => l.lap_duration!);
+              const clean = (sharedLapMap[d.driver_number] || []).filter(l => isCleanLap(l, sharedThreshold)).map(l => l.lap_duration!);
               if (clean.length < 3) return;
               pts.push({ x: Math.min(...clean), y: median(clean), color: d.team_colour || "666", label: d.name_acronym });
             });
@@ -3189,17 +3214,14 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Average degradation and stint length by tire compound across all drivers. Shows which compound was the fastest and which lasted longest.
           </p>
           {(() => {
-            const threshold = computeSlowLapThreshold(allLaps);
-            const lapMap: Record<string, Lap> = {};
-            allLaps.forEach(l => { lapMap[l.driver_number + "-" + l.lap_number] = l; });
             const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
             const fuelCorr = (FUEL_TOTAL_KG / totalRaceLaps) * FUEL_SEC_PER_KG;
             const compoundStats: Record<string, { degs: number[]; paces: number[]; stintLens: number[]; count: number }> = {};
             allStints.forEach(st => {
               const laps: Lap[] = [];
               for (let ln = st.lap_start; ln <= st.lap_end; ln++) {
-                const l = lapMap[st.driver_number + "-" + ln];
-                if (l && isCleanLap(l, threshold)) laps.push(l);
+                const l = sharedLapLookup[st.driver_number + "-" + ln];
+                if (l && isCleanLap(l, sharedThreshold)) laps.push(l);
               }
               const usable = laps.slice(2);
               if (usable.length < 3) return;
@@ -3252,9 +3274,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Do longer stints suffer more degradation? Each dot is one stint. Colored by compound: {Object.entries(TC).map(([k, c]) => <span key={k} style={{ color: c, fontWeight: 600, marginRight: 8 }}>{k}</span>)}
           </p>
           {(() => {
-            const threshold = computeSlowLapThreshold(allLaps);
-            const lapMap: Record<string, Lap> = {};
-            allLaps.forEach(l => { lapMap[l.driver_number + "-" + l.lap_number] = l; });
             const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
             const fuelCorr = (FUEL_TOTAL_KG / totalRaceLaps) * FUEL_SEC_PER_KG;
             const pts: ScatterPoint[] = [];
@@ -3263,8 +3282,8 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
               if (!drv) return;
               const laps: Lap[] = [];
               for (let ln = st.lap_start; ln <= st.lap_end; ln++) {
-                const l = lapMap[st.driver_number + "-" + ln];
-                if (l && isCleanLap(l, threshold)) laps.push(l);
+                const l = sharedLapLookup[st.driver_number + "-" + ln];
+                if (l && isCleanLap(l, sharedThreshold)) laps.push(l);
               }
               const usable = laps.slice(2);
               if (usable.length < 3) return;
@@ -3296,14 +3315,10 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             On each lap where both teammates set a valid time, who was faster? The split bar shows dominance — a 70/30 split means one driver was faster on 70% of comparable laps.
           </p>
           {(() => {
-            const lapMap: Record<number, Lap[]> = {};
-            allLaps.forEach(l => { if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []; lapMap[l.driver_number].push(l); });
-            const teams: Record<string, Driver[]> = {};
-            drivers.forEach(d => { const t = d.team_name || "Unknown"; if (!teams[t]) teams[t] = []; teams[t].push(d); });
-            return Object.entries(teams).filter(([, ds]) => ds.length >= 2).map(([team, ds]) => {
-              const [d1, d2] = ds.slice(0, 2);
-              const l1 = (lapMap[d1.driver_number] || []).filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1);
-              const l2 = (lapMap[d2.driver_number] || []).filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1);
+            return Object.entries(sharedTeams).filter(([, t]) => t.drivers.length >= 2).map(([team, t]) => {
+              const [d1, d2] = t.drivers.slice(0, 2);
+              const l1 = (sharedLapMap[d1.driver_number] || []).filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1);
+              const l2 = (sharedLapMap[d2.driver_number] || []).filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1);
               const l1Map: Record<number, number> = {};
               l1.forEach(l => { l1Map[l.lap_number] = l.lap_duration!; });
               let d1Wins = 0, d2Wins = 0;
@@ -3315,7 +3330,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
               const total = d1Wins + d2Wins;
               if (total < 3) return null;
               const d1Pct = (d1Wins / total) * 100;
-              const c = ds[0].team_colour || "666";
+              const c = t.color;
               return (
                 <div key={team} style={{ marginBottom: 10 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: "#" + c, marginBottom: 4, fontFamily: F }}>{team}</div>
@@ -3444,14 +3459,9 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Median pace difference between teammates. A small gap means the car is performing equally for both drivers — a large gap may indicate setup issues, driver error, or one driver adapting better to conditions.
           </p>
           {(() => {
-            const threshold = computeSlowLapThreshold(allLaps);
-            const lapMap: Record<number, Lap[]> = {};
-            allLaps.forEach(l => { if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []; lapMap[l.driver_number].push(l); });
-            const teams: Record<string, { drivers: Driver[]; color: string }> = {};
-            drivers.forEach(d => { const t = d.team_name || "Unknown"; if (!teams[t]) teams[t] = { drivers: [], color: d.team_colour || "666" }; teams[t].drivers.push(d); });
-            const gaps = Object.entries(teams).filter(([, t]) => t.drivers.length >= 2).map(([team, t]) => {
+            const gaps = Object.entries(sharedTeams).filter(([, t]) => t.drivers.length >= 2).map(([team, t]) => {
               const meds = t.drivers.map(d => {
-                const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold)).map(l => l.lap_duration!);
+                const clean = (sharedLapMap[d.driver_number] || []).filter(l => isCleanLap(l, sharedThreshold)).map(l => l.lap_duration!);
                 return { driver: d, med: clean.length >= 3 ? median(clean) : null };
               }).filter(m => m.med != null).sort((a, b) => a.med! - b.med!);
               if (meds.length < 2) return null;
@@ -3484,16 +3494,11 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Each dot is a team. X = faster driver's median, Y = slower driver's median. Points near the diagonal = balanced team. Far above = one driver struggling.
           </p>
           {(() => {
-            const threshold = computeSlowLapThreshold(allLaps);
-            const lapMap: Record<number, Lap[]> = {};
-            allLaps.forEach(l => { if (!lapMap[l.driver_number]) lapMap[l.driver_number] = []; lapMap[l.driver_number].push(l); });
-            const teams: Record<string, { drivers: Driver[]; color: string }> = {};
-            drivers.forEach(d => { const t = d.team_name || "Unknown"; if (!teams[t]) teams[t] = { drivers: [], color: d.team_colour || "666" }; teams[t].drivers.push(d); });
             const pts: ScatterPoint[] = [];
-            Object.entries(teams).forEach(([team, t]) => {
+            Object.entries(sharedTeams).forEach(([team, t]) => {
               if (t.drivers.length < 2) return;
               const meds = t.drivers.map(d => {
-                const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold)).map(l => l.lap_duration!);
+                const clean = (sharedLapMap[d.driver_number] || []).filter(l => isCleanLap(l, sharedThreshold)).map(l => l.lap_duration!);
                 return clean.length >= 3 ? median(clean) : null;
               }).filter(m => m != null).sort((a, b) => a! - b!) as number[];
               if (meds.length < 2) return;
@@ -3529,24 +3534,14 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Clean air ratio per driver — what percentage of their racing laps were spent in clean air? Drivers running at the front naturally have more clean air. Midfield drivers lose more time stuck in traffic.
           </p>
           {(() => {
-            const threshold = computeSlowLapThreshold(allLaps);
-            // Build a fast lookup: driver+lap -> Lap
-            const lapLookup: Record<string, Lap> = {};
-            allLaps.forEach(l => { lapLookup[l.driver_number + "-" + l.lap_number] = l; });
-            const lapsByNumber: Record<number, { dn: number; ts: number }[]> = {};
-            allLaps.forEach(l => {
-              if (!l.date_start) return;
-              if (!lapsByNumber[l.lap_number]) lapsByNumber[l.lap_number] = [];
-              lapsByNumber[l.lap_number].push({ dn: l.driver_number, ts: new Date(l.date_start).getTime() });
-            });
             const drvData: Record<number, { clean: number; dirty: number }> = {};
             drivers.forEach(d => { drvData[d.driver_number] = { clean: 0, dirty: 0 }; });
-            for (const [lapNumStr, entries] of Object.entries(lapsByNumber)) {
+            for (const [lapNumStr, entries] of Object.entries(sharedLapsByNumber)) {
               const lapNum = Number(lapNumStr);
-              const sorted = entries.sort((a, b) => a.ts - b.ts);
+              const sorted = [...entries].sort((a, b) => a.ts - b.ts);
               for (let i = 0; i < sorted.length; i++) {
-                const lap = lapLookup[sorted[i].dn + "-" + lapNum];
-                if (!lap || !isCleanLap(lap, threshold)) continue;
+                const lap = sharedLapLookup[sorted[i].dn + "-" + lapNum];
+                if (!lap || !isCleanLap(lap, sharedThreshold)) continue;
                 const gap = i > 0 ? (sorted[i].ts - sorted[i - 1].ts) / 1000 : 999;
                 const dd = drvData[sorted[i].dn];
                 if (gap < DIRTY_AIR_THRESHOLD) dd.dirty++; else dd.clean++;
@@ -3584,54 +3579,31 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             Per-driver: how close they followed (avg gap to car ahead on dirty laps) vs how much time they lost. Shows at what gap dirty air becomes costly — expect a curve rising steeply below ~1s.
           </p>
           {(() => {
-            const threshold = computeSlowLapThreshold(allLaps);
-            const lapsByNumber: Record<number, { dn: number; ts: number }[]> = {};
-            allLaps.forEach(l => {
-              if (!l.date_start) return;
-              if (!lapsByNumber[l.lap_number]) lapsByNumber[l.lap_number] = [];
-              lapsByNumber[l.lap_number].push({ dn: l.driver_number, ts: new Date(l.date_start).getTime() });
-            });
-            const lapLookup: Record<string, Lap> = {};
-            allLaps.forEach(l => { lapLookup[l.driver_number + "-" + l.lap_number] = l; });
-            // Collect dirty-air laps per driver with their gap
-            const drvDirty: Record<number, { gaps: number[]; deltas: number[] }> = {};
-            for (const [lapNumStr, entries] of Object.entries(lapsByNumber)) {
+            // Single pass: classify each driver's laps as clean/dirty + collect gaps
+            const drvStats: Record<number, { gaps: number[]; cleanTimes: number[]; dirtyTimes: number[] }> = {};
+            for (const [lapNumStr, entries] of Object.entries(sharedLapsByNumber)) {
               const lapNum = Number(lapNumStr);
-              const sorted = entries.sort((a, b) => a.ts - b.ts);
-              for (let i = 1; i < sorted.length; i++) {
-                const lap = lapLookup[sorted[i].dn + "-" + lapNum];
-                if (!lap || !isCleanLap(lap, threshold)) continue;
-                const gap = (sorted[i].ts - sorted[i - 1].ts) / 1000;
-                if (gap >= DIRTY_AIR_THRESHOLD) continue;
-                if (!drvDirty[sorted[i].dn]) drvDirty[sorted[i].dn] = { gaps: [], deltas: [] };
-                drvDirty[sorted[i].dn].gaps.push(gap);
+              const sorted = [...entries].sort((a, b) => a.ts - b.ts);
+              for (let i = 0; i < sorted.length; i++) {
+                const lap = sharedLapLookup[sorted[i].dn + "-" + lapNum];
+                if (!lap || !isCleanLap(lap, sharedThreshold)) continue;
+                const gap = i > 0 ? (sorted[i].ts - sorted[i - 1].ts) / 1000 : 999;
+                if (!drvStats[sorted[i].dn]) drvStats[sorted[i].dn] = { gaps: [], cleanTimes: [], dirtyTimes: [] };
+                const dd = drvStats[sorted[i].dn];
+                if (gap < DIRTY_AIR_THRESHOLD) {
+                  dd.dirtyTimes.push(lap.lap_duration!);
+                  dd.gaps.push(gap);
+                } else {
+                  dd.cleanTimes.push(lap.lap_duration!);
+                }
               }
             }
             const pts: ScatterPoint[] = [];
             drivers.forEach(d => {
-              const dd = drvDirty[d.driver_number];
-              if (!dd || dd.gaps.length < 3) return;
-              const avgGap = median(dd.gaps);
-              // Use DirtyAirAnalysis data for time loss
-              // Compute inline: median dirty lap time - median clean lap time
-              const lapMap: Record<number, Lap[]> = {};
-              allLaps.forEach(l => { if (l.driver_number === d.driver_number) { if (!lapMap[l.lap_number]) lapMap[l.lap_number] = []; lapMap[l.lap_number].push(l); } });
-              // Simple: get dirty and clean lap times
-              const cleanTimes: number[] = [], dirtyTimes: number[] = [];
-              for (const [lapNumStr, entries2] of Object.entries(lapsByNumber)) {
-                const lapNum = Number(lapNumStr);
-                const sorted2 = entries2.sort((a, b) => a.ts - b.ts);
-                const idx = sorted2.findIndex(e => e.dn === d.driver_number);
-                if (idx < 0) continue;
-                const lap = lapLookup[d.driver_number + "-" + lapNum];
-                if (!lap || !isCleanLap(lap, threshold)) continue;
-                const gap = idx > 0 ? (sorted2[idx].ts - sorted2[idx - 1].ts) / 1000 : 999;
-                if (gap < DIRTY_AIR_THRESHOLD) dirtyTimes.push(lap.lap_duration!);
-                else cleanTimes.push(lap.lap_duration!);
-              }
-              if (cleanTimes.length < 3 || dirtyTimes.length < 3) return;
-              const timeLoss = median(dirtyTimes) - median(cleanTimes);
-              pts.push({ x: avgGap, y: Math.max(0, timeLoss), color: d.team_colour || "666", label: d.name_acronym });
+              const dd = drvStats[d.driver_number];
+              if (!dd || dd.gaps.length < 3 || dd.cleanTimes.length < 3 || dd.dirtyTimes.length < 3) return;
+              const timeLoss = median(dd.dirtyTimes) - median(dd.cleanTimes);
+              pts.push({ x: median(dd.gaps), y: Math.max(0, timeLoss), color: d.team_colour || "666", label: d.name_acronym });
             });
             return <ScatterPlot data={pts} xLabel="Avg Gap in Traffic (s)" yLabel="Time Loss (s)" xFmt={v => v.toFixed(2)} yFmt={v => v.toFixed(3)} />;
           })()}
