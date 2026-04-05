@@ -283,18 +283,18 @@ export default {
       await env.SHARES.put(id, body, {
         httpMetadata: { contentType: "image/png" },
       });
-      const shareUrl = url.origin + "/s/" + id;
+      const shareUrl = url.origin + "/api/s/" + id;
       return new Response(JSON.stringify({ url: shareUrl }), {
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
       });
     }
 
     // Serve shared chart image from R2
-    if (url.pathname.startsWith("/s/") && request.method === "GET") {
+    if (url.pathname.startsWith("/api/s/") && request.method === "GET") {
       if (!env.SHARES) {
         return new Response("Not found", { status: 404 });
       }
-      const id = url.pathname.slice(3);
+      const id = url.pathname.slice(7);
       if (!id || id.length > 20) {
         return new Response("Not found", { status: 404 });
       }
