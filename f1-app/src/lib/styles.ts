@@ -2,6 +2,14 @@ export const F = "'Inter','SF Pro Display',system-ui,sans-serif";
 export const M = "'JetBrains Mono','SF Mono','Cascadia Code','Consolas',monospace";
 
 export const sty = {
+  bg: {
+    fontFamily: F,
+    background: "#050508",
+    color: "#e8e8ec",
+    minHeight: "100vh",
+    padding: 0,
+    position: "relative" as const,
+  },
   card: {
     background: "rgba(12, 12, 24, 0.8)",
     backdropFilter: "blur(20px)",
@@ -32,7 +40,38 @@ export const sty = {
     borderBottom: "1px solid rgba(255,255,255,0.025)",
     transition: "background 0.15s ease",
   },
+  sel: {
+    background: "rgba(16, 16, 32, 0.95)",
+    color: "#e0e0e6",
+    border: "1px solid rgba(255,255,255,0.06)",
+    borderRadius: 10,
+    padding: "11px 36px 11px 14px",
+    fontSize: 13,
+    cursor: "pointer",
+    fontFamily: F,
+    fontWeight: 500,
+    outline: "none",
+    transition: "border-color 0.25s ease, box-shadow 0.25s ease",
+    appearance: "none" as const,
+    WebkitAppearance: "none" as const,
+    backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23e10600'/%3E%3C/svg%3E\")",
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 14px center",
+  },
   mono: { fontFamily: M },
+  err: {
+    background: "rgba(220, 38, 38, 0.1)",
+    border: "1px solid rgba(220, 38, 38, 0.15)",
+    padding: "14px 18px",
+    borderRadius: 12,
+    marginBottom: 12,
+    fontSize: 13,
+    color: "#fca5a5",
+    animation: "fadeInUp 0.3s ease-out",
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+  },
   sectionHead: {
     fontSize: 12,
     fontWeight: 700,
