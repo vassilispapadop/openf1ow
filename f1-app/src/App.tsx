@@ -1324,12 +1324,6 @@ export default function App() {
               <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#e10600", animation: "livePulse 2s ease-in-out infinite" }} />
               <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "1.5px", fontFamily: M, textTransform: "uppercase" as const }}>LIVE</span>
             </div>
-            <div style={{
-              fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.2)", letterSpacing: "1.2px",
-              textTransform: "uppercase" as const, padding: "5px 12px",
-              border: "1px solid rgba(255,255,255,0.05)", borderRadius: 6, fontFamily: M,
-              background: "rgba(255,255,255,0.02)",
-            }}>OpenF1 API</div>
           </div>
         </div>
       </div>
@@ -2356,13 +2350,17 @@ export default function App() {
           alignItems: "center",
           justifyContent: "space-between",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <span style={{ fontSize: 14, fontWeight: 800, fontFamily: F }}>
               <span style={{ color: "rgba(255,255,255,0.15)" }}>Open</span>
               <span style={{ color: "rgba(225,6,0,0.35)" }}>F1</span>
               <span style={{ color: "rgba(255,255,255,0.15)" }}>ow</span>
             </span>
-            <span style={{ fontSize: 9, color: "rgba(255,255,255,0.08)", fontFamily: M }}>2026</span>
+            <div style={{
+              fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,0.15)", letterSpacing: "1.2px",
+              textTransform: "uppercase" as const, padding: "4px 10px",
+              border: "1px solid rgba(255,255,255,0.05)", borderRadius: 5, fontFamily: M,
+            }}>OpenF1 API</div>
           </div>
           <div style={{
             fontSize: 9,
