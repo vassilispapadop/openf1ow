@@ -67,11 +67,11 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
       // Fetch location data for each driver in parallel batches
       const BATCH = 5;
       const driverNums = drivers.map(d => d.driver_number);
-      const allData: LocPoint[][] = [];
+      const rawData: { dn: number; points: LocPoint[] }[] = [];
 
       for (let i = 0; i < driverNums.length; i += BATCH) {
         const batch = driverNums.slice(i, i + BATCH);
-        setProgress(`Loading driver positions (${Math.min(i + BATCH, driverNums.length)}/${driverNums.length})...`);
+        setProgress(`Loading positions (${Math.min(i + BATCH, driverNums.length)}/${driverNums.length} drivers)...`);
         const results = await Promise.all(
           batch.map(dn =>
             fetchJson(`/location?session_key=${sessionKey}&driver_number=${dn}&date>=${raceStart}`)
@@ -80,62 +80,80 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
         );
         results.forEach((data, idx) => {
           const dn = batch[idx];
-          // Subsample to ~0.5s intervals
+          if (!Array.isArray(data) || data.length < 100) return; // skip drivers with no/minimal data
+          // Subsample to ~0.5s and skip stationary points at start
           const points: LocPoint[] = [];
           let lastTs = 0;
+          const startX = data[0].x, startY = data[0].y;
+          let moving = false;
           for (const p of data) {
+            if (!moving) {
+              const dx = p.x - startX, dy = p.y - startY;
+              if (Math.sqrt(dx * dx + dy * dy) > 50) moving = true;
+              else continue;
+            }
             const ts = new Date(p.date).getTime();
             if (ts - lastTs >= 450) {
               points.push({ x: p.x, y: p.y, ts, dn });
               lastTs = ts;
             }
           }
-          allData.push(points);
+          if (points.length > 50) rawData.push({ dn, points });
         });
       }
 
-      // Derive track outline from the driver with most data (first 1 lap worth)
-      setProgress("Building track map...");
-      const longest = allData.reduce((a, b) => a.length > b.length ? a : b, []);
-      if (longest.length < 100) throw new Error("Not enough location data");
+      if (!rawData.length) throw new Error("No location data available for this session");
 
-      // Use first ~300 points (~2.5 min, roughly 1 lap at Suzuka)
-      // Detect lap by finding when the car returns close to starting position
-      const start = longest[0];
-      let lapEnd = 300;
-      for (let i = 200; i < Math.min(longest.length, 1000); i++) {
-        const dx = longest[i].x - start.x;
-        const dy = longest[i].y - start.y;
-        if (Math.sqrt(dx * dx + dy * dy) < 300) {
+      // Derive track outline from first lap of the driver with most data
+      setProgress("Building track map...");
+      const longest = rawData.reduce((a, b) => a.points.length > b.points.length ? a : b);
+      const lp = longest.points;
+
+      // Detect one full lap: find when driver returns close to start after traveling far
+      const lapStart = lp[0];
+      let maxDist = 0;
+      let lapEnd = Math.min(lp.length, 400);
+      for (let i = 1; i < Math.min(lp.length, 2000); i++) {
+        const dx = lp[i].x - lapStart.x, dy = lp[i].y - lapStart.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > maxDist) maxDist = dist;
+        // Must have traveled far away first, then returned close
+        if (maxDist > 2000 && dist < 300) {
           lapEnd = i;
           break;
         }
       }
-      const outline = longest.slice(0, lapEnd).map(p => ({ x: p.x, y: p.y }));
+      const outline = lp.slice(0, lapEnd).map(p => ({ x: p.x, y: p.y }));
       setTrackOutline(outline);
 
-      // Normalize all drivers to same time axis (the longest driver's timestamps)
-      // Subsample all to common ~0.5s grid
-      const refTimes = longest.map(p => p.ts);
-      const aligned: LocPoint[][] = allData.map(driverPts => {
-        if (!driverPts.length) return refTimes.map(ts => ({ x: 0, y: 0, ts, dn: 0 }));
+      // Build common time axis from the longest driver
+      const refTimes = lp.map(p => p.ts);
+
+      // Align all drivers to the common time axis via interpolation
+      const aligned: LocPoint[][] = rawData.map(({ dn, points }) => {
         const result: LocPoint[] = [];
         let j = 0;
         for (const ts of refTimes) {
-          while (j < driverPts.length - 1 && driverPts[j + 1].ts <= ts) j++;
-          // Interpolate between j and j+1
-          if (j < driverPts.length - 1 && driverPts[j].ts <= ts) {
-            const t0 = driverPts[j].ts, t1 = driverPts[j + 1].ts;
-            const frac = t1 > t0 ? (ts - t0) / (t1 - t0) : 0;
-            result.push({
-              x: driverPts[j].x + (driverPts[j + 1].x - driverPts[j].x) * frac,
-              y: driverPts[j].y + (driverPts[j + 1].y - driverPts[j].y) * frac,
-              ts,
-              dn: driverPts[j].dn,
-            });
-          } else {
-            result.push(driverPts[j] ? { ...driverPts[j], ts } : { x: 0, y: 0, ts, dn: 0 });
+          // Advance j to the closest point <= ts
+          while (j < points.length - 1 && points[j + 1].ts <= ts) j++;
+          if (j >= points.length - 1) {
+            // Past this driver's data (DNF, pit, etc.) — mark as hidden
+            result.push({ x: 0, y: 0, ts, dn: 0 });
+            continue;
           }
+          const p0 = points[j], p1 = points[j + 1];
+          if (p0.ts > ts) {
+            // Before this driver's first data point
+            result.push({ x: 0, y: 0, ts, dn: 0 });
+            continue;
+          }
+          const frac = p1.ts > p0.ts ? (ts - p0.ts) / (p1.ts - p0.ts) : 0;
+          result.push({
+            x: p0.x + (p1.x - p0.x) * frac,
+            y: p0.y + (p1.y - p0.y) * frac,
+            ts,
+            dn,
+          });
         }
         return result;
       });
