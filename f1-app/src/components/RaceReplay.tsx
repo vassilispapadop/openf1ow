@@ -1,32 +1,30 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Driver } from "../lib/types";
 import { F, M, sty } from "../lib/styles";
-
-const PROXY = "https://corsproxy.io/?";
-const API = "https://api.openf1.org/v1";
-
-async function fetchJson(path: string) {
-  const urls = [API + path, PROXY + encodeURIComponent(API + path)];
-  for (const url of urls) {
-    try {
-      const r = await fetch(url);
-      if (r.ok) return await r.json();
-    } catch {}
-  }
-  throw new Error("Failed: " + path);
-}
+import { api } from "../lib/api";
 
 interface LocPoint { x: number; y: number; ts: number; dn: number }
 interface PosEvent { dn: number; pos: number; ts: number }
 interface GapEvent { dn: number; gap: number | null; ts: number }
 interface LapEvent { dn: number; lap: number; ts: number }
 
+// Binary search: find last index where arr[i].ts <= target
+function bisect(arr: { ts: number }[], target: number): number {
+  let lo = 0, hi = arr.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (arr[mid].ts <= target) lo = mid + 1; else hi = mid - 1;
+  }
+  return hi;
+}
+
 export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string; drivers: Driver[] }) {
   const [allPoints, setAllPoints] = useState<LocPoint[][]>([]);
   const [trackOutline, setTrackOutline] = useState<{ x: number; y: number }[]>([]);
-  const [posEvents, setPosEvents] = useState<PosEvent[]>([]);
-  const [gapEvents, setGapEvents] = useState<GapEvent[]>([]);
-  const [lapEvents, setLapEvents] = useState<LapEvent[]>([]);
+  // Pre-indexed by driver number for O(log n) lookups
+  const [posIndex, setPosIndex] = useState<Record<number, PosEvent[]>>({});
+  const [gapIndex, setGapIndex] = useState<Record<number, GapEvent[]>>({});
+  const [lapIndex, setLapIndex] = useState<LapEvent[]>([]);
   const [totalRaceLaps, setTotalRaceLaps] = useState(0);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
@@ -52,42 +50,40 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     return m;
   }, [drivers]);
 
-  // Compute current positions and gaps from real F1 timing data
+  // Compute current positions and gaps using binary search (O(log n) per driver)
   const currentState = useMemo(() => {
     if (!timeAxis.length) return { lap: 1, positions: [] as { dn: number; gap: string; pos: number }[] };
     const now = timeAxis[timeIdx] || 0;
 
-    // Current position per driver (latest position event before now)
-    const drvPos: Record<number, number> = {};
-    posEvents.forEach(e => { if (e.ts <= now) drvPos[e.dn] = e.pos; });
-
-    // Current gap to leader per driver (latest gap event before now)
-    const drvGap: Record<number, number | null> = {};
-    gapEvents.forEach(e => { if (e.ts <= now) drvGap[e.dn] = e.gap; });
-
-    // Current lap (leader's latest lap)
-    let currentLap = 1;
-    lapEvents.forEach(e => { if (e.ts <= now && e.lap > currentLap) currentLap = e.lap; });
-
-    // Build sorted position list
-    const entries = Object.entries(drvPos)
-      .map(([dn, pos]) => ({ dn: Number(dn), pos, gap: drvGap[Number(dn)] }))
-      .sort((a, b) => a.pos - b.pos);
-
-    const positions = entries.map(e => {
-      let gap: string;
-      if (e.pos === 1) {
-        gap = "LEADER";
-      } else if (e.gap == null) {
-        gap = "---";
-      } else {
-        gap = "+" + e.gap.toFixed(1);
+    // Current position per driver via binary search
+    const entries: { dn: number; pos: number; gap: number | null }[] = [];
+    for (const [dnStr, events] of Object.entries(posIndex)) {
+      const idx = bisect(events, now);
+      if (idx >= 0) {
+        const dn = Number(dnStr);
+        const gapArr = gapIndex[dn];
+        const gapIdx = gapArr ? bisect(gapArr, now) : -1;
+        entries.push({
+          dn,
+          pos: events[idx].pos,
+          gap: gapIdx >= 0 ? gapArr[gapIdx].gap : null,
+        });
       }
-      return { dn: e.dn, gap, pos: e.pos };
-    });
+    }
+    entries.sort((a, b) => a.pos - b.pos);
+
+    // Current lap via binary search on sorted lap events
+    const lapIdx = bisect(lapIndex, now);
+    const currentLap = lapIdx >= 0 ? lapIndex[lapIdx].lap : 1;
+
+    const positions = entries.map(e => ({
+      dn: e.dn,
+      gap: e.pos === 1 ? "LEADER" : e.gap == null ? "---" : "+" + e.gap.toFixed(1),
+      pos: e.pos,
+    }));
 
     return { lap: Math.min(currentLap, totalRaceLaps || currentLap), positions };
-  }, [timeIdx, timeAxis, posEvents, gapEvents, lapEvents, totalRaceLaps]);
+  }, [timeIdx, timeAxis, posIndex, gapIndex, lapIndex, totalRaceLaps]);
 
   // Fetch data
   const load = useCallback(async () => {
@@ -97,40 +93,47 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     setProgress("Fetching race info...");
 
     try {
-      const sessions = await fetchJson("/sessions?session_key=" + sessionKey);
+      const sessions = await api("/sessions?session_key=" + sessionKey);
       const raceStart = sessions[0]?.date_start;
       if (!raceStart) throw new Error("No race start time found");
 
       // Fetch positions, intervals, and laps in parallel
       setProgress("Loading timing data...");
       const [posData, intervalData, lapData] = await Promise.all([
-        fetchJson("/position?session_key=" + sessionKey).catch(() => []),
-        fetchJson("/intervals?session_key=" + sessionKey).catch(() => []),
-        fetchJson("/laps?session_key=" + sessionKey).catch(() => []),
+        api("/position?session_key=" + sessionKey).catch(() => []),
+        api("/intervals?session_key=" + sessionKey).catch(() => []),
+        api("/laps?session_key=" + sessionKey).catch(() => []),
       ]);
 
-      // Process position events
-      const posEvts: PosEvent[] = posData.map((p: any) => ({
-        dn: p.driver_number, pos: p.position, ts: new Date(p.date).getTime(),
-      }));
-      setPosEvents(posEvts);
+      // Build per-driver indexed position events (sorted by time)
+      const posIdx: Record<number, PosEvent[]> = {};
+      (posData as any[]).forEach(p => {
+        const dn = p.driver_number;
+        if (!posIdx[dn]) posIdx[dn] = [];
+        posIdx[dn].push({ dn, pos: p.position, ts: new Date(p.date).getTime() });
+      });
+      setPosIndex(posIdx);
 
-      // Process gap events
-      const gapEvts: GapEvent[] = intervalData.map((g: any) => ({
-        dn: g.driver_number, gap: g.gap_to_leader, ts: new Date(g.date).getTime(),
-      }));
-      setGapEvents(gapEvts);
+      // Build per-driver indexed gap events (sorted by time)
+      const gapIdx: Record<number, GapEvent[]> = {};
+      (intervalData as any[]).forEach(g => {
+        const dn = g.driver_number;
+        if (!gapIdx[dn]) gapIdx[dn] = [];
+        gapIdx[dn].push({ dn, gap: g.gap_to_leader, ts: new Date(g.date).getTime() });
+      });
+      setGapIndex(gapIdx);
 
-      // Process lap events
+      // Build sorted lap events (for lap counter)
       const lapEvts: LapEvent[] = [];
       let maxLap = 0;
-      lapData.forEach((l: any) => {
+      (lapData as any[]).forEach(l => {
         if (l.date_start && l.lap_number >= 1) {
           lapEvts.push({ dn: l.driver_number, lap: l.lap_number, ts: new Date(l.date_start).getTime() });
           if (l.lap_number > maxLap) maxLap = l.lap_number;
         }
       });
-      setLapEvents(lapEvts);
+      lapEvts.sort((a, b) => a.ts - b.ts);
+      setLapIndex(lapEvts);
       setTotalRaceLaps(maxLap);
 
       // Start from lights out (Lap 1 date_start)
@@ -147,7 +150,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
         setProgress(`Loading positions (${Math.min(i + BATCH, driverNums.length)}/${driverNums.length} drivers)...`);
         const results = await Promise.all(
           batch.map(dn =>
-            fetchJson(`/location?session_key=${sessionKey}&driver_number=${dn}&date>=${lightsOut}`)
+            api(`/location?session_key=${sessionKey}&driver_number=${dn}&date>=${lightsOut}`)
               .catch(() => [])
           )
         );
@@ -217,23 +220,35 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     setLoading(false);
   }, [sessionKey, drivers]);
 
+  // Memoize track bounds (never changes during playback)
+  const trackBounds = useMemo(() => {
+    if (!trackOutline.length) return null;
+    const xs = trackOutline.map(p => p.x);
+    const ys = trackOutline.map(p => p.y);
+    return { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) };
+  }, [trackOutline]);
+
   // Canvas rendering
   const draw = useCallback((idx: number) => {
     const cv = canvasRef.current;
     const wrap = wrapRef.current;
-    if (!cv || !wrap || !trackOutline.length || !allPoints.length) return;
+    if (!cv || !wrap || !trackBounds || !allPoints.length) return;
 
     const dpr = window.devicePixelRatio || 1;
     const W = wrap.clientWidth;
     const H = 520;
-    const TOWER_W = 180; // timing tower width
+    const TOWER_W = 180;
     const MAP_W = W - TOWER_W;
-    cv.width = W * dpr;
-    cv.height = H * dpr;
-    cv.style.width = W + "px";
-    cv.style.height = H + "px";
+    // Only resize canvas when dimensions change
+    const needsResize = cv.width !== W * dpr || cv.height !== H * dpr;
+    if (needsResize) {
+      cv.width = W * dpr;
+      cv.height = H * dpr;
+      cv.style.width = W + "px";
+      cv.style.height = H + "px";
+    }
     const ctx = cv.getContext("2d")!;
-    ctx.scale(dpr, dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     // Background
     ctx.fillStyle = "#050508";
@@ -296,10 +311,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     });
 
     // === TRACK MAP (right side) ===
-    const allX = trackOutline.map(p => p.x);
-    const allY = trackOutline.map(p => p.y);
-    const minX = Math.min(...allX), maxX = Math.max(...allX);
-    const minY = Math.min(...allY), maxY = Math.max(...allY);
+    const { minX, maxX, minY, maxY } = trackBounds;
     const trackW = maxX - minX || 1, trackH = maxY - minY || 1;
     const PAD = 36;
     const mapL = TOWER_W + PAD;
@@ -382,7 +394,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     ctx.fillRect(TOWER_W, H - 3, MAP_W, 3);
     ctx.fillStyle = "#e10600";
     ctx.fillRect(TOWER_W, H - 3, MAP_W * pct, 3);
-  }, [trackOutline, allPoints, totalFrames, timeAxis, drvMap, currentState, totalRaceLaps]);
+  }, [trackOutline, trackBounds, allPoints, totalFrames, timeAxis, drvMap, currentState, totalRaceLaps]);
 
   useEffect(() => { draw(timeIdx); }, [timeIdx, draw]);
 

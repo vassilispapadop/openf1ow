@@ -5,20 +5,7 @@ import type { Driver, Lap, Stint, Pit, Weather } from "./lib/types";
 import { median, linearSlope, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "./lib/raceUtils";
 import { F, M, sty } from "./lib/styles";
 import { buildFullSummary } from "./lib/buildAnalysisSummary";
-
-const PROXY = "https://corsproxy.io/?";
-const API = "https://api.openf1.org/v1";
-
-async function api(path: string) {
-  const urls = [API + path, PROXY + encodeURIComponent(API + path)];
-  for (const url of urls) {
-    try {
-      const r = await fetch(url);
-      if (r.ok) return await r.json();
-    } catch (e) { /* try next */ }
-  }
-  throw new Error("Failed to fetch: " + path);
-}
+import { api } from "./lib/api";
 
 const TC: Record<string, string> = {
   SOFT: "#FF3333", MEDIUM: "#FFD700", HARD: "#FFFFFF",
