@@ -26,7 +26,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
   const [error, setError] = useState("");
   const [playing, setPlaying] = useState(false);
   const [timeIdx, setTimeIdx] = useState(0);
-  const [speed, setSpeed] = useState(20);
+  const [speed, setSpeed] = useState(1);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const animRef = useRef(0);
@@ -281,20 +281,34 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
   // Draw on timeIdx change
   useEffect(() => { draw(timeIdx); }, [timeIdx, draw]);
 
-  // Animation loop
+  // Animation loop — uses wall-clock time for accurate playback speed
   useEffect(() => {
-    if (!playing) return;
-    const tick = () => {
-      setTimeIdx(prev => {
-        const next = prev + speed;
-        if (next >= totalFrames) { setPlaying(false); return totalFrames - 1; }
-        return next;
-      });
+    if (!playing || !timeAxis.length) return;
+    let lastWall = performance.now();
+    // Each frame in timeAxis is ~0.5s of real race time
+    // At 1x speed, advance 1 frame per 0.5s of wall time
+    // At 10x, advance 1 frame per 0.05s, etc.
+    const sampleInterval = timeAxis.length > 1 ? (timeAxis[1] - timeAxis[0]) / 1000 : 0.5; // seconds per frame
+    let accum = 0;
+
+    const tick = (now: number) => {
+      const dtWall = (now - lastWall) / 1000; // wall seconds elapsed
+      lastWall = now;
+      accum += dtWall * speed; // race seconds elapsed
+      const framesToAdvance = Math.floor(accum / sampleInterval);
+      if (framesToAdvance > 0) {
+        accum -= framesToAdvance * sampleInterval;
+        setTimeIdx(prev => {
+          const next = prev + framesToAdvance;
+          if (next >= totalFrames) { setPlaying(false); return totalFrames - 1; }
+          return next;
+        });
+      }
       animRef.current = requestAnimationFrame(tick);
     };
     animRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animRef.current);
-  }, [playing, speed, totalFrames]);
+  }, [playing, speed, totalFrames, timeAxis]);
 
   // Not loaded yet
   if (!allPoints.length && !loading) {
@@ -384,13 +398,13 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
 
         {/* Speed control */}
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          {[5, 20, 50, 100].map(s => (
+          {[1, 5, 15, 30].map(s => (
             <button key={s} onClick={() => setSpeed(s)} style={{
               padding: "4px 8px", borderRadius: 5, border: "none", cursor: "pointer",
               fontSize: 9, fontWeight: 700, fontFamily: M,
               background: speed === s ? "rgba(225,6,0,0.3)" : "rgba(255,255,255,0.04)",
               color: speed === s ? "#e10600" : "#5a5a6e",
-            }}>{s === 5 ? "0.25x" : s === 20 ? "1x" : s === 50 ? "2.5x" : "5x"}</button>
+            }}>{s}x</button>
           ))}
         </div>
 
