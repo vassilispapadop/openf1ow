@@ -2945,6 +2945,11 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
     return m;
   }, [drivers]);
 
+  // Auto-load when session/drivers are ready
+  useEffect(() => {
+    if (sessionKey && drivers.length && !loaded && !loading) fetchAll();
+  }, [sessionKey, drivers]);
+
   const fetchAll = useCallback(async () => {
     if (!sessionKey || !drivers.length) return;
     setLoading(true);
