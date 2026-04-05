@@ -1,6 +1,5 @@
 interface Env {
   GEMINI_API_KEY: string;
-  ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   SHARES: R2Bucket;
 }
 
@@ -252,16 +251,22 @@ export default {
 
     // Serve dynamic OG tags for page navigation requests
     if (url.pathname === "/" && request.method === "GET" && url.searchParams.has("mk")) {
-      try {
-        const assetRes = await env.ASSETS.fetch(new Request(url.origin + "/index.html"));
-        let html = await assetRes.text();
-        const og = await buildOgTags(url);
-        if (og) html = injectOgTags(html, og);
-        return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-        });
-      } catch {
-        // Fall through to asset serving on error
+      const og = await buildOgTags(url);
+      if (og) {
+        // Return 404 to let asset serving handle HTML, but attach OG data as headers
+        // that a Cloudflare Transform Rule could use. For now, we inject via a fetch to self.
+        try {
+          const assetRes = await fetch(new Request(url.origin + "/index.html", { redirect: "follow" }));
+          if (assetRes.ok) {
+            let html = await assetRes.text();
+            html = injectOgTags(html, og);
+            return new Response(html, {
+              headers: { "Content-Type": "text/html; charset=utf-8" },
+            });
+          }
+        } catch {
+          // Fall through to asset serving
+        }
       }
     }
 
@@ -310,9 +315,9 @@ export default {
       });
     }
 
-    // Pass non-API requests through to asset serving (static files + SPA fallback)
+    // Return 404 for non-API requests — asset serving handles static files + SPA fallback
     if (url.pathname !== "/api/analyze") {
-      return env.ASSETS.fetch(request);
+      return new Response(null, { status: 404 });
     }
 
     if (request.method !== "POST") {
