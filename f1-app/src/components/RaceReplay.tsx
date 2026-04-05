@@ -17,12 +17,16 @@ async function fetchJson(path: string) {
 }
 
 interface LocPoint { x: number; y: number; ts: number; dn: number }
-interface LapCrossing { dn: number; lap: number; ts: number }
+interface PosEvent { dn: number; pos: number; ts: number }
+interface GapEvent { dn: number; gap: number | null; ts: number }
+interface LapEvent { dn: number; lap: number; ts: number }
 
 export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string; drivers: Driver[] }) {
   const [allPoints, setAllPoints] = useState<LocPoint[][]>([]);
   const [trackOutline, setTrackOutline] = useState<{ x: number; y: number }[]>([]);
-  const [lapCrossings, setLapCrossings] = useState<LapCrossing[]>([]);
+  const [posEvents, setPosEvents] = useState<PosEvent[]>([]);
+  const [gapEvents, setGapEvents] = useState<GapEvent[]>([]);
+  const [lapEvents, setLapEvents] = useState<LapEvent[]>([]);
   const [totalRaceLaps, setTotalRaceLaps] = useState(0);
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
@@ -48,48 +52,42 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     return m;
   }, [drivers]);
 
-  // Compute current lap number and positions for the timing tower
+  // Compute current positions and gaps from real F1 timing data
   const currentState = useMemo(() => {
-    if (!timeAxis.length || !lapCrossings.length) return { lap: 0, positions: [] as { dn: number; gap: string; pos: number }[] };
+    if (!timeAxis.length) return { lap: 1, positions: [] as { dn: number; gap: string; pos: number }[] };
     const now = timeAxis[timeIdx] || 0;
 
-    // Current lap: latest lap crossing for the leader before current time
-    const leaderCrossings = lapCrossings
-      .filter(c => c.ts <= now)
-      .sort((a, b) => b.lap - a.lap);
-    const currentLap = leaderCrossings.length > 0 ? leaderCrossings[0].lap : 1;
+    // Current position per driver (latest position event before now)
+    const drvPos: Record<number, number> = {};
+    posEvents.forEach(e => { if (e.ts <= now) drvPos[e.dn] = e.pos; });
 
-    // Positions: for each driver, find their latest lap crossing
-    const driverLatest: Record<number, { lap: number; ts: number }> = {};
-    lapCrossings.forEach(c => {
-      if (c.ts <= now) {
-        if (!driverLatest[c.dn] || c.lap > driverLatest[c.dn].lap) {
-          driverLatest[c.dn] = { lap: c.lap, ts: c.ts };
-        }
-      }
-    });
+    // Current gap to leader per driver (latest gap event before now)
+    const drvGap: Record<number, number | null> = {};
+    gapEvents.forEach(e => { if (e.ts <= now) drvGap[e.dn] = e.gap; });
 
-    // Leader is the driver with the highest lap number and earliest timestamp
-    const entries = Object.entries(driverLatest).map(([dn, { lap, ts }]) => ({ dn: Number(dn), lap, ts }));
-    entries.sort((a, b) => b.lap - a.lap || a.ts - b.ts);
+    // Current lap (leader's latest lap)
+    let currentLap = 1;
+    lapEvents.forEach(e => { if (e.ts <= now && e.lap > currentLap) currentLap = e.lap; });
 
-    const leaderTs = entries[0]?.ts || now;
-    const positions = entries.map((e, i) => {
+    // Build sorted position list
+    const entries = Object.entries(drvPos)
+      .map(([dn, pos]) => ({ dn: Number(dn), pos, gap: drvGap[Number(dn)] }))
+      .sort((a, b) => a.pos - b.pos);
+
+    const positions = entries.map(e => {
       let gap: string;
-      if (i === 0) {
+      if (e.pos === 1) {
         gap = "LEADER";
-      } else if (e.lap < entries[0].lap) {
-        const lapDiff = entries[0].lap - e.lap;
-        gap = "+" + lapDiff + " LAP" + (lapDiff > 1 ? "S" : "");
+      } else if (e.gap == null) {
+        gap = "---";
       } else {
-        const diff = (e.ts - leaderTs) / 1000;
-        gap = "+" + diff.toFixed(1);
+        gap = "+" + e.gap.toFixed(1);
       }
-      return { dn: e.dn, gap, pos: i + 1 };
+      return { dn: e.dn, gap, pos: e.pos };
     });
 
-    return { lap: Math.min(currentLap, totalRaceLaps), positions };
-  }, [timeIdx, timeAxis, lapCrossings, totalRaceLaps]);
+    return { lap: Math.min(currentLap, totalRaceLaps || currentLap), positions };
+  }, [timeIdx, timeAxis, posEvents, gapEvents, lapEvents, totalRaceLaps]);
 
   // Fetch data
   const load = useCallback(async () => {
@@ -103,22 +101,40 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
       const raceStart = sessions[0]?.date_start;
       if (!raceStart) throw new Error("No race start time found");
 
-      // Fetch laps to know lap boundaries
-      setProgress("Loading lap data...");
-      const laps = await fetchJson("/laps?session_key=" + sessionKey);
-      const crossings: LapCrossing[] = [];
+      // Fetch positions, intervals, and laps in parallel
+      setProgress("Loading timing data...");
+      const [posData, intervalData, lapData] = await Promise.all([
+        fetchJson("/position?session_key=" + sessionKey).catch(() => []),
+        fetchJson("/intervals?session_key=" + sessionKey).catch(() => []),
+        fetchJson("/laps?session_key=" + sessionKey).catch(() => []),
+      ]);
+
+      // Process position events
+      const posEvts: PosEvent[] = posData.map((p: any) => ({
+        dn: p.driver_number, pos: p.position, ts: new Date(p.date).getTime(),
+      }));
+      setPosEvents(posEvts);
+
+      // Process gap events
+      const gapEvts: GapEvent[] = intervalData.map((g: any) => ({
+        dn: g.driver_number, gap: g.gap_to_leader, ts: new Date(g.date).getTime(),
+      }));
+      setGapEvents(gapEvts);
+
+      // Process lap events
+      const lapEvts: LapEvent[] = [];
       let maxLap = 0;
-      laps.forEach((l: any) => {
+      lapData.forEach((l: any) => {
         if (l.date_start && l.lap_number >= 1) {
-          crossings.push({ dn: l.driver_number, lap: l.lap_number, ts: new Date(l.date_start).getTime() });
+          lapEvts.push({ dn: l.driver_number, lap: l.lap_number, ts: new Date(l.date_start).getTime() });
           if (l.lap_number > maxLap) maxLap = l.lap_number;
         }
       });
-      setLapCrossings(crossings);
+      setLapEvents(lapEvts);
       setTotalRaceLaps(maxLap);
 
-      // Start from lights out (Lap 1 date_start) — skip formation lap and grid wait
-      const lap1Starts = crossings.filter(c => c.lap === 1).map(c => c.ts);
+      // Start from lights out (Lap 1 date_start)
+      const lap1Starts = lapEvts.filter(c => c.lap === 1).map(c => c.ts);
       const lightsOut = lap1Starts.length ? new Date(Math.min(...lap1Starts)).toISOString() : raceStart;
 
       // Fetch location data
