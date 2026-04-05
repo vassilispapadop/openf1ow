@@ -249,26 +249,8 @@ export default {
       });
     }
 
-    // Serve dynamic OG tags for page navigation requests
-    if (url.pathname === "/" && request.method === "GET" && url.searchParams.has("mk")) {
-      const og = await buildOgTags(url);
-      if (og) {
-        // Return 404 to let asset serving handle HTML, but attach OG data as headers
-        // that a Cloudflare Transform Rule could use. For now, we inject via a fetch to self.
-        try {
-          const assetRes = await fetch(new Request(url.origin + "/index.html", { redirect: "follow" }));
-          if (assetRes.ok) {
-            let html = await assetRes.text();
-            html = injectOgTags(html, og);
-            return new Response(html, {
-              headers: { "Content-Type": "text/html; charset=utf-8" },
-            });
-          }
-        } catch {
-          // Fall through to asset serving
-        }
-      }
-    }
+    // For page requests with params, fall through to asset serving (SPA handles routing)
+    // OG tags are handled by the /og-image endpoint for social previews
 
     // Upload chart image to R2 and return shareable URL
     if (url.pathname === "/api/share" && request.method === "POST") {
@@ -315,9 +297,9 @@ export default {
       });
     }
 
-    // Return 404 for non-API requests — asset serving handles static files + SPA fallback
+    // Don't return a Response for non-API requests — Cloudflare's asset serving takes over
     if (url.pathname !== "/api/analyze") {
-      return new Response(null, { status: 404 });
+      return undefined as unknown as Response;
     }
 
     if (request.method !== "POST") {
