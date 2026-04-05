@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import { F } from "../lib/styles";
-import { captureCanvas, captureCanvasStack, captureDom, copyToClipboard, downloadPng, uploadShare } from "../lib/snapshot";
+import { captureCanvas, captureCanvasStack, captureDom, copyToClipboard, downloadPng } from "../lib/snapshot";
 
-type Status = "idle" | "copying" | "copied" | "linked" | "downloaded" | "uploading" | "error";
+type Status = "idle" | "copying" | "copied" | "downloaded" | "error";
 
 export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filename }: {
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
@@ -29,19 +29,6 @@ export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filen
     return null;
   }, [canvasRef, canvasRefs, domRef, meta]);
 
-  const onCopyLink = useCallback(async () => {
-    setStatus("uploading");
-    setShowMenu(false);
-    try {
-      const blob = await getBlob();
-      if (!blob) { setStatus("error"); return; }
-      const shareUrl = await uploadShare(blob);
-      await navigator.clipboard.writeText(shareUrl);
-      setStatus("linked");
-    } catch { setStatus("error"); }
-    setTimeout(() => setStatus("idle"), 2500);
-  }, [getBlob]);
-
   const onCopy = useCallback(async () => {
     setStatus("copying");
     setShowMenu(false);
@@ -65,17 +52,8 @@ export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filen
     setTimeout(() => setStatus("idle"), 2000);
   }, [getBlob, filename]);
 
-  const label =
-    status === "uploading" ? "Uploading..." :
-    status === "linked" ? "Link copied!" :
-    status === "copied" ? "Copied!" :
-    status === "downloaded" ? "Saved!" :
-    status === "error" ? "Failed" : "Share";
-
-  const color =
-    status === "linked" || status === "copied" || status === "downloaded" ? "#22c55e" :
-    status === "uploading" ? "#eab308" :
-    status === "error" ? "#ef4444" : "rgba(255,255,255,0.35)";
+  const label = status === "copied" ? "Copied!" : status === "downloaded" ? "Saved!" : status === "error" ? "Failed" : "Share";
+  const color = status === "copied" || status === "downloaded" ? "#22c55e" : status === "error" ? "#ef4444" : "rgba(255,255,255,0.35)";
 
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
@@ -112,11 +90,8 @@ export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filen
           minWidth: 150,
           boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
         }}>
-          <button onClick={onCopyLink} style={menuItemStyle}>
-            Copy link
-          </button>
           <button onClick={onCopy} style={menuItemStyle}>
-            Copy image
+            Copy to clipboard
           </button>
           <button onClick={onDownload} style={menuItemStyle}>
             Download PNG

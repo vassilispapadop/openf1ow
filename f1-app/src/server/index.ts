@@ -1,6 +1,6 @@
 interface Env {
   GEMINI_API_KEY: string;
-  SHARES: R2Bucket;
+  ASSETS: { fetch: (req: Request | string) => Promise<Response> };
 }
 
 // ============================================================================
@@ -249,57 +249,23 @@ export default {
       });
     }
 
-    // For page requests with params, fall through to asset serving (SPA handles routing)
-    // OG tags are handled by the /og-image endpoint for social previews
-
-    // Upload chart image to R2 and return shareable URL
-    if (url.pathname === "/api/share" && request.method === "POST") {
-      if (!env.SHARES) {
-        return new Response("R2 bucket not configured", { status: 500, headers: CORS_HEADERS });
+    // Serve dynamic OG tags for page navigation requests
+    if (url.pathname === "/" && request.method === "GET" && url.searchParams.has("mk")) {
+      try {
+        const assetRes = await env.ASSETS.fetch(new Request(url.origin + "/index.html"));
+        let html = await assetRes.text();
+        const og = await buildOgTags(url);
+        if (og) html = injectOgTags(html, og);
+        return new Response(html, {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      } catch {
+        // Fall through to asset serving on error
       }
-      const contentType = request.headers.get("content-type") || "";
-      if (!contentType.includes("image/png")) {
-        return new Response("Expected image/png", { status: 400, headers: CORS_HEADERS });
-      }
-      const body = await request.arrayBuffer();
-      if (body.byteLength > 2_000_000) {
-        return new Response("Image too large (max 2MB)", { status: 413, headers: CORS_HEADERS });
-      }
-      // Generate short ID: 8 chars base36
-      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-      await env.SHARES.put(id, body, {
-        httpMetadata: { contentType: "image/png" },
-      });
-      const shareUrl = url.origin + "/api/s/" + id;
-      return new Response(JSON.stringify({ url: shareUrl }), {
-        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
-      });
     }
 
-    // Serve shared chart image from R2
-    if (url.pathname.startsWith("/api/s/") && request.method === "GET") {
-      if (!env.SHARES) {
-        return new Response("Not found", { status: 404 });
-      }
-      const id = url.pathname.slice(7);
-      if (!id || id.length > 20) {
-        return new Response("Not found", { status: 404 });
-      }
-      const obj = await env.SHARES.get(id);
-      if (!obj) {
-        return new Response("Not found", { status: 404 });
-      }
-      return new Response(obj.body, {
-        headers: {
-          "Content-Type": "image/png",
-          "Cache-Control": "public, max-age=31536000, immutable",
-        },
-      });
-    }
-
-    // Don't return a Response for non-API requests — Cloudflare's asset serving takes over
     if (url.pathname !== "/api/analyze") {
-      return undefined as unknown as Response;
+      return new Response(null, { status: 404 });
     }
 
     if (request.method !== "POST") {

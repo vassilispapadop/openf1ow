@@ -1,22 +1,15 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "openf1ow",
-	"main": "src/server/index.ts",
-	"compatibility_date": "2026-04-03",
-	"observability": {
-		"enabled": true
-	},
-	"assets": {
-		"not_found_handling": "single-page-application",
-		"run_worker_first": true
-	},
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"r2_buckets": [
-		{
-			"binding": "SHARES",
-			"bucket_name": "openf1ow-shares"
-		}
-	]
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "openf1ow",
+  "main": "src/server/index.ts",
+  "compatibility_date": "2026-04-03",
+  "observability": {
+    "enabled": true
+  },
+  "assets": {
+    "not_found_handling": "single-page-application"
+  },
+  "compatibility_flags": [
+    "nodejs_compat"
+  ]
 }
