@@ -258,8 +258,8 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
 
     // Watermark
     ctx.save();
-    ctx.font = `bold 11px ${F}`;
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.font = `bold 13px ${F}`;
+    ctx.fillStyle = "rgba(255,255,255,0.18)";
     ctx.textAlign = "left";
     ctx.fillText("openf1ow.com", TOWER_W + 10, H - 12);
     ctx.restore();
