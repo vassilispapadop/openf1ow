@@ -1,6 +1,7 @@
 interface Env {
   GEMINI_API_KEY: string;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
+  SHARES: R2Bucket;
 }
 
 // ============================================================================
@@ -262,6 +263,51 @@ export default {
       } catch {
         // Fall through to asset serving on error
       }
+    }
+
+    // Upload chart image to R2 and return shareable URL
+    if (url.pathname === "/api/share" && request.method === "POST") {
+      if (!env.SHARES) {
+        return new Response("R2 bucket not configured", { status: 500, headers: CORS_HEADERS });
+      }
+      const contentType = request.headers.get("content-type") || "";
+      if (!contentType.includes("image/png")) {
+        return new Response("Expected image/png", { status: 400, headers: CORS_HEADERS });
+      }
+      const body = await request.arrayBuffer();
+      if (body.byteLength > 2_000_000) {
+        return new Response("Image too large (max 2MB)", { status: 413, headers: CORS_HEADERS });
+      }
+      // Generate short ID: 8 chars base36
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await env.SHARES.put(id, body, {
+        httpMetadata: { contentType: "image/png" },
+      });
+      const shareUrl = url.origin + "/s/" + id;
+      return new Response(JSON.stringify({ url: shareUrl }), {
+        headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+      });
+    }
+
+    // Serve shared chart image from R2
+    if (url.pathname.startsWith("/s/") && request.method === "GET") {
+      if (!env.SHARES) {
+        return new Response("Not found", { status: 404 });
+      }
+      const id = url.pathname.slice(3);
+      if (!id || id.length > 20) {
+        return new Response("Not found", { status: 404 });
+      }
+      const obj = await env.SHARES.get(id);
+      if (!obj) {
+        return new Response("Not found", { status: 404 });
+      }
+      return new Response(obj.body, {
+        headers: {
+          "Content-Type": "image/png",
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
     }
 
     if (url.pathname !== "/api/analyze") {

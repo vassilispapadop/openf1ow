@@ -11,5 +11,11 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SHARES",
+      "bucket_name": "openf1ow-shares"
+    }
   ]
 }

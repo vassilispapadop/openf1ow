@@ -160,3 +160,15 @@ export function downloadPng(blob: Blob, filename: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/** Upload PNG blob to R2 via Worker and return shareable URL */
+export async function uploadShare(blob: Blob): Promise<string> {
+  const res = await fetch("/api/share", {
+    method: "POST",
+    headers: { "Content-Type": "image/png" },
+    body: blob,
+  });
+  if (!res.ok) throw new Error("Upload failed: " + res.status);
+  const { url } = await res.json();
+  return url;
+}
