@@ -103,13 +103,13 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
       const raceStart = sessions[0]?.date_start;
       if (!raceStart) throw new Error("No race start time found");
 
-      // Fetch laps to know lap boundaries and skip formation lap
+      // Fetch laps to know lap boundaries
       setProgress("Loading lap data...");
       const laps = await fetchJson("/laps?session_key=" + sessionKey);
       const crossings: LapCrossing[] = [];
       let maxLap = 0;
       laps.forEach((l: any) => {
-        if (l.date_start && l.lap_number > 1) {
+        if (l.date_start && l.lap_number >= 1) {
           crossings.push({ dn: l.driver_number, lap: l.lap_number, ts: new Date(l.date_start).getTime() });
           if (l.lap_number > maxLap) maxLap = l.lap_number;
         }
@@ -117,9 +117,9 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
       setLapCrossings(crossings);
       setTotalRaceLaps(maxLap);
 
-      // Find formation lap end (lap 2 start = first real racing lap)
-      const lap2Starts = crossings.filter(c => c.lap === 2).map(c => c.ts);
-      const formationEnd = lap2Starts.length ? new Date(Math.min(...lap2Starts) - 5000).toISOString() : raceStart;
+      // Start from lights out (Lap 1 date_start) — skip formation lap and grid wait
+      const lap1Starts = crossings.filter(c => c.lap === 1).map(c => c.ts);
+      const lightsOut = lap1Starts.length ? new Date(Math.min(...lap1Starts)).toISOString() : raceStart;
 
       // Fetch location data
       const BATCH = 5;
@@ -131,7 +131,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
         setProgress(`Loading positions (${Math.min(i + BATCH, driverNums.length)}/${driverNums.length} drivers)...`);
         const results = await Promise.all(
           batch.map(dn =>
-            fetchJson(`/location?session_key=${sessionKey}&driver_number=${dn}&date>=${formationEnd}`)
+            fetchJson(`/location?session_key=${sessionKey}&driver_number=${dn}&date>=${lightsOut}`)
               .catch(() => [])
           )
         );
