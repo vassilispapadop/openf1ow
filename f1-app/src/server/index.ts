@@ -42,8 +42,13 @@ async function buildOgTags(url: URL): Promise<{ title: string; description: stri
 
   if (!mk) return null;
 
-  // Fetch race name
-  const meetings = await fetchCached("/meetings?meeting_key=" + mk);
+  // Fetch all metadata in parallel — none depend on each other
+  const [meetings, drivers, sessions] = await Promise.all([
+    fetchCached("/meetings?meeting_key=" + mk),
+    dn && sk ? fetchCached("/drivers?session_key=" + sk + "&driver_number=" + dn) : null,
+    sk ? fetchCached("/sessions?session_key=" + sk) : null,
+  ]);
+
   const meeting = meetings?.[0];
   if (!meeting) return null;
 
@@ -51,19 +56,11 @@ async function buildOgTags(url: URL): Promise<{ title: string; description: stri
   const year = meeting.year || new Date().getFullYear();
   const parts: string[] = [];
 
-  // Add driver name if selected
-  if (dn && sk) {
-    const drivers = await fetchCached("/drivers?session_key=" + sk + "&driver_number=" + dn);
-    const driver = drivers?.[0];
-    if (driver) parts.push(driver.full_name || driver.name_acronym);
-  }
+  const driver = drivers?.[0];
+  if (driver) parts.push(driver.full_name || driver.name_acronym);
 
-  // Add session type
-  if (sk) {
-    const sessions = await fetchCached("/sessions?session_key=" + sk);
-    const session = sessions?.[0];
-    if (session?.session_name) parts.push(session.session_name);
-  }
+  const session = sessions?.[0];
+  if (session?.session_name) parts.push(session.session_name);
 
   // Add analysis sub-tab
   if (view === "analysis" && subTab && SUB_TAB_LABELS[subTab]) {
@@ -79,21 +76,31 @@ async function buildOgTags(url: URL): Promise<{ title: string; description: stri
   return { title, description, ogUrl };
 }
 
+// Escape for safe injection into HTML attribute values
+function escAttr(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function injectOgTags(html: string, og: { title: string; description: string; ogUrl: string }): string {
-  // Build og:image URL from the page URL (reuse same query params)
-  const ogImageUrl = og.ogUrl.replace("/?", "/og-image?");
+  const title = escAttr(og.title);
+  const desc = escAttr(og.description);
+  const ogUrl = escAttr(og.ogUrl);
+
+  // Build og:image URL robustly
+  const imgUrl = new URL(og.ogUrl);
+  imgUrl.pathname = "/og-image";
+  const ogImageUrl = escAttr(imgUrl.toString());
 
   let result = html
-    .replace(/<title>[^<]*<\/title>/, `<title>${og.title}</title>`)
-    .replace(/<meta name="description" content="[^"]*"/, `<meta name="description" content="${og.description}"`)
-    .replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${og.ogUrl}"`)
-    .replace(/<meta property="og:url" content="[^"]*"/, `<meta property="og:url" content="${og.ogUrl}"`)
-    .replace(/<meta property="og:title" content="[^"]*"/, `<meta property="og:title" content="${og.title}"`)
-    .replace(/<meta property="og:description" content="[^"]*"/, `<meta property="og:description" content="${og.description}"`)
-    .replace(/<meta name="twitter:title" content="[^"]*"/, `<meta name="twitter:title" content="${og.title}"`)
-    .replace(/<meta name="twitter:description" content="[^"]*"/, `<meta name="twitter:description" content="${og.description}"`);
+    .replace(/<title>[^<]*<\/title>/, `<title>${title}</title>`)
+    .replace(/<meta name="description" content="[^"]*"/, `<meta name="description" content="${desc}"`)
+    .replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${ogUrl}"`)
+    .replace(/<meta property="og:url" content="[^"]*"/, `<meta property="og:url" content="${ogUrl}"`)
+    .replace(/<meta property="og:title" content="[^"]*"/, `<meta property="og:title" content="${title}"`)
+    .replace(/<meta property="og:description" content="[^"]*"/, `<meta property="og:description" content="${desc}"`)
+    .replace(/<meta name="twitter:title" content="[^"]*"/, `<meta name="twitter:title" content="${title}"`)
+    .replace(/<meta name="twitter:description" content="[^"]*"/, `<meta name="twitter:description" content="${desc}"`);
 
-  // Inject og:image if not already present
   if (!result.includes('og:image')) {
     result = result.replace(
       '<meta property="og:site_name"',
@@ -101,7 +108,6 @@ function injectOgTags(html: string, og: { title: string; description: string; og
     );
   }
 
-  // Inject twitter:image if not already present
   if (!result.includes('twitter:image" content="http')) {
     result = result.replace(
       '<meta name="twitter:description"',

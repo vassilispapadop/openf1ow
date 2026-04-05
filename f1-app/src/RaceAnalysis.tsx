@@ -41,7 +41,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
-  const setSubTab = onSubTabChange;
   const [viewMode, setViewMode] = useState<"list" | "graph">("graph");
   const [progress, setProgress] = useState("");
 
@@ -54,7 +53,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
     setLoading(false);
     setError("");
     onSubTabChange("pace");
-  }, [sessionKey]);
+  }, [sessionKey, onSubTabChange]);
 
   const driverCount = useMemo(() => new Set(allLaps.map(l => l.driver_number)).size, [allLaps]);
 
@@ -234,7 +233,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           ["pitstops", "Pit Stops"],
           ["weather", "Weather"],
         ] as const).map(([k, v]) => (
-          <SubTab key={k} active={subTab === k} onClick={() => setSubTab(k)}>{v}</SubTab>
+          <SubTab key={k} active={subTab === k} onClick={() => onSubTabChange(k)}>{v}</SubTab>
         ))}
       </div>
 
