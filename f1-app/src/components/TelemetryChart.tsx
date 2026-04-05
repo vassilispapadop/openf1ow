@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef, useMemo } from "react";
 import { F, M } from "../lib/styles";
 import { DRS_OPEN, DRS_ELIGIBLE } from "../lib/constants";
 import { initCanvas, getCtx } from "../lib/canvas";
+import ShareButton from "./ShareButton";
 
 // ============================================================================
 // CHART INFRASTRUCTURE
@@ -548,6 +549,9 @@ export function Chart({ traces, syncRef }) {
 
   return (
     <div ref={wrapRef} style={{ position: "relative", marginBottom: 0 }}>
+      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
+        <ShareButton canvasRef={bgRef} filename="openf1ow-telemetry" />
+      </div>
       <canvas ref={bgRef} style={{ display: "block", borderRadius: "8px 8px 0 0" }} />
       <canvas ref={olRef} style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair", borderRadius: "8px 8px 0 0" }} />
     </div>

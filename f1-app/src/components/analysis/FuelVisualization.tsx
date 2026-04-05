@@ -3,6 +3,7 @@ import type { Driver, Lap } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { FUEL_TOTAL_KG, FUEL_SEC_PER_KG } from "../../lib/raceUtils";
 import useTooltip from "./useTooltip";
+import ShareButton from "../ShareButton";
 
 function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -157,6 +158,9 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
     <div>
       <div ref={wrapRef} style={{ width: "100%", marginBottom: 16, position: "relative" }}>
         {fuelTipEl}
+        <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
+          <ShareButton canvasRef={cvRef} filename="openf1ow-fuel" />
+        </div>
         <canvas ref={cvRef} onMouseMove={onFuelHover} onMouseLeave={fuelHide} />
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>

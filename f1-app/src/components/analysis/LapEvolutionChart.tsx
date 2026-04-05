@@ -5,6 +5,7 @@ import { initCanvas } from "../../lib/canvas";
 import { ft1 } from "../../lib/format";
 import { computeSlowLapThreshold, isCleanLap } from "../../lib/raceUtils";
 import { DRIVER_COLORS } from "../../lib/constants";
+import ShareButton from "../ShareButton";
 
 // Chart helpers
 const LEFT_MARGIN = 56;
@@ -269,6 +270,9 @@ function LapEvolutionChart({ allLaps, drivers }: {
         })}
       </div>
       <div ref={wrapRef} style={{ position: "relative" }}>
+        <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
+          <ShareButton canvasRef={cvRef} filename="openf1ow-lap-evolution" />
+        </div>
         <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }} />
         <canvas ref={olRef} style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair", borderRadius: 8 }} />
       </div>

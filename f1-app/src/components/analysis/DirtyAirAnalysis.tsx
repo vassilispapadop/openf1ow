@@ -5,6 +5,7 @@ import { initCanvas } from "../../lib/canvas";
 import { ft3, rowBg } from "../../lib/format";
 import { median, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "../../lib/raceUtils";
 import useTooltip from "./useTooltip";
+import ShareButton from "../ShareButton";
 
 const RIGHT_PAD = 16;
 
@@ -344,6 +345,9 @@ export function DirtyAirTimeline({ data, totalLaps, drivers }: { data: DirtyAirD
   return (
     <div ref={wrapRef} style={{ marginBottom: 14, position: "relative" }}>
       {tipEl}
+      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
+        <ShareButton canvasRef={cvRef} filename="openf1ow-dirty-air" />
+      </div>
       <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }}
         onMouseMove={onHover} onMouseLeave={tipHide} />
     </div>

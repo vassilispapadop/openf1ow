@@ -3,6 +3,7 @@ import { F, M } from "../../lib/styles";
 import { initCanvas } from "../../lib/canvas";
 import useTooltip from "./useTooltip";
 import type { ScatterPoint } from "./useTooltip";
+import ShareButton from "../ShareButton";
 
 export type { ScatterPoint };
 
@@ -172,6 +173,9 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
   return (
     <div ref={wrapRef} style={{ position: "relative" }}>
       {el}
+      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
+        <ShareButton canvasRef={cvRef} filename="openf1ow-scatter" />
+      </div>
       <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }} onMouseMove={onHover} onMouseLeave={hide} />
     </div>
   );
