@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { F } from "../lib/styles";
 import { captureCanvas, captureCanvasStack, captureDom, copyToClipboard, downloadPng } from "../lib/snapshot";
 
-type Status = "idle" | "copying" | "copied" | "downloaded" | "linked" | "error";
+type Status = "idle" | "copying" | "copied" | "downloaded" | "error";
 
 export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filename }: {
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
@@ -52,17 +52,8 @@ export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filen
     setTimeout(() => setStatus("idle"), 2000);
   }, [getBlob, filename]);
 
-  const onCopyLink = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setStatus("linked");
-    } catch { setStatus("error"); }
-    setShowMenu(false);
-    setTimeout(() => setStatus("idle"), 2000);
-  }, []);
-
-  const label = status === "copied" ? "Copied!" : status === "downloaded" ? "Saved!" : status === "linked" ? "Link copied!" : status === "error" ? "Failed" : "Share";
-  const color = status === "copied" || status === "downloaded" || status === "linked" ? "#22c55e" : status === "error" ? "#ef4444" : "rgba(255,255,255,0.35)";
+  const label = status === "copied" ? "Copied!" : status === "downloaded" ? "Saved!" : status === "error" ? "Failed" : "Share";
+  const color = status === "copied" || status === "downloaded" ? "#22c55e" : status === "error" ? "#ef4444" : "rgba(255,255,255,0.35)";
 
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
@@ -99,11 +90,8 @@ export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filen
           minWidth: 140,
           boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
         }}>
-          <button onClick={onCopyLink} style={menuItemStyle}>
-            Copy link
-          </button>
           <button onClick={onCopy} style={menuItemStyle}>
-            Copy image
+            Copy to clipboard
           </button>
           <button onClick={onDownload} style={menuItemStyle}>
             Download PNG
