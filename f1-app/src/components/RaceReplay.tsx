@@ -76,11 +76,12 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     const lapIdx = bisect(lapIndex, now);
     const currentLap = lapIdx >= 0 ? lapIndex[lapIdx].lap : 1;
 
-    const positions = entries.map(e => ({
-      dn: e.dn,
-      gap: e.pos === 1 ? "LEADER" : e.gap == null ? "---" : "+" + e.gap.toFixed(1),
-      pos: e.pos,
-    }));
+    const positions = entries.map(e => {
+      let gap = "---";
+      if (e.pos === 1) gap = "LEADER";
+      else if (e.gap != null && typeof e.gap === "number" && isFinite(e.gap)) gap = "+" + e.gap.toFixed(1);
+      return { dn: e.dn, gap, pos: e.pos };
+    });
 
     return { lap: Math.min(currentLap, totalRaceLaps || currentLap), positions };
   }, [timeIdx, timeAxis, posIndex, gapIndex, lapIndex, totalRaceLaps]);
@@ -233,6 +234,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     const cv = canvasRef.current;
     const wrap = wrapRef.current;
     if (!cv || !wrap || !trackBounds || !allPoints.length) return;
+    try {
 
     const dpr = window.devicePixelRatio || 1;
     const W = wrap.clientWidth;
@@ -305,9 +307,10 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
 
       // Gap
       ctx.font = `9px ${M}`;
-      ctx.fillStyle = p.gap === "LEADER" ? "#22c55e" : p.gap.includes("LAP") ? "#ef4444" : "#6a6a7e";
+      const gapStr = p.gap || "---";
+      ctx.fillStyle = gapStr === "LEADER" ? "#22c55e" : gapStr.includes("LAP") ? "#ef4444" : "#6a6a7e";
       ctx.textAlign = "right";
-      ctx.fillText(p.gap, TOWER_W - 6, y + 15);
+      ctx.fillText(gapStr, TOWER_W - 6, y + 15);
     });
 
     // === TRACK MAP (right side) ===
@@ -352,6 +355,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
         if (!drv) return;
 
         const [sx, sy] = toScreen(pt.x, pt.y);
+        if (!isFinite(sx) || !isFinite(sy)) return;
         const color = "#" + (drv.team_colour || "666");
 
         // Glow
@@ -394,6 +398,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     ctx.fillRect(TOWER_W, H - 3, MAP_W, 3);
     ctx.fillStyle = "#e10600";
     ctx.fillRect(TOWER_W, H - 3, MAP_W * pct, 3);
+    } catch (e) { console.warn("RaceReplay draw error:", e); }
   }, [trackOutline, trackBounds, allPoints, totalFrames, timeAxis, drvMap, currentState, totalRaceLaps]);
 
   useEffect(() => { draw(timeIdx); }, [timeIdx, draw]);
