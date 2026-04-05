@@ -1,7 +1,39 @@
+import { toPng } from "html-to-image";
 import { F, M } from "./styles";
 
 const BRAND_H = 36;
 const BRAND_PAD = 14;
+
+function drawBrandingBar(ctx: CanvasRenderingContext2D, topY: number, width: number, meta?: string) {
+  ctx.fillStyle = "#050508";
+  ctx.fillRect(0, topY, width, BRAND_H);
+  ctx.fillStyle = "#e10600";
+  ctx.fillRect(0, topY, width, 1);
+
+  ctx.font = `800 13px ${F}`;
+  ctx.textAlign = "left";
+  const logoY = topY + BRAND_H / 2 + 4;
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.fillText("Open", BRAND_PAD, logoY);
+  const openW = ctx.measureText("Open").width;
+  ctx.fillStyle = "rgba(225,6,0,0.7)";
+  ctx.fillText("F1", BRAND_PAD + openW, logoY);
+  const f1W = ctx.measureText("F1").width;
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.fillText("ow", BRAND_PAD + openW + f1W, logoY);
+
+  ctx.font = `500 9px ${M}`;
+  ctx.fillStyle = "rgba(255,255,255,0.2)";
+  ctx.textAlign = "right";
+  ctx.fillText("openf1ow.com", width - BRAND_PAD, logoY);
+
+  if (meta) {
+    ctx.font = `600 9px ${F}`;
+    ctx.fillStyle = "rgba(255,255,255,0.25)";
+    ctx.textAlign = "center";
+    ctx.fillText(meta, width / 2, logoY);
+  }
+}
 
 /** Composite branding onto a canvas snapshot and return as Blob */
 export async function captureCanvas(
@@ -12,52 +44,14 @@ export async function captureCanvas(
   const srcW = canvas.width / dpr;
   const srcH = canvas.height / dpr;
 
-  // Create a new canvas with branding bar at bottom
   const out = document.createElement("canvas");
-  const outW = srcW;
-  const outH = srcH + BRAND_H;
-  out.width = outW * 2; // always render at 2x for crisp sharing
-  out.height = outH * 2;
+  out.width = srcW * 2;
+  out.height = (srcH + BRAND_H) * 2;
   const ctx = out.getContext("2d")!;
   ctx.scale(2, 2);
 
-  // Draw the source chart
   ctx.drawImage(canvas, 0, 0, srcW, srcH);
-
-  // Branding bar background
-  ctx.fillStyle = "#050508";
-  ctx.fillRect(0, srcH, outW, BRAND_H);
-
-  // Red accent line
-  ctx.fillStyle = "#e10600";
-  ctx.fillRect(0, srcH, outW, 1);
-
-  // Logo: "Open" + "F1" + "ow"
-  ctx.font = `800 13px ${F}`;
-  ctx.textAlign = "left";
-  const logoY = srcH + BRAND_H / 2 + 4;
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("Open", BRAND_PAD, logoY);
-  const openW = ctx.measureText("Open").width;
-  ctx.fillStyle = "rgba(225,6,0,0.7)";
-  ctx.fillText("F1", BRAND_PAD + openW, logoY);
-  const f1W = ctx.measureText("F1").width;
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("ow", BRAND_PAD + openW + f1W, logoY);
-
-  // URL
-  ctx.font = `500 9px ${M}`;
-  ctx.fillStyle = "rgba(255,255,255,0.2)";
-  ctx.textAlign = "right";
-  ctx.fillText("openf1ow.com", outW - BRAND_PAD, logoY);
-
-  // Metadata (race/session) centered
-  if (meta) {
-    ctx.font = `600 9px ${F}`;
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.textAlign = "center";
-    ctx.fillText(meta, outW / 2, logoY);
-  }
+  drawBrandingBar(ctx, srcH, srcW, meta);
 
   return new Promise<Blob>((resolve, reject) => {
     out.toBlob(blob => {
@@ -78,14 +72,11 @@ export async function captureCanvasStack(
   canvases.forEach(c => { totalH += c.height / dpr; });
 
   const out = document.createElement("canvas");
-  const outW = srcW;
-  const outH = totalH + BRAND_H;
-  out.width = outW * 2;
-  out.height = outH * 2;
+  out.width = srcW * 2;
+  out.height = (totalH + BRAND_H) * 2;
   const ctx = out.getContext("2d")!;
   ctx.scale(2, 2);
 
-  // Draw source canvases stacked
   let yOff = 0;
   canvases.forEach(c => {
     const w = c.width / dpr;
@@ -94,35 +85,51 @@ export async function captureCanvasStack(
     yOff += h;
   });
 
+  drawBrandingBar(ctx, totalH, srcW, meta);
+
+  return new Promise<Blob>((resolve, reject) => {
+    out.toBlob(blob => {
+      if (blob) resolve(blob);
+      else reject(new Error("Canvas toBlob failed"));
+    }, "image/png");
+  });
+}
+
+/** Capture a DOM element as PNG with branding */
+export async function captureDom(
+  element: HTMLElement,
+  meta?: string,
+): Promise<Blob> {
+  // Render DOM to a data URL at 2x for crisp output
+  const dataUrl = await toPng(element, {
+    pixelRatio: 2,
+    backgroundColor: "#050508",
+  });
+
+  // Load into an image, then composite with branding on canvas
+  const img = new Image();
+  await new Promise<void>((resolve, reject) => {
+    img.onload = () => resolve();
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+
+  const srcW = img.width / 2; // back to CSS pixels (we rendered at 2x)
+  const srcH = img.height / 2;
+
+  const out = document.createElement("canvas");
+  const outW = srcW;
+  const outH = srcH + BRAND_H;
+  out.width = outW * 2;
+  out.height = outH * 2;
+  const ctx = out.getContext("2d")!;
+  ctx.scale(2, 2);
+
+  // Draw captured DOM
+  ctx.drawImage(img, 0, 0, srcW, srcH);
+
   // Branding bar
-  ctx.fillStyle = "#050508";
-  ctx.fillRect(0, totalH, outW, BRAND_H);
-  ctx.fillStyle = "#e10600";
-  ctx.fillRect(0, totalH, outW, 1);
-
-  ctx.font = `800 13px ${F}`;
-  ctx.textAlign = "left";
-  const logoY = totalH + BRAND_H / 2 + 4;
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("Open", BRAND_PAD, logoY);
-  const openW = ctx.measureText("Open").width;
-  ctx.fillStyle = "rgba(225,6,0,0.7)";
-  ctx.fillText("F1", BRAND_PAD + openW, logoY);
-  const f1W = ctx.measureText("F1").width;
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("ow", BRAND_PAD + openW + f1W, logoY);
-
-  ctx.font = `500 9px ${M}`;
-  ctx.fillStyle = "rgba(255,255,255,0.2)";
-  ctx.textAlign = "right";
-  ctx.fillText("openf1ow.com", outW - BRAND_PAD, logoY);
-
-  if (meta) {
-    ctx.font = `600 9px ${F}`;
-    ctx.fillStyle = "rgba(255,255,255,0.25)";
-    ctx.textAlign = "center";
-    ctx.fillText(meta, outW / 2, logoY);
-  }
+  drawBrandingBar(ctx, srcH, outW, meta);
 
   return new Promise<Blob>((resolve, reject) => {
     out.toBlob(blob => {

@@ -1,12 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { ft3, rowBg } from "../../lib/format";
+import ShareButton from "../ShareButton";
 
 function TeammateDelta({ allLaps, drivers }: {
   allLaps: Lap[];
   drivers: Driver[];
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const teamPairs = useMemo(() => {
     // Group drivers by team
     const teams: Record<string, Driver[]> = {};
@@ -69,6 +71,11 @@ function TeammateDelta({ allLaps, drivers }: {
   if (!teamPairs.length) return <div style={{ color: "#5a5a6e", fontSize: 13, padding: 20 }}>Need 2+ drivers per team</div>;
 
   return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <ShareButton domRef={contentRef} filename="openf1ow-teammates" />
+      </div>
+      <div ref={contentRef}>
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 10 }}>
       {teamPairs.map(tp => (
           <div key={tp.team} style={{
@@ -105,6 +112,8 @@ function TeammateDelta({ allLaps, drivers }: {
             </div>
           </div>
       ))}
+    </div>
+    </div>
     </div>
   );
 }

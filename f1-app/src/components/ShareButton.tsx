@@ -1,12 +1,13 @@
 import { useState, useCallback } from "react";
 import { F } from "../lib/styles";
-import { captureCanvas, captureCanvasStack, copyToClipboard, downloadPng } from "../lib/snapshot";
+import { captureCanvas, captureCanvasStack, captureDom, copyToClipboard, downloadPng } from "../lib/snapshot";
 
 type Status = "idle" | "copying" | "copied" | "downloaded" | "error";
 
-export default function ShareButton({ canvasRef, canvasRefs, meta, filename }: {
+export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filename }: {
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
   canvasRefs?: React.RefObject<HTMLCanvasElement | null>[];
+  domRef?: React.RefObject<HTMLElement | null>;
   meta?: string;
   filename?: string;
 }) {
@@ -22,8 +23,11 @@ export default function ShareButton({ canvasRef, canvasRefs, meta, filename }: {
     if (canvasRef?.current) {
       return captureCanvas(canvasRef.current, meta);
     }
+    if (domRef?.current) {
+      return captureDom(domRef.current, meta);
+    }
     return null;
-  }, [canvasRef, canvasRefs, meta]);
+  }, [canvasRef, canvasRefs, domRef, meta]);
 
   const onCopy = useCallback(async () => {
     setStatus("copying");

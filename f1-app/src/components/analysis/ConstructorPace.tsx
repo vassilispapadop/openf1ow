@@ -1,15 +1,17 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { ft3, podiumColor, rowBg } from "../../lib/format";
 import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils";
 import BoxPlotChart, { teamAbbr } from "./BoxPlotChart";
+import ShareButton from "../ShareButton";
 
 function ConstructorPace({ allLaps, drivers, viewMode }: {
   viewMode: "list" | "graph";
   allLaps: Lap[];
   drivers: Driver[];
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const teams = useMemo(() => {
     const threshold = computeSlowLapThreshold(allLaps);
     const teamMap: Record<string, { drivers: Driver[]; color: string }> = {};
@@ -68,6 +70,10 @@ function ConstructorPace({ allLaps, drivers, viewMode }: {
 
   return (
     <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <ShareButton domRef={contentRef} filename="openf1ow-constructors" />
+      </div>
+      <div ref={contentRef}>
       {teams.map((t, i) => (
         <div key={t.team} style={{
           ...sty.card,
@@ -124,6 +130,7 @@ function ConstructorPace({ allLaps, drivers, viewMode }: {
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

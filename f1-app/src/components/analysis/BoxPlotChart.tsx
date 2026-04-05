@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useRef } from "react";
 import { F, M } from "../../lib/styles";
 import { ft1, ft3, podiumColor } from "../../lib/format";
 import useTooltip from "./useTooltip";
+import ShareButton from "../ShareButton";
 
 function percentile(sorted: number[], p: number): number {
   const idx = (p / 100) * (sorted.length - 1);
@@ -28,6 +29,7 @@ export function teamAbbr(name: string): string {
 function BoxPlotChart({ rows }: {
   rows: { label: string; color: string; times: number[] }[];
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const { containerRef, show, hide, el } = useTooltip();
 
   if (!rows.length) return null;
@@ -57,7 +59,12 @@ function BoxPlotChart({ rows }: {
   const fastestMedian = stats[0]?.median || 0;
 
   return (
-    <div ref={containerRef} style={{ position: "relative" }}>
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <ShareButton domRef={contentRef} filename="openf1ow-pace-chart" />
+      </div>
+      <div ref={contentRef}>
+      <div ref={containerRef} style={{ position: "relative" }}>
       {el}
       {/* X-axis labels */}
       <div style={{ position: "relative", height: 18, marginLeft: 72, marginBottom: 4 }}>
@@ -174,6 +181,8 @@ function BoxPlotChart({ rows }: {
         <span>Box: P25-P75</span>
         <span>Line: Median</span>
       </div>
+    </div>
+    </div>
     </div>
   );
 }

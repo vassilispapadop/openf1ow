@@ -1,12 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import type { Driver, Pit } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { rowBg, podiumColor } from "../../lib/format";
+import ShareButton from "../ShareButton";
 
 function PitStopRanking({ pits, drivers }: {
   pits: Pit[];
   drivers: Driver[];
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const teamPits = useMemo(() => {
     const drvMap: Record<number, Driver> = {};
     drivers.forEach(d => { drvMap[d.driver_number] = d; });
@@ -39,43 +41,50 @@ function PitStopRanking({ pits, drivers }: {
   const fastest = teamPits[0]?.avg || 0;
 
   return (
-    <div style={{ overflow: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-        <thead>
-          <tr>
-            {["#", "Team", "Stops", "Avg", "Best", "Worst", "vs Best"].map((h, i) => (
-              <th key={i} style={{ ...sty.th, textAlign: i <= 1 ? "left" : "right" }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {teamPits.map((t, i) => (
-            <tr key={t.team} style={rowBg(i)}>
-              <td style={{
-                ...sty.td, fontWeight: 800, fontSize: 14,
-                color: podiumColor(i),
-              }}>{i + 1}</td>
-              <td style={{
-                ...sty.td,
-                borderLeft: "3px solid #" + t.color,
-                paddingLeft: 12,
-                fontWeight: 600,
-              }}>{t.team}</td>
-              <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#b0b0c0" }}>{t.count}</td>
-              <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700 }}>{t.avg.toFixed(2)}s</td>
-              <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#22c55e" }}>{t.best.toFixed(2)}s</td>
-              <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#ef4444" }}>{t.worst.toFixed(2)}s</td>
-              <td style={{
-                ...sty.td, ...sty.mono, textAlign: "right",
-                color: i === 0 ? "#22c55e" : "#fbbf24",
-                fontWeight: 600,
-              }}>
-                {i === 0 ? "—" : "+" + (t.avg - fastest).toFixed(2) + "s"}
-              </td>
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <ShareButton domRef={contentRef} filename="openf1ow-pit-stops" />
+      </div>
+      <div ref={contentRef}>
+      <div style={{ overflow: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+          <thead>
+            <tr>
+              {["#", "Team", "Stops", "Avg", "Best", "Worst", "vs Best"].map((h, i) => (
+                <th key={i} style={{ ...sty.th, textAlign: i <= 1 ? "left" : "right" }}>{h}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {teamPits.map((t, i) => (
+              <tr key={t.team} style={rowBg(i)}>
+                <td style={{
+                  ...sty.td, fontWeight: 800, fontSize: 14,
+                  color: podiumColor(i),
+                }}>{i + 1}</td>
+                <td style={{
+                  ...sty.td,
+                  borderLeft: "3px solid #" + t.color,
+                  paddingLeft: 12,
+                  fontWeight: 600,
+                }}>{t.team}</td>
+                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#b0b0c0" }}>{t.count}</td>
+                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700 }}>{t.avg.toFixed(2)}s</td>
+                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#22c55e" }}>{t.best.toFixed(2)}s</td>
+                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#ef4444" }}>{t.worst.toFixed(2)}s</td>
+                <td style={{
+                  ...sty.td, ...sty.mono, textAlign: "right",
+                  color: i === 0 ? "#22c55e" : "#fbbf24",
+                  fontWeight: 600,
+                }}>
+                  {i === 0 ? "—" : "+" + (t.avg - fastest).toFixed(2) + "s"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      </div>
     </div>
   );
 }

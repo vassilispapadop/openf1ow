@@ -1,12 +1,14 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { ft3, podiumColor, rowBg } from "../../lib/format";
 import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils";
 import useTooltip from "./useTooltip";
 import ScatterPlot from "./ScatterPlot";
+import ShareButton from "../ShareButton";
 
 function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const { containerRef: secTipRef, show: secShow, hide: secHide, el: secTipEl } = useTooltip();
 
   const data = useMemo(() => {
@@ -81,7 +83,12 @@ function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[
   const maxDelta = Math.max(...data.results.map(r => Math.max(r.deltaS1, r.deltaS2, r.deltaS3)), 0.001);
 
   return (
-    <div ref={secTipRef} style={{ position: "relative" }}>
+    <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <ShareButton domRef={contentRef} filename="openf1ow-sectors" />
+      </div>
+      <div ref={contentRef}>
+      <div ref={secTipRef} style={{ position: "relative" }}>
       {secTipEl}
 
       {/* Sector Kings */}
@@ -406,6 +413,8 @@ function SectorAnalysis({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[
           diagonal
         />
       </div>
+    </div>
+    </div>
     </div>
   );
 }

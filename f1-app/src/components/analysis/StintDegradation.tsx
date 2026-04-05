@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import type { Driver, Lap, Stint } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { ft3, ft1, podiumColor, rowBg } from "../../lib/format";
 import { TC } from "../../lib/constants";
 import { computeSlowLapThreshold, isCleanLap, median, linearSlope, FUEL_TOTAL_KG, FUEL_SEC_PER_KG } from "../../lib/raceUtils";
 import BoxPlotChart from "./BoxPlotChart";
+import ShareButton from "../ShareButton";
 
 interface StintRow {
   driver: Driver;
@@ -34,6 +35,7 @@ function StintDegradation({ allLaps, drivers, stints, viewMode }: {
   stints: Stint[];
   viewMode: "list" | "graph";
 }) {
+  const contentRef = useRef<HTMLDivElement>(null);
   const [compoundFilter, setCompoundFilter] = useState("OVERALL");
 
   const { data, fuelCorrectionPerLap, compounds } = useMemo(() => {
@@ -125,6 +127,10 @@ function StintDegradation({ allLaps, drivers, stints, viewMode }: {
 
   return (
     <div>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <ShareButton domRef={contentRef} filename="openf1ow-tire-degradation" />
+      </div>
+      <div ref={contentRef}>
       {/* Fuel correction info */}
       <div style={{
         background: "rgba(249,115,22,0.08)", border: "1px solid rgba(249,115,22,0.15)",
@@ -283,6 +289,7 @@ function StintDegradation({ allLaps, drivers, stints, viewMode }: {
           </table>
         </div>
       )}
+      </div>
     </div>
   );
 }
