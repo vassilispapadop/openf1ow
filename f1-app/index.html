@@ -4,10 +4,62 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OpenF1ow</title>
+    <title>OpenF1ow — Live F1 Telemetry, Lap Data & Race Analysis</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Free, open-source Formula 1 telemetry viewer. Explore lap times, sector splits, tire strategies, pit stops, race replays and AI-powered race analysis for every Grand Prix session." />
+    <link rel="canonical" href="https://www.openf1ow.com/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.openf1ow.com/" />
+    <meta property="og:title" content="OpenF1ow — Live F1 Telemetry, Lap Data & Race Analysis" />
+    <meta property="og:description" content="Free, open-source Formula 1 telemetry viewer. Explore lap times, sector splits, tire strategies, pit stops, race replays and AI-powered race analysis for every Grand Prix session." />
+    <meta property="og:site_name" content="OpenF1ow" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="OpenF1ow — Live F1 Telemetry, Lap Data & Race Analysis" />
+    <meta name="twitter:description" content="Free, open-source Formula 1 telemetry viewer. Explore lap times, sector splits, tire strategies, pit stops, race replays and AI-powered race analysis." />
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "OpenF1ow",
+      "url": "https://www.openf1ow.com",
+      "description": "Free, open-source Formula 1 telemetry viewer with lap times, sector splits, tire strategies, pit stops, race replays and AI-powered race analysis.",
+      "applicationCategory": "SportsApplication",
+      "operatingSystem": "Any",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "about": {
+        "@type": "SportsEvent",
+        "name": "Formula 1",
+        "sport": "Formula 1 Racing"
+      }
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <h1>OpenF1ow — Formula 1 Telemetry & Race Analysis</h1>
+      <p>OpenF1ow is a free, open-source Formula 1 data platform. Analyze every Grand Prix session with detailed telemetry, lap-by-lap timing, tire strategy breakdowns, pit stop data, and interactive race replays.</p>
+      <h2>Features</h2>
+      <ul>
+        <li>Lap times and sector splits for every driver</li>
+        <li>Speed, throttle, brake and gear telemetry traces</li>
+        <li>Tire stint analysis with compound strategies and degradation rates</li>
+        <li>Position change charts across the race</li>
+        <li>Pit stop timing and strategy comparison</li>
+        <li>Live weather data for each session</li>
+        <li>Race control events — flags, penalties, safety cars</li>
+        <li>Interactive race replay with track visualization</li>
+        <li>AI-powered race analysis and commentary</li>
+      </ul>
+      <p>Data sourced from the OpenF1 API. Select any season, Grand Prix, and session to begin exploring.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
