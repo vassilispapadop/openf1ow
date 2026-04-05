@@ -8,6 +8,8 @@ interface PosEvent { dn: number; pos: number; ts: number }
 interface GapEvent { dn: number; gap: number | null; ts: number }
 interface LapEvent { dn: number; lap: number; ts: number }
 
+const ESTIMATED_LAP_MS = 100_000; // ~100s — approximate lap duration for DNF cutoff
+
 // Binary search: find last index where arr[i].ts <= target
 function bisect(arr: { ts: number }[], target: number): number {
   let lo = 0, hi = arr.length - 1;
@@ -26,8 +28,6 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
   const [gapIndex, setGapIndex] = useState<Record<number, GapEvent[]>>({});
   const [lapIndex, setLapIndex] = useState<LapEvent[]>([]);
   const [totalRaceLaps, setTotalRaceLaps] = useState(0);
-  // Timestamp after which each DNF driver should be hidden (0 = not DNF)
-  const [dnfTimes, setDnfTimes] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
@@ -43,7 +43,6 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     setGapIndex({});
     setLapIndex([]);
     setTotalRaceLaps(0);
-    setDnfTimes({});
     setPlaying(false);
     setTimeIdx(0);
     setError("");
@@ -67,9 +66,27 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     return m;
   }, [drivers]);
 
+  // Derived: timestamp after which each DNF driver should be hidden
+  const dnfTimes = useMemo(() => {
+    if (!lapIndex.length || !totalRaceLaps) return {};
+    const lastLapByDriver: Record<number, { lap: number; ts: number }> = {};
+    lapIndex.forEach(e => {
+      if (!lastLapByDriver[e.dn] || e.lap > lastLapByDriver[e.dn].lap) {
+        lastLapByDriver[e.dn] = { lap: e.lap, ts: e.ts };
+      }
+    });
+    const dnf: Record<number, number> = {};
+    for (const [dn, { lap, ts }] of Object.entries(lastLapByDriver)) {
+      if (lap < totalRaceLaps) {
+        dnf[Number(dn)] = ts + ESTIMATED_LAP_MS;
+      }
+    }
+    return dnf;
+  }, [lapIndex, totalRaceLaps]);
+
   // Compute current positions and gaps using binary search (O(log n) per driver)
   const currentState = useMemo(() => {
-    if (!timeAxis.length) return { lap: 1, positions: [] as { dn: number; gap: string; pos: number }[] };
+    if (!timeAxis.length) return { lap: 1, positions: [] as { dn: number; gap: string; pos: number; out: boolean }[] };
     const now = timeAxis[timeIdx] || 0;
 
     // Current position per driver via binary search
@@ -93,25 +110,21 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     const lapIdx = bisect(lapIndex, now);
     const currentLap = lapIdx >= 0 ? lapIndex[lapIdx].lap : 1;
 
-    // Split into active drivers and DNF'd drivers
-    const active: typeof entries = [];
-    const retired: typeof entries = [];
+    // Build positions: active drivers first, then retired at bottom
+    const positions: { dn: number; gap: string; pos: number; out: boolean }[] = [];
+    const retired: typeof positions = [];
     entries.forEach(e => {
-      if (dnfTimes[e.dn] && now > dnfTimes[e.dn]) retired.push(e);
-      else active.push(e);
+      const isOut = !!(dnfTimes[e.dn] && now > dnfTimes[e.dn]);
+      if (isOut) {
+        retired.push({ dn: e.dn, gap: "OUT", pos: e.pos, out: true });
+      } else {
+        let gap = "---";
+        if (e.pos === 1) gap = "LEADER";
+        else if (e.gap != null && typeof e.gap === "number" && isFinite(e.gap)) gap = "+" + e.gap.toFixed(1);
+        positions.push({ dn: e.dn, gap, pos: e.pos, out: false });
+      }
     });
-
-    const positions = active.map(e => {
-      let gap = "---";
-      if (e.pos === 1) gap = "LEADER";
-      else if (e.gap != null && typeof e.gap === "number" && isFinite(e.gap)) gap = "+" + e.gap.toFixed(1);
-      return { dn: e.dn, gap, pos: e.pos, out: false };
-    });
-
-    // Append retired drivers at the bottom
-    retired.forEach(e => {
-      positions.push({ dn: e.dn, gap: "OUT", pos: e.pos, out: true });
-    });
+    positions.push(...retired);
 
     return { lap: Math.min(currentLap, totalRaceLaps || currentLap), positions };
   }, [timeIdx, timeAxis, posIndex, gapIndex, lapIndex, totalRaceLaps, dnfTimes]);
@@ -166,22 +179,6 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
       lapEvts.sort((a, b) => a.ts - b.ts);
       setLapIndex(lapEvts);
       setTotalRaceLaps(maxLap);
-
-      // Detect DNFs: drivers whose last lap < maxLap
-      const lastLapByDriver: Record<number, { lap: number; ts: number }> = {};
-      lapEvts.forEach(e => {
-        if (!lastLapByDriver[e.dn] || e.lap > lastLapByDriver[e.dn].lap) {
-          lastLapByDriver[e.dn] = { lap: e.lap, ts: e.ts };
-        }
-      });
-      const dnf: Record<number, number> = {};
-      for (const [dn, { lap, ts }] of Object.entries(lastLapByDriver)) {
-        if (lap < maxLap) {
-          // DNF time = their last lap start + ~100s (approximate lap duration)
-          dnf[Number(dn)] = ts + 100000;
-        }
-      }
-      setDnfTimes(dnf);
 
       // Start from lights out (Lap 1 date_start)
       const lap1Starts = lapEvts.filter(c => c.lap === 1).map(c => c.ts);
@@ -337,7 +334,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
       if (!drv) return;
       const y = startY + i * ROW_H;
       if (y + ROW_H > H) return;
-      const isOut = (p as any).out;
+      const isOut = p.out;
       const color = "#" + (drv.team_colour || "666");
 
       // Row background
