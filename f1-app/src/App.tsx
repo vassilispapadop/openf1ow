@@ -1187,7 +1187,7 @@ export default function App() {
   }, [loading]);
 
   const onMeeting = useCallback((v) => {
-    loadMeeting(v);
+    loadMeeting(v, true);
   }, [loadMeeting]);
 
   const onSession = useCallback((v) => {
