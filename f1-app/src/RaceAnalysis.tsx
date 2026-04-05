@@ -2899,6 +2899,17 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   const [viewMode, setViewMode] = useState<"list" | "graph">("graph");
   const [progress, setProgress] = useState("");
 
+  // Reset when session changes
+  useEffect(() => {
+    setAllLaps([]);
+    setAllStints([]);
+    setAllPits([]);
+    setLoaded(false);
+    setLoading(false);
+    setError("");
+    setSubTab("pace");
+  }, [sessionKey]);
+
   const driverCount = useMemo(() => new Set(allLaps.map(l => l.driver_number)).size, [allLaps]);
 
   // Shared derived data — computed once, used by multiple analytics sections

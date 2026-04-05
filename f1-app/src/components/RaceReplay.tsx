@@ -34,6 +34,21 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
   const [playing, setPlaying] = useState(false);
   const [timeIdx, setTimeIdx] = useState(0);
   const [speed, setSpeed] = useState(1);
+
+  // Reset everything when session changes
+  useEffect(() => {
+    setAllPoints([]);
+    setTrackOutline([]);
+    setPosIndex({});
+    setGapIndex({});
+    setLapIndex([]);
+    setTotalRaceLaps(0);
+    setDnfTimes({});
+    setPlaying(false);
+    setTimeIdx(0);
+    setError("");
+  }, [sessionKey]);
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const animRef = useRef(0);
