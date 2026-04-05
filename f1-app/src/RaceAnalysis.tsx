@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import AIAnalysis from "./components/AIAnalysis";
+import RaceReplay from "./components/RaceReplay";
 import type { Driver, Lap, Stint, Pit, Weather } from "./lib/types";
 import { median, linearSlope, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "./lib/raceUtils";
 import { F, M, sty } from "./lib/styles";
@@ -3072,6 +3073,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
       <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap", padding: "2px 0" }}>
         {([
           ["ai", "\u2728 AI Analysis"],
+          ["replay", "\u25B6 Replay"],
           ["pace", "Race Pace"],
           ["sectors", "Sectors"],
           ["constructors", "Constructors"],
@@ -3098,6 +3100,12 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           raceControl={raceControl}
           results={results}
         />
+      )}
+
+      {subTab === "replay" && (
+        <div style={sty.card}>
+          <RaceReplay sessionKey={sessionKey} drivers={drivers} />
+        </div>
       )}
 
       {subTab === "pace" && (<>
