@@ -73,6 +73,7 @@ export default function App() {
   const [comparisons, setComparisons] = useState([]);
   const [tab, setTab] = useState(() => initParams.current.tab || "laps");
   const [showAnalysis, setShowAnalysis] = useState(() => initParams.current.view === "analysis");
+  const [subTab, setSubTab] = useState(() => initParams.current.subTab || "pace");
   const [loading, setLoading] = useState("Loading races...");
   const [error, setError] = useState("");
   const syncRef = useRef({});
@@ -148,6 +149,7 @@ export default function App() {
     const y = p.year ? Number(p.year) : 2026;
     setShowAnalysis(p.view === "analysis");
     setTab(p.tab || "laps");
+    if (p.subTab) setSubTab(p.subTab);
     if (y !== year) {
       onYear(y, p.mk ? { mk: p.mk, sk: p.sk, dn: p.dn } : true);
     } else if (p.mk && p.mk !== mk) {
@@ -182,13 +184,13 @@ export default function App() {
     if (dn) params.dn = dn;
     if (showAnalysis) params.view = "analysis";
     if (tab && tab !== "laps") params.tab = tab;
+    if (showAnalysis && subTab && subTab !== "pace") params.subTab = subTab;
     if (isInitialLoad.current) {
       replaceState(params);
     } else {
-      // pushState is a no-op during popstate handling (guarded in hook)
       pushState(params);
     }
-  }, [year, mk, sk, dn, showAnalysis, tab, replaceState, pushState]);
+  }, [year, mk, sk, dn, showAnalysis, tab, subTab, replaceState, pushState]);
 
   // Mark initial load as done once loading finishes for the first time
   useEffect(() => {
@@ -464,7 +466,7 @@ export default function App() {
         {/* ====== RACE ANALYSIS VIEW (always mounted to preserve state) ====== */}
         <div style={{ display: showAnalysis && drivers.length > 0 && sk && !loading ? undefined : "none" }}>
           <div className="fade-in-up">
-            <RaceAnalysis sessionKey={sk} drivers={drivers} weather={weather} raceControl={rc} results={results} />
+            <RaceAnalysis sessionKey={sk} drivers={drivers} weather={weather} raceControl={rc} results={results} subTab={subTab} onSubTabChange={setSubTab} />
           </div>
         </div>
 

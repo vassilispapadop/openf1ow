@@ -1,6 +1,158 @@
 interface Env {
   GEMINI_API_KEY: string;
+  ASSETS: { fetch: (req: Request | string) => Promise<Response> };
 }
+
+// ============================================================================
+// DYNAMIC OG TAGS
+// ============================================================================
+
+const OPENF1_API = "https://api.openf1.org/v1";
+const metaCache = new Map<string, { data: any; ts: number }>();
+const META_TTL = 3600_000; // 1 hour
+
+async function fetchCached(path: string): Promise<any> {
+  const cached = metaCache.get(path);
+  if (cached && Date.now() - cached.ts < META_TTL) return cached.data;
+  try {
+    const res = await fetch(OPENF1_API + path);
+    if (!res.ok) return null;
+    const data = await res.json();
+    metaCache.set(path, { data, ts: Date.now() });
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+const SUB_TAB_LABELS: Record<string, string> = {
+  ai: "AI Analysis", replay: "Race Replay", pace: "Race Pace",
+  sectors: "Sectors", constructors: "Constructors", evolution: "Lap Evolution",
+  degradation: "Tire Degradation", fuel: "Fuel", dirtyair: "Dirty Air",
+  teammates: "Teammates", pitstops: "Pit Stops", weather: "Weather",
+};
+
+async function buildOgTags(url: URL): Promise<{ title: string; description: string; ogUrl: string } | null> {
+  const sp = url.searchParams;
+  const mk = sp.get("mk");
+  const sk = sp.get("sk");
+  const dn = sp.get("dn");
+  const view = sp.get("view");
+  const subTab = sp.get("subTab");
+
+  if (!mk) return null;
+
+  // Fetch race name
+  const meetings = await fetchCached("/meetings?meeting_key=" + mk);
+  const meeting = meetings?.[0];
+  if (!meeting) return null;
+
+  const raceName = meeting.meeting_name || "Grand Prix";
+  const year = meeting.year || new Date().getFullYear();
+  const parts: string[] = [];
+
+  // Add driver name if selected
+  if (dn && sk) {
+    const drivers = await fetchCached("/drivers?session_key=" + sk + "&driver_number=" + dn);
+    const driver = drivers?.[0];
+    if (driver) parts.push(driver.full_name || driver.name_acronym);
+  }
+
+  // Add session type
+  if (sk) {
+    const sessions = await fetchCached("/sessions?session_key=" + sk);
+    const session = sessions?.[0];
+    if (session?.session_name) parts.push(session.session_name);
+  }
+
+  // Add analysis sub-tab
+  if (view === "analysis" && subTab && SUB_TAB_LABELS[subTab]) {
+    parts.push(SUB_TAB_LABELS[subTab]);
+  }
+
+  parts.push(`${year} ${raceName}`);
+
+  const title = parts.join(" — ") + " | OpenF1ow";
+  const description = `F1 telemetry and race analysis for the ${year} ${raceName}. Lap times, sector splits, tire strategies, and more on OpenF1ow.`;
+  const ogUrl = url.origin + url.pathname + url.search;
+
+  return { title, description, ogUrl };
+}
+
+function injectOgTags(html: string, og: { title: string; description: string; ogUrl: string }): string {
+  // Build og:image URL from the page URL (reuse same query params)
+  const ogImageUrl = og.ogUrl.replace("/?", "/og-image?");
+
+  let result = html
+    .replace(/<title>[^<]*<\/title>/, `<title>${og.title}</title>`)
+    .replace(/<meta name="description" content="[^"]*"/, `<meta name="description" content="${og.description}"`)
+    .replace(/<link rel="canonical" href="[^"]*"/, `<link rel="canonical" href="${og.ogUrl}"`)
+    .replace(/<meta property="og:url" content="[^"]*"/, `<meta property="og:url" content="${og.ogUrl}"`)
+    .replace(/<meta property="og:title" content="[^"]*"/, `<meta property="og:title" content="${og.title}"`)
+    .replace(/<meta property="og:description" content="[^"]*"/, `<meta property="og:description" content="${og.description}"`)
+    .replace(/<meta name="twitter:title" content="[^"]*"/, `<meta name="twitter:title" content="${og.title}"`)
+    .replace(/<meta name="twitter:description" content="[^"]*"/, `<meta name="twitter:description" content="${og.description}"`);
+
+  // Inject og:image if not already present
+  if (!result.includes('og:image')) {
+    result = result.replace(
+      '<meta property="og:site_name"',
+      `<meta property="og:image" content="${ogImageUrl}" />\n    <meta property="og:image:width" content="1200" />\n    <meta property="og:image:height" content="630" />\n    <meta property="og:site_name"`,
+    );
+  }
+
+  // Inject twitter:image if not already present
+  if (!result.includes('twitter:image" content="http')) {
+    result = result.replace(
+      '<meta name="twitter:description"',
+      `<meta name="twitter:image" content="${ogImageUrl}" />\n    <meta name="twitter:description"`,
+    );
+  }
+
+  return result;
+}
+
+// ============================================================================
+// OG IMAGE GENERATION
+// ============================================================================
+
+function generateOgImageSvg(title: string, subtitle: string): string {
+  const W = 1200, H = 630;
+  // Escape XML entities
+  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#050508"/>
+      <stop offset="100%" stop-color="#0a0e14"/>
+    </linearGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e10600"/>
+      <stop offset="100%" stop-color="#b80500"/>
+    </linearGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#bg)"/>
+  <!-- Red accent line -->
+  <rect x="0" y="0" width="${W}" height="4" fill="url(#red)"/>
+  <!-- Logo -->
+  <text x="60" y="100" font-family="Inter,system-ui,sans-serif" font-size="28" font-weight="800">
+    <tspan fill="rgba(255,255,255,0.5)">Open</tspan><tspan fill="rgba(225,6,0,0.8)">F1</tspan><tspan fill="rgba(255,255,255,0.5)">ow</tspan>
+  </text>
+  <!-- Title -->
+  <text x="60" y="${H/2 - 10}" font-family="Inter,system-ui,sans-serif" font-size="48" font-weight="800" fill="#e8e8ec">${esc(title)}</text>
+  <!-- Subtitle -->
+  <text x="60" y="${H/2 + 50}" font-family="Inter,system-ui,sans-serif" font-size="24" font-weight="500" fill="rgba(255,255,255,0.4)">${esc(subtitle)}</text>
+  <!-- URL -->
+  <text x="60" y="${H - 40}" font-family="monospace" font-size="16" fill="rgba(255,255,255,0.15)">openf1ow.com</text>
+  <!-- Bottom red line -->
+  <rect x="0" y="${H - 4}" width="${W}" height="4" fill="url(#red)"/>
+</svg>`;
+}
+
+// ============================================================================
+// GEMINI AI ANALYSIS
+// ============================================================================
 
 const GEMINI_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse";
@@ -70,6 +222,40 @@ export default {
 
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: CORS_HEADERS });
+    }
+
+    // OG image endpoint — returns SVG with race/driver branding
+    if (url.pathname === "/og-image" && request.method === "GET") {
+      const og = await buildOgTags(url);
+      if (!og) {
+        return new Response("Missing params", { status: 400 });
+      }
+      // Split title into main + context
+      const titleParts = og.title.replace(" | OpenF1ow", "").split(" — ");
+      const mainTitle = titleParts[0] || "OpenF1ow";
+      const subtitle = titleParts.slice(1).join(" — ");
+      const svg = generateOgImageSvg(mainTitle, subtitle);
+      return new Response(svg, {
+        headers: {
+          "Content-Type": "image/svg+xml",
+          "Cache-Control": "public, max-age=86400",
+        },
+      });
+    }
+
+    // Serve dynamic OG tags for page navigation requests
+    if (url.pathname === "/" && request.method === "GET" && url.searchParams.has("mk")) {
+      try {
+        const assetRes = await env.ASSETS.fetch(new Request(url.origin + "/index.html"));
+        let html = await assetRes.text();
+        const og = await buildOgTags(url);
+        if (og) html = injectOgTags(html, og);
+        return new Response(html, {
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        });
+      } catch {
+        // Fall through to asset serving on error
+      }
     }
 
     if (url.pathname !== "/api/analyze") {

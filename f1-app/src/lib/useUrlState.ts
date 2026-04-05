@@ -7,9 +7,10 @@ export interface UrlParams {
   dn?: string;
   view?: string;
   tab?: string;
+  subTab?: string;
 }
 
-const KEYS: (keyof UrlParams)[] = ["year", "mk", "sk", "dn", "view", "tab"];
+const KEYS: (keyof UrlParams)[] = ["year", "mk", "sk", "dn", "view", "tab", "subTab"];
 
 export function readParams(): UrlParams {
   const sp = new URLSearchParams(window.location.search);

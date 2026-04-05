@@ -26,12 +26,14 @@ import FuelVisualization from "./components/analysis/FuelVisualization";
 import WeatherCorrelation from "./components/analysis/WeatherCorrelation";
 import DirtyAirAnalysis from "./components/analysis/DirtyAirAnalysis";
 
-export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [] }: {
+export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [], subTab, onSubTabChange }: {
   sessionKey: string;
   drivers: Driver[];
   weather: Weather[];
   raceControl?: any[];
   results?: any[];
+  subTab: string;
+  onSubTabChange: (tab: string) => void;
 }) {
   const [allLaps, setAllLaps] = useState<Lap[]>([]);
   const [allStints, setAllStints] = useState<Stint[]>([]);
@@ -39,7 +41,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
-  const [subTab, setSubTab] = useState("pace");
+  const setSubTab = onSubTabChange;
   const [viewMode, setViewMode] = useState<"list" | "graph">("graph");
   const [progress, setProgress] = useState("");
 
@@ -51,7 +53,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
     setLoaded(false);
     setLoading(false);
     setError("");
-    setSubTab("pace");
+    onSubTabChange("pace");
   }, [sessionKey]);
 
   const driverCount = useMemo(() => new Set(allLaps.map(l => l.driver_number)).size, [allLaps]);
