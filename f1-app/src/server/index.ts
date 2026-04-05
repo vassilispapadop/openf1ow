@@ -310,8 +310,9 @@ export default {
       });
     }
 
+    // Pass non-API requests through to asset serving (static files + SPA fallback)
     if (url.pathname !== "/api/analyze") {
-      return new Response(null, { status: 404 });
+      return env.ASSETS.fetch(request);
     }
 
     if (request.method !== "POST") {
