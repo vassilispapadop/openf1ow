@@ -256,6 +256,14 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     ctx.fillStyle = "#050508";
     ctx.fillRect(0, 0, W, H);
 
+    // Watermark
+    ctx.save();
+    ctx.font = `bold 28px ${F}`;
+    ctx.fillStyle = "rgba(255,255,255,0.025)";
+    ctx.textAlign = "center";
+    ctx.fillText("openf1ow.com", TOWER_W + MAP_W / 2, H / 2 + 10);
+    ctx.restore();
+
     // === TIMING TOWER (left side) ===
     const towerX = 0;
     ctx.fillStyle = "rgba(8,8,16,0.95)";
