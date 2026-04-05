@@ -26,6 +26,8 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
   const [gapIndex, setGapIndex] = useState<Record<number, GapEvent[]>>({});
   const [lapIndex, setLapIndex] = useState<LapEvent[]>([]);
   const [totalRaceLaps, setTotalRaceLaps] = useState(0);
+  // Timestamp after which each DNF driver should be hidden (0 = not DNF)
+  const [dnfTimes, setDnfTimes] = useState<Record<number, number>>({});
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
   const [error, setError] = useState("");
@@ -76,15 +78,28 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     const lapIdx = bisect(lapIndex, now);
     const currentLap = lapIdx >= 0 ? lapIndex[lapIdx].lap : 1;
 
-    const positions = entries.map(e => {
+    // Split into active drivers and DNF'd drivers
+    const active: typeof entries = [];
+    const retired: typeof entries = [];
+    entries.forEach(e => {
+      if (dnfTimes[e.dn] && now > dnfTimes[e.dn]) retired.push(e);
+      else active.push(e);
+    });
+
+    const positions = active.map(e => {
       let gap = "---";
       if (e.pos === 1) gap = "LEADER";
       else if (e.gap != null && typeof e.gap === "number" && isFinite(e.gap)) gap = "+" + e.gap.toFixed(1);
-      return { dn: e.dn, gap, pos: e.pos };
+      return { dn: e.dn, gap, pos: e.pos, out: false };
+    });
+
+    // Append retired drivers at the bottom
+    retired.forEach(e => {
+      positions.push({ dn: e.dn, gap: "OUT", pos: e.pos, out: true });
     });
 
     return { lap: Math.min(currentLap, totalRaceLaps || currentLap), positions };
-  }, [timeIdx, timeAxis, posIndex, gapIndex, lapIndex, totalRaceLaps]);
+  }, [timeIdx, timeAxis, posIndex, gapIndex, lapIndex, totalRaceLaps, dnfTimes]);
 
   // Fetch data
   const load = useCallback(async () => {
@@ -136,6 +151,22 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
       lapEvts.sort((a, b) => a.ts - b.ts);
       setLapIndex(lapEvts);
       setTotalRaceLaps(maxLap);
+
+      // Detect DNFs: drivers whose last lap < maxLap
+      const lastLapByDriver: Record<number, { lap: number; ts: number }> = {};
+      lapEvts.forEach(e => {
+        if (!lastLapByDriver[e.dn] || e.lap > lastLapByDriver[e.dn].lap) {
+          lastLapByDriver[e.dn] = { lap: e.lap, ts: e.ts };
+        }
+      });
+      const dnf: Record<number, number> = {};
+      for (const [dn, { lap, ts }] of Object.entries(lastLapByDriver)) {
+        if (lap < maxLap) {
+          // DNF time = their last lap start + ~100s (approximate lap duration)
+          dnf[Number(dn)] = ts + 100000;
+        }
+      }
+      setDnfTimes(dnf);
 
       // Start from lights out (Lap 1 date_start)
       const lap1Starts = lapEvts.filter(c => c.lap === 1).map(c => c.ts);
@@ -291,34 +322,37 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
       if (!drv) return;
       const y = startY + i * ROW_H;
       if (y + ROW_H > H) return;
+      const isOut = (p as any).out;
       const color = "#" + (drv.team_colour || "666");
 
       // Row background
-      ctx.fillStyle = i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent";
+      ctx.fillStyle = isOut ? "rgba(255,0,0,0.03)" : i % 2 === 0 ? "rgba(255,255,255,0.01)" : "transparent";
       ctx.fillRect(towerX, y, TOWER_W, ROW_H);
 
       // Team color bar
+      ctx.globalAlpha = isOut ? 0.3 : 1;
       ctx.fillStyle = color;
       ctx.fillRect(towerX, y, 3, ROW_H);
 
       // Position number
       ctx.font = `bold 10px ${M}`;
-      ctx.fillStyle = i < 3 ? (i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : "#CD7F32") : "#5a5a6e";
+      ctx.fillStyle = isOut ? "#3a3a4e" : i < 3 ? (i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : "#CD7F32") : "#5a5a6e";
       ctx.textAlign = "right";
-      ctx.fillText(String(p.pos), towerX + 22, y + 15);
+      ctx.fillText(isOut ? "--" : String(p.pos), towerX + 22, y + 15);
 
       // Driver acronym
       ctx.font = `bold 10px ${F}`;
-      ctx.fillStyle = "#e8e8ec";
+      ctx.fillStyle = isOut ? "#3a3a4e" : "#e8e8ec";
       ctx.textAlign = "left";
       ctx.fillText(drv.name_acronym, towerX + 28, y + 15);
 
       // Gap
       ctx.font = `9px ${M}`;
       const gapStr = p.gap || "---";
-      ctx.fillStyle = gapStr === "LEADER" ? "#22c55e" : gapStr.includes("LAP") ? "#ef4444" : "#6a6a7e";
+      ctx.fillStyle = gapStr === "OUT" ? "#ef4444" : gapStr === "LEADER" ? "#22c55e" : gapStr.includes("LAP") ? "#ef4444" : "#6a6a7e";
       ctx.textAlign = "right";
       ctx.fillText(gapStr, TOWER_W - 6, y + 15);
+      ctx.globalAlpha = 1;
     });
 
     // === TRACK MAP (right side) ===
@@ -354,11 +388,14 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     ctx.stroke();
 
     // Driver dots
+    const now = timeAxis[idx] || 0;
     if (idx >= 0 && idx < totalFrames) {
       allPoints.forEach(driverPts => {
         if (idx >= driverPts.length) return;
         const pt = driverPts[idx];
         if (!pt || pt.dn === 0) return;
+        // Hide retired drivers
+        if (dnfTimes[pt.dn] && now > dnfTimes[pt.dn]) return;
         const drv = drvMap[pt.dn];
         if (!drv) return;
 
@@ -407,7 +444,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     ctx.fillStyle = "#e10600";
     ctx.fillRect(TOWER_W, H - 3, MAP_W * pct, 3);
     } catch (e) { console.warn("RaceReplay draw error:", e); }
-  }, [trackOutline, trackBounds, allPoints, totalFrames, timeAxis, drvMap, currentState, totalRaceLaps]);
+  }, [trackOutline, trackBounds, allPoints, totalFrames, timeAxis, drvMap, currentState, totalRaceLaps, dnfTimes]);
 
   useEffect(() => { draw(timeIdx); }, [timeIdx, draw]);
 
