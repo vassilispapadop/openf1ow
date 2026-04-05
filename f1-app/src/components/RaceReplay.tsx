@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Driver } from "../lib/types";
 import { F, M, sty } from "../lib/styles";
 import { api } from "../lib/api";
+import ShareButton from "./ShareButton";
 
 interface LocPoint { x: number; y: number; ts: number; dn: number }
 interface PosEvent { dn: number; pos: number; ts: number }
@@ -530,6 +531,9 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
   return (
     <div>
       <div ref={wrapRef} style={{ position: "relative", marginBottom: 14 }}>
+        <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
+          <ShareButton canvasRef={canvasRef} filename="openf1ow-race-replay" />
+        </div>
         <canvas ref={canvasRef} style={{ display: "block", borderRadius: 12 }} />
       </div>
       <div style={{
