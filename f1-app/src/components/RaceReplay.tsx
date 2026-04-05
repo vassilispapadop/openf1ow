@@ -201,7 +201,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
         );
         results.forEach((data, idx) => {
           const dn = batch[idx];
-          if (!Array.isArray(data) || data.length < 100) return;
+          if (!Array.isArray(data) || data.length < 20) return;
           const points: LocPoint[] = [];
           let lastTs = 0;
           for (const p of data) {
@@ -211,7 +211,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
               lastTs = ts;
             }
           }
-          if (points.length > 50) rawData.push({ dn, points });
+          if (points.length > 10) rawData.push({ dn, points });
         });
       }
 
@@ -282,7 +282,8 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
 
     const dpr = window.devicePixelRatio || 1;
     const W = wrap.clientWidth;
-    const H = 520;
+    const driverRows = currentState.positions.length;
+    const H = Math.max(520, 32 + driverRows * 22 + 10);
     const TOWER_W = 180;
     const MAP_W = W - TOWER_W;
     // Only resize canvas when dimensions change
