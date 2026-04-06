@@ -50,19 +50,18 @@ export function detectClipping(telemetry: any[]): ClipEvent[] {
         dropSamples.push(speedDrop);
       }
     } else if (zoneStart !== -1) {
-      // End of zone — compute stats from individual drops
+      // End of zone — speed drop is start-to-end difference
       const startPt = telemetry[zoneStart];
       const endPt = telemetry[i - 1];
-      const totalDrop = dropSamples.reduce((s, d) => s + d, 0);
-      const avgDrop = totalDrop / dropSamples.length;
+      const drop = Math.round((startPt.speed - endPt.speed) * 10) / 10;
 
-      if (totalDrop >= MIN_SPEED_DROP && dropSamples.length >= MIN_ZONE_SAMPLES && totalDrop <= MAX_SINGLE_DROP) {
+      if (drop >= MIN_SPEED_DROP && dropSamples.length >= MIN_ZONE_SAMPLES && drop <= MAX_SINGLE_DROP) {
         zones.push({
           distance: startPt.distance || 0,
           endDistance: endPt.distance || startPt.distance || 0,
-          speedDrop: Math.round(totalDrop * 10) / 10,
+          speedDrop: drop,
           duration: new Date(endPt.date).getTime() - new Date(startPt.date).getTime(),
-          startSpeed: telemetry[zoneStart].speed,
+          startSpeed: startPt.speed,
           endSpeed: endPt.speed,
           throttle: 100,
         });
@@ -76,14 +75,14 @@ export function detectClipping(telemetry: any[]): ClipEvent[] {
   if (zoneStart !== -1 && dropSamples.length >= MIN_ZONE_SAMPLES) {
     const startPt = telemetry[zoneStart];
     const endPt = telemetry[telemetry.length - 1];
-    const totalDrop = dropSamples.reduce((s, d) => s + d, 0);
-    if (totalDrop >= MIN_SPEED_DROP && totalDrop <= MAX_SINGLE_DROP) {
+    const drop = Math.round((startPt.speed - endPt.speed) * 10) / 10;
+    if (drop >= MIN_SPEED_DROP && drop <= MAX_SINGLE_DROP) {
       zones.push({
         distance: startPt.distance || 0,
         endDistance: endPt.distance || startPt.distance || 0,
-        speedDrop: Math.round(totalDrop * 10) / 10,
+        speedDrop: drop,
         duration: new Date(endPt.date).getTime() - new Date(startPt.date).getTime(),
-        startSpeed: telemetry[zoneStart].speed,
+        startSpeed: startPt.speed,
         endSpeed: endPt.speed,
         throttle: 100,
       });
