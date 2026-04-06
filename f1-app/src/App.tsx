@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import RaceAnalysis from "./RaceAnalysis";
 import { readParams, useUrlState, type UrlParams } from "./lib/useUrlState";
 import { api } from "./lib/api";
@@ -18,6 +18,7 @@ import WeatherTab from "./components/driver/WeatherTab";
 import RaceControlTab from "./components/driver/RaceControlTab";
 import ResultsTab from "./components/driver/ResultsTab";
 import { mergeDistance } from "./lib/telemetry";
+import { detectClipping } from "./lib/clipping";
 
 // ============================================================================
 // APP COMPONENT
@@ -252,6 +253,7 @@ export default function App() {
   const drv = drivers.find(d => String(d.driver_number) === String(dn));
   const best = laps.reduce((b, l) => (l.lap_duration && (!b || l.lap_duration < b.lap_duration) ? l : b), null);
   const cmpTraces = comparisons.filter(c => c.data.length > 0).map(c => ({ data: c.data, color: c.color, label: c.label }));
+  const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data)), [cmpTraces]);
 
   return (
     <div style={sty.bg}>
@@ -545,7 +547,7 @@ export default function App() {
                 </div>
                 {cmpTraces.length > 0 && (
                   <div>
-                    <Chart traces={cmpTraces} syncRef={syncRef} />
+                    <Chart traces={cmpTraces} syncRef={syncRef} clippingEvents={cmpClipEvents} />
                     <DeltaChart traces={cmpTraces} syncRef={syncRef} />
                   </div>
                 )}
