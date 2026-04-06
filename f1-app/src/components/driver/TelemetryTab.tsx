@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { sty } from "../../lib/styles";
 import { DRS_OPEN, DRS_ELIGIBLE } from "../../lib/constants";
 import { Chart } from "../TelemetryChart";
-import { detectClipping } from "../../lib/clipping";
+import { detectClipping, buildDrsZones } from "../../lib/clipping";
 
 interface TelemetryTabProps {
   carData: any[];
@@ -12,7 +12,8 @@ interface TelemetryTabProps {
 }
 
 export default function TelemetryTab({ carData, selLap, dn, drv }: TelemetryTabProps) {
-  const clipEvents = useMemo(() => carData.length ? detectClipping(carData) : [], [carData]);
+  const drsZones = useMemo(() => carData.length ? buildDrsZones([carData]) : [], [carData]);
+  const clipEvents = useMemo(() => carData.length ? detectClipping(carData, drsZones) : [], [carData, drsZones]);
 
   return (
     <div style={sty.card}>

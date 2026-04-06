@@ -8,7 +8,7 @@ import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils
 import ScatterPlot from "./ScatterPlot";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
-import { detectClipping, THROTTLE_THRESHOLD, MIN_SPEED_DROP, type ClipEvent } from "../../lib/clipping";
+import { detectClipping, buildDrsZones, THROTTLE_THRESHOLD, MIN_SPEED_DROP, type ClipEvent } from "../../lib/clipping";
 import { mergeDistance } from "../../lib/telemetry";
 
 interface DriverClipResult {
@@ -54,8 +54,9 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
       lapsByDriver[l.driver_number].push(l);
     });
 
-    const allResults: DriverClipResult[] = [];
+    // Pass 1: fetch all telemetry
     const driverNums = Object.keys(lapsByDriver).map(Number);
+    const fetched: { drv: Driver; lap: Lap; telemetry: any[] }[] = [];
     let done = 0;
 
     for (const dn of driverNums) {
@@ -79,20 +80,28 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
             api("/car_data" + q),
             api("/location" + q).catch(() => []),
           ]);
-
-          const telemetry = mergeDistance(cd, loc);
-          const events = detectClipping(telemetry);
-          if (events.length > 0) {
-            const drops = events.map(e => e.speedDrop);
-            allResults.push({
-              driver: drv, lap, events,
-              totalSpeedLost: drops.reduce((s, d) => s + d, 0),
-              avgSpeedDrop: median(drops),
-              worstDrop: Math.max(...drops),
-              clipCount: events.length,
-            });
-          }
+          fetched.push({ drv, lap, telemetry: mergeDistance(cd, loc) });
         } catch { /* skip failed laps */ }
+      }
+    }
+
+    // Build DRS / Straight Mode zone map from all drivers' telemetry
+    setProgress("Analyzing clipping zones...");
+    const drsZones = buildDrsZones(fetched.map(f => f.telemetry));
+
+    // Pass 2: detect clipping using aggregate zone map
+    const allResults: DriverClipResult[] = [];
+    for (const { drv, lap, telemetry } of fetched) {
+      const events = detectClipping(telemetry, drsZones);
+      if (events.length > 0) {
+        const drops = events.map(e => e.speedDrop);
+        allResults.push({
+          driver: drv, lap, events,
+          totalSpeedLost: drops.reduce((s, d) => s + d, 0),
+          avgSpeedDrop: median(drops),
+          worstDrop: Math.max(...drops),
+          clipCount: events.length,
+        });
       }
     }
 

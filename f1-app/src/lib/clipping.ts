@@ -11,11 +11,55 @@ export interface ClipEvent {
   color?: string;
 }
 
+export interface DrsZone {
+  start: number;
+  end: number;
+}
+
 export const THROTTLE_THRESHOLD = 100;
 export const MIN_SPEED_DROP = 2;
 const MIN_SPEED = 150;
 const MIN_ZONE_SAMPLES = 2;
 const RECOVERY_TOLERANCE = 2; // allow brief speed gains up to this (km/h) without breaking zone
+const ZONE_BUFFER = 200; // meters buffer around DRS activation points
+const ZONE_MERGE_GAP = 300; // merge DRS zones within this distance of each other
+
+/**
+ * Build DRS / Straight Mode zone map from aggregate telemetry.
+ * Scans ALL provided telemetry arrays, finds distances where any driver
+ * had DRS eligible or open, and merges into distance ranges with buffer.
+ * Returns empty array if no DRS data found (caller should skip filtering).
+ */
+export function buildDrsZones(allTelemetry: any[][]): DrsZone[] {
+  const activeDists: number[] = [];
+  for (const tel of allTelemetry) {
+    for (const s of tel) {
+      if (s.drs === DRS_ELIGIBLE || DRS_OPEN.includes(s.drs)) {
+        if (s.distance) activeDists.push(s.distance);
+      }
+    }
+  }
+  if (!activeDists.length) return [];
+
+  activeDists.sort((a, b) => a - b);
+
+  const zones: DrsZone[] = [];
+  let start = activeDists[0] - ZONE_BUFFER;
+  let end = activeDists[0] + ZONE_BUFFER;
+
+  for (let i = 1; i < activeDists.length; i++) {
+    if (activeDists[i] - ZONE_BUFFER <= end + ZONE_MERGE_GAP) {
+      end = activeDists[i] + ZONE_BUFFER;
+    } else {
+      zones.push({ start: Math.max(0, start), end });
+      start = activeDists[i] - ZONE_BUFFER;
+      end = activeDists[i] + ZONE_BUFFER;
+    }
+  }
+  zones.push({ start: Math.max(0, start), end });
+
+  return zones;
+}
 
 /**
  * Detect super clipping zones: regions where the car loses speed despite
@@ -28,12 +72,12 @@ const RECOVERY_TOLERANCE = 2; // allow brief speed gains up to this (km/h) witho
  * recoveries (< 2 km/h gain per sample). Zone ends when throttle lifts,
  * brake is applied, or speed clearly recovers.
  *
- * Only zones where at least one sample shows DRS eligible or open are
- * kept — this restricts detection to Straight Mode / DRS zones.
+ * When drsZones is provided and non-empty, only events overlapping those
+ * zones are kept. When empty or omitted, no DRS filtering is applied.
  *
  * speedDrop = startSpeed - endSpeed (net speed lost across the zone).
  */
-export function detectClipping(telemetry: any[]): ClipEvent[] {
+export function detectClipping(telemetry: any[], drsZones?: DrsZone[]): ClipEvent[] {
   if (telemetry.length < 3) return [];
 
   const zones: ClipEvent[] = [];
@@ -56,40 +100,38 @@ export function detectClipping(telemetry: any[]): ClipEvent[] {
       // Zone continues: still full throttle + no brake, speed not clearly recovering
     } else {
       // Zone ends: throttle lifted, brake applied, or speed clearly recovering
-      closeZone(zones, telemetry, zoneStart, i - 1);
+      closeZone(zones, telemetry, zoneStart, i - 1, drsZones);
       zoneStart = -1;
     }
   }
 
   // Close any open zone at end of telemetry
   if (zoneStart !== -1) {
-    closeZone(zones, telemetry, zoneStart, telemetry.length - 1);
+    closeZone(zones, telemetry, zoneStart, telemetry.length - 1, drsZones);
   }
 
   return zones;
 }
 
-function closeZone(zones: ClipEvent[], telemetry: any[], start: number, end: number): void {
+function closeZone(zones: ClipEvent[], telemetry: any[], start: number, end: number, drsZones?: DrsZone[]): void {
   if (end - start < MIN_ZONE_SAMPLES) return;
   const startPt = telemetry[start];
   const endPt = telemetry[end];
   const drop = Math.round((startPt.speed - endPt.speed) * 10) / 10;
   if (drop < MIN_SPEED_DROP) return;
 
-  // Only keep zones that overlap with a DRS / Straight Mode zone
-  let inDrsZone = false;
-  for (let j = start; j <= end; j++) {
-    const drs = telemetry[j].drs;
-    if (drs === DRS_ELIGIBLE || DRS_OPEN.includes(drs)) {
-      inDrsZone = true;
-      break;
-    }
+  const evtStart = startPt.distance || 0;
+  const evtEnd = endPt.distance || evtStart;
+
+  // If DRS zones provided and non-empty, only keep events overlapping them
+  if (drsZones && drsZones.length > 0) {
+    const inZone = drsZones.some(z => evtStart <= z.end && evtEnd >= z.start);
+    if (!inZone) return;
   }
-  if (!inDrsZone) return;
 
   zones.push({
-    distance: startPt.distance || 0,
-    endDistance: endPt.distance || startPt.distance || 0,
+    distance: evtStart,
+    endDistance: evtEnd,
     speedDrop: drop,
     duration: new Date(endPt.date).getTime() - new Date(startPt.date).getTime(),
     startSpeed: startPt.speed,

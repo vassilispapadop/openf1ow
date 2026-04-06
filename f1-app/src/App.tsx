@@ -18,7 +18,7 @@ import WeatherTab from "./components/driver/WeatherTab";
 import RaceControlTab from "./components/driver/RaceControlTab";
 import ResultsTab from "./components/driver/ResultsTab";
 import { mergeDistance } from "./lib/telemetry";
-import { detectClipping } from "./lib/clipping";
+import { detectClipping, buildDrsZones } from "./lib/clipping";
 
 const CMP_PALETTE = ["e10600", "06b6d4", "FFD700", "a855f7", "22c55e", "f43f5e", "f97316", "3b82f6", "ec4899", "84cc16"];
 
@@ -259,7 +259,8 @@ export default function App() {
   const drv = drivers.find(d => String(d.driver_number) === String(dn));
   const best = laps.reduce((b, l) => (l.lap_duration && (!b || l.lap_duration < b.lap_duration) ? l : b), null);
   const cmpTraces = useMemo(() => comparisons.filter(c => c.data.length > 0).map(c => ({ data: c.data, color: c.color, label: c.label })), [comparisons]);
-  const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data).map(e => ({ ...e, color: t.color }))), [cmpTraces]);
+  const cmpDrsZones = useMemo(() => buildDrsZones(cmpTraces.map(t => t.data)), [cmpTraces]);
+  const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data, cmpDrsZones).map(e => ({ ...e, color: t.color }))), [cmpTraces, cmpDrsZones]);
 
   return (
     <div style={sty.bg}>
