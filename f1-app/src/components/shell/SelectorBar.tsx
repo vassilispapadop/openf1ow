@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, useCallback } from "react";
 import { F, M } from "../../lib/styles";
 
 interface SelectorBarProps {
@@ -21,11 +21,21 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
     if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [mk]);
 
+  // Convert vertical mouse wheel to horizontal scroll
+  const onWheel = useCallback((e: React.WheelEvent) => {
+    if (!scrollRef.current) return;
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      e.preventDefault();
+      scrollRef.current.scrollLeft += e.deltaY;
+    }
+  }, []);
+
   return (
     <div>
       {/* Race strip */}
       <div
         ref={scrollRef}
+        onWheel={onWheel}
         style={{
           display: "flex",
           gap: 8,
