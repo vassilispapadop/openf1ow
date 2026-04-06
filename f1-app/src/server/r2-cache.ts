@@ -69,8 +69,9 @@ function getTTL(key: string): number {
   // Sessions list: refresh hourly
   if (key.startsWith("sessions")) return TTL_1H;
 
-  // Everything else (session data): 5 min for current year
-  // Historical session data will be detected by the caller checking year
+  // All session-keyed data (completed sessions): never expires
+  if (key.includes("session_key=")) return TTL_FOREVER;
+
   return TTL_5M;
 }
 
