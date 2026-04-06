@@ -26,9 +26,13 @@ export function teamAbbr(name: string): string {
   return name.slice(0, 3).toUpperCase();
 }
 
-function BoxPlotChart({ rows }: {
+function BoxPlotChart({ rows, valueFmt, axisLabel }: {
   rows: { label: string; color: string; times: number[] }[];
+  valueFmt?: (v: number) => string;
+  axisLabel?: string;
 }) {
+  const fmt1 = valueFmt || ft1;
+  const fmt3 = valueFmt || ft3;
   const contentRef = useRef<HTMLDivElement>(null);
   const { containerRef, show, hide, el } = useTooltip();
 
@@ -76,7 +80,7 @@ function BoxPlotChart({ rows }: {
               left: toX(v) + "%",
               transform: "translateX(-50%)",
               fontSize: 9, fontFamily: M, color: "#3d4f6f",
-            }}>{ft1(v)}</span>
+            }}>{fmt1(v)}</span>
           );
         })}
       </div>
@@ -89,11 +93,11 @@ function BoxPlotChart({ rows }: {
                 <div>
                   <div style={{ fontWeight: 700, color: "#" + s.color, marginBottom: 4, fontFamily: F }}>{s.label}</div>
                   <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "2px 10px", fontSize: 10 }}>
-                    <span style={{ color: "#5a5a6e" }}>P10</span><span>{ft3(s.p10)}</span>
-                    <span style={{ color: "#5a5a6e" }}>P25</span><span>{ft3(s.p25)}</span>
-                    <span style={{ color: "#5a5a6e" }}>Median</span><span style={{ fontWeight: 700 }}>{ft3(s.median)}</span>
-                    <span style={{ color: "#5a5a6e" }}>P75</span><span>{ft3(s.p75)}</span>
-                    <span style={{ color: "#5a5a6e" }}>P90</span><span>{ft3(s.p90)}</span>
+                    <span style={{ color: "#5a5a6e" }}>P10</span><span>{fmt3(s.p10)}</span>
+                    <span style={{ color: "#5a5a6e" }}>P25</span><span>{fmt3(s.p25)}</span>
+                    <span style={{ color: "#5a5a6e" }}>Median</span><span style={{ fontWeight: 700 }}>{fmt3(s.median)}</span>
+                    <span style={{ color: "#5a5a6e" }}>P75</span><span>{fmt3(s.p75)}</span>
+                    <span style={{ color: "#5a5a6e" }}>P90</span><span>{fmt3(s.p90)}</span>
                     <span style={{ color: "#5a5a6e" }}>Laps</span><span>{s.count}</span>
                   </div>
                 </div>
@@ -161,11 +165,11 @@ function BoxPlotChart({ rows }: {
               </div>
               <div style={{ minWidth: 80, textAlign: "right" }}>
                 <span style={{ fontSize: 10, fontWeight: 700, fontFamily: M, color: "#e8e8ec" }}>
-                  {ft3(s.median)}
+                  {fmt3(s.median)}
                 </span>
                 {i > 0 && (
                   <span style={{ fontSize: 9, fontFamily: M, color: "#ef4444", marginLeft: 6 }}>
-                    +{gap.toFixed(3)}
+                    +{valueFmt ? valueFmt(gap) : gap.toFixed(3)}
                   </span>
                 )}
               </div>

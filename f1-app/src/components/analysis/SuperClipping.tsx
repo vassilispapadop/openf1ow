@@ -242,7 +242,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
           <div style={{ ...sty.card, marginTop: 12 }}>
             <div style={sty.sectionHead}>Clipping Distribution (Top {sampleLaps} Fastest Laps)</div>
             <div style={{ marginTop: 10 }}>
-              <BoxPlotChart rows={boxPlotRows} />
+              <BoxPlotChart rows={boxPlotRows} valueFmt={(v) => v.toFixed(1) + " km/h"} />
             </div>
           </div>
         )}
