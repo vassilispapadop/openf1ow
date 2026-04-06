@@ -228,9 +228,9 @@ function drawTooltip(ctx, mx, byY, W, header, rows, colors) {
 // --- Panel definitions ---
 
 const PANELS = [
-  { key: "speed", label: "SPEED", frac: 0.38, get: d => d.speed, autoMax: true },
-  { key: "throttle", label: "THROTTLE", frac: 0.18, get: d => d.throttle, max: 100 },
-  { key: "brake", label: "BRAKE", frac: 0.12, get: d => d.brake ? 1 : 0, max: 1, isBrake: true },
+  { key: "speed", label: "SPD", frac: 0.38, get: d => d.speed, autoMax: true },
+  { key: "throttle", label: "THR", frac: 0.18, get: d => d.throttle, max: 100 },
+  { key: "brake", label: "BRK", frac: 0.12, get: d => d.brake ? 1 : 0, max: 1, isBrake: true },
   { key: "gear", label: "GEAR", frac: 0.14, get: d => d.n_gear, max: 8 },
   { key: "drs", label: "DRS", frac: 0.06, isDrs: true, max: 1 },
 ];
@@ -587,7 +587,7 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
 
   return (
     <div ref={wrapRef} style={{ position: "relative", marginBottom: 0 }}>
-      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
+      <div style={{ position: "absolute", top: 8, left: LEFT_MARGIN + 8, zIndex: 5 }}>
         <ShareButton canvasRef={bgRef} filename="openf1ow-telemetry" />
       </div>
       <canvas ref={bgRef} style={{ display: "block", borderRadius: "8px 8px 0 0" }} />
@@ -845,7 +845,7 @@ export function DeltaChart({ traces, syncRef }) {
 
   return (
     <div ref={wrapRef} style={{ position: "relative", marginBottom: 2 }}>
-      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
+      <div style={{ position: "absolute", top: 8, left: LEFT_MARGIN + 8, zIndex: 5 }}>
         <ShareButton canvasRef={bgRef} filename="openf1ow-gap" />
       </div>
       <canvas ref={bgRef} style={{ display: "block", borderRadius: "0 0 8px 8px" }} />
