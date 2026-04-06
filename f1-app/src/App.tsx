@@ -453,7 +453,7 @@ export default function App() {
         {!showAnalysis && drv && !loading && (
           <>
             {/* ====== DRIVER INFO CARD ====== */}
-            <DriverInfoCard drv={drv} best={best} laps={laps.length} pits={pits.length} />
+            <DriverInfoCard drv={drv} best={best} laps={laps.length} pits={pits.length} onLoadBest={best ? () => loadTel(best) : undefined} onAddBest={best ? () => addComparison(dn, best, drv) : undefined} />
 
             {/* ====== TAB BAR ====== */}
             <div style={{

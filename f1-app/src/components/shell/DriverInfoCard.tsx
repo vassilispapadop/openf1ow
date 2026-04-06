@@ -1,4 +1,4 @@
-import { F, sty } from "../../lib/styles";
+import { F, M, sty } from "../../lib/styles";
 import { ft } from "../../lib/format";
 
 interface DriverInfoCardProps {
@@ -6,9 +6,11 @@ interface DriverInfoCardProps {
   best: any;
   laps: number;
   pits: number;
+  onLoadBest?: () => void;
+  onAddBest?: () => void;
 }
 
-export default function DriverInfoCard({ drv, best, laps, pits }: DriverInfoCardProps) {
+export default function DriverInfoCard({ drv, best, laps, pits, onLoadBest, onAddBest }: DriverInfoCardProps) {
   return (
     <div className="fade-in-up" style={{
       ...sty.card,
@@ -49,7 +51,7 @@ export default function DriverInfoCard({ drv, best, laps, pits }: DriverInfoCard
         </div>
 
         {/* Right: stats row */}
-        <div style={{ marginLeft: "auto", display: "flex", gap: 0 }}>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 0, alignItems: "center" }}>
           {best && (
             <div style={{
               textAlign: "center",
@@ -68,13 +70,33 @@ export default function DriverInfoCard({ drv, best, laps, pits }: DriverInfoCard
                 fontSize: 18,
                 fontWeight: 700,
                 color: "#a855f7",
-                fontFamily: "'JetBrains Mono','SF Mono',monospace",
+                fontFamily: M,
               }}>{ft(best.lap_duration)}</div>
               <div style={{
                 fontSize: 10,
                 color: "#5a5a6e",
                 marginTop: 2,
               }}>Lap {best.lap_number}</div>
+            </div>
+          )}
+          {/* Quick actions for best lap */}
+          {best && (onLoadBest || onAddBest) && (
+            <div style={{
+              display: "flex",
+              gap: 6,
+              padding: "0 16px",
+              borderRight: "1px solid rgba(255,255,255,0.06)",
+            }}>
+              {onLoadBest && (
+                <button onClick={onLoadBest} title="Load best lap telemetry" style={btnStyle}>
+                  Load
+                </button>
+              )}
+              {onAddBest && (
+                <button onClick={onAddBest} title="Add best lap to comparison" style={btnStyle}>
+                  +
+                </button>
+              )}
             </div>
           )}
           <div style={{
@@ -93,7 +115,7 @@ export default function DriverInfoCard({ drv, best, laps, pits }: DriverInfoCard
             <div style={{
               fontSize: 18,
               fontWeight: 700,
-              fontFamily: "'JetBrains Mono','SF Mono',monospace",
+              fontFamily: M,
             }}>{laps}</div>
           </div>
           <div style={{ textAlign: "center", padding: "0 24px" }}>
@@ -108,7 +130,7 @@ export default function DriverInfoCard({ drv, best, laps, pits }: DriverInfoCard
             <div style={{
               fontSize: 18,
               fontWeight: 700,
-              fontFamily: "'JetBrains Mono','SF Mono',monospace",
+              fontFamily: M,
             }}>{pits}</div>
           </div>
         </div>
@@ -116,3 +138,17 @@ export default function DriverInfoCard({ drv, best, laps, pits }: DriverInfoCard
     </div>
   );
 }
+
+const btnStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.08)",
+  borderRadius: 8,
+  padding: "6px 14px",
+  fontSize: 10,
+  fontWeight: 700,
+  fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif",
+  color: "#a855f7",
+  cursor: "pointer",
+  textTransform: "uppercase",
+  letterSpacing: "0.5px",
+};
