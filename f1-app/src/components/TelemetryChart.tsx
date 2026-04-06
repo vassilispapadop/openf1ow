@@ -439,28 +439,28 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
     // Super Clipping overlay zones
     if (clippingEvents?.length) {
       clippingEvents.forEach(evt => {
-        const x = xPos(evt.distance);
-        const bandW = Math.max(plotW * 0.018, 8);
+        const x1 = xPos(evt.distance);
+        const x2 = xPos(evt.endDistance || evt.distance);
+        const bandW = Math.max(x2 - x1, 8);
+        const xMid = (x1 + x2) / 2;
         // Semi-transparent yellow fill across all panels
         ctx.fillStyle = "rgba(234, 179, 8, 0.07)";
-        ctx.fillRect(x - bandW / 2, 0, bandW, plotH);
+        ctx.fillRect(x1, 0, bandW, plotH);
         // Dashed yellow borders
         ctx.save();
         ctx.strokeStyle = "rgba(234, 179, 8, 0.35)";
         ctx.lineWidth = 1.5;
         ctx.setLineDash([6, 4]);
         ctx.beginPath();
-        ctx.moveTo(x - bandW / 2, 0);
-        ctx.lineTo(x - bandW / 2, plotH);
-        ctx.moveTo(x + bandW / 2, 0);
-        ctx.lineTo(x + bandW / 2, plotH);
+        ctx.moveTo(x1, 0); ctx.lineTo(x1, plotH);
+        ctx.moveTo(x1 + bandW, 0); ctx.lineTo(x1 + bandW, plotH);
         ctx.stroke();
         ctx.restore();
         // Small label at top
         ctx.font = `bold 7px ${M}`;
         ctx.fillStyle = "rgba(234, 179, 8, 0.5)";
         ctx.textAlign = "center";
-        ctx.fillText(`-${evt.speedDrop.toFixed(0)}`, x, 10);
+        ctx.fillText(`-${evt.speedDrop.toFixed(0)}`, xMid, 10);
       });
     }
   }, [traces, clippingEvents]);
@@ -531,7 +531,7 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
         });
       });
       // Check if hovering near a clipping zone
-      const clipEvt = clippingEvents?.find(e => Math.abs(e.distance - hoverDist) < (maxDist * 0.015));
+      const clipEvt = clippingEvents?.find(e => hoverDist >= e.distance - 20 && hoverDist <= (e.endDistance || e.distance) + 20);
       if (clipEvt) {
         rows.push({ cols: ["CLIP", `-${clipEvt.speedDrop.toFixed(1)}`, `${clipEvt.startSpeed.toFixed(0)}→${clipEvt.endSpeed.toFixed(0)}`, "", "", ""], highlight: { 0: "#eab308", 1: "#eab308", 2: "#eab308" } });
       }

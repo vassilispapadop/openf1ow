@@ -1,5 +1,6 @@
 export interface ClipEvent {
   distance: number;
+  endDistance: number;
   speedDrop: number;
   duration: number;
   startSpeed: number;
@@ -9,45 +10,85 @@ export interface ClipEvent {
 
 export const THROTTLE_THRESHOLD = 100;
 export const MIN_SPEED_DROP = 2;
-const MAX_CLIP_DROP = 30;
 const MIN_SPEED = 150;
-const MAX_CLIP_DURATION = 3000;
+const MIN_ZONE_SAMPLES = 2;
 
+/**
+ * Detect super clipping zones: contiguous regions where throttle=100%,
+ * brake=off, speed >= 150 km/h, and speed is NOT increasing.
+ *
+ * Returns zones with their full distance extent so the overlay covers
+ * the entire clipping region, not just individual drop samples.
+ */
 export function detectClipping(telemetry: any[]): ClipEvent[] {
-  const events: ClipEvent[] = [];
+  if (telemetry.length < 3) return [];
+
+  const zones: ClipEvent[] = [];
+  let zoneStart = -1;
+  let peakSpeed = 0;
+  let lowestSpeed = Infinity;
 
   for (let i = 1; i < telemetry.length; i++) {
     const prev = telemetry[i - 1];
     const curr = telemetry[i];
+    const fullThrottle = curr.throttle >= THROTTLE_THRESHOLD && prev.throttle >= THROTTLE_THRESHOLD;
+    const noBrake = !curr.brake && !prev.brake;
+    const highSpeed = curr.speed >= MIN_SPEED;
+    // Speed is not gaining (dropping or flat)
+    const notGaining = curr.speed <= prev.speed + 0.5;
 
-    if (curr.throttle < THROTTLE_THRESHOLD || prev.throttle < THROTTLE_THRESHOLD) continue;
-    if (curr.brake || prev.brake) continue;
-    if (prev.speed < MIN_SPEED) continue;
-
-    const drop = prev.speed - curr.speed;
-    if (drop < MIN_SPEED_DROP) continue;
-
-    // Merge with previous event if consecutive (within ~200m)
-    const lastEvt = events[events.length - 1];
-    if (lastEvt && Math.abs((lastEvt.distance || 0) - (prev.distance || 0)) < 200) {
-      const totalDrop = lastEvt.startSpeed - curr.speed;
-      if (totalDrop <= MAX_CLIP_DROP) {
-        lastEvt.endSpeed = curr.speed;
-        lastEvt.speedDrop = totalDrop;
-        lastEvt.duration = new Date(curr.date).getTime() - new Date(telemetry[0].date).getTime();
-        continue;
+    if (fullThrottle && noBrake && highSpeed && notGaining) {
+      if (zoneStart === -1) {
+        // Start a new zone
+        zoneStart = i - 1;
+        peakSpeed = prev.speed;
+        lowestSpeed = curr.speed;
+      } else {
+        // Extend zone
+        if (prev.speed > peakSpeed) peakSpeed = prev.speed;
+        if (curr.speed < lowestSpeed) lowestSpeed = curr.speed;
       }
-    }
+    } else if (zoneStart !== -1) {
+      // End of zone
+      const startPt = telemetry[zoneStart];
+      const endPt = telemetry[i - 1];
+      const drop = peakSpeed - lowestSpeed;
+      const samples = i - zoneStart;
 
-    events.push({
-      distance: prev.distance || 0,
-      speedDrop: Math.min(drop, MAX_CLIP_DROP),
-      duration: new Date(curr.date).getTime() - new Date(prev.date).getTime(),
-      startSpeed: prev.speed,
-      endSpeed: curr.speed,
-      throttle: 100,
-    });
+      if (drop >= MIN_SPEED_DROP && samples >= MIN_ZONE_SAMPLES) {
+        zones.push({
+          distance: startPt.distance || 0,
+          endDistance: endPt.distance || startPt.distance || 0,
+          speedDrop: drop,
+          duration: new Date(endPt.date).getTime() - new Date(startPt.date).getTime(),
+          startSpeed: peakSpeed,
+          endSpeed: lowestSpeed,
+          throttle: 100,
+        });
+      }
+      zoneStart = -1;
+      peakSpeed = 0;
+      lowestSpeed = Infinity;
+    }
   }
 
-  return events.filter(e => e.speedDrop >= MIN_SPEED_DROP && e.speedDrop <= MAX_CLIP_DROP && e.duration <= MAX_CLIP_DURATION);
+  // Close any open zone at end of lap
+  if (zoneStart !== -1) {
+    const startPt = telemetry[zoneStart];
+    const endPt = telemetry[telemetry.length - 1];
+    const drop = peakSpeed - lowestSpeed;
+    if (drop >= MIN_SPEED_DROP && (telemetry.length - zoneStart) >= MIN_ZONE_SAMPLES) {
+      zones.push({
+        distance: startPt.distance || 0,
+        endDistance: endPt.distance || startPt.distance || 0,
+        speedDrop: drop,
+        duration: new Date(endPt.date).getTime() - new Date(startPt.date).getTime(),
+        startSpeed: peakSpeed,
+        endSpeed: lowestSpeed,
+        throttle: 100,
+      });
+    }
+  }
+
+  return zones;
 }
