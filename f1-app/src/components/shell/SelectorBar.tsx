@@ -30,18 +30,44 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
     }
   }, []);
 
+  // Click-and-drag to scroll
+  const dragState = useRef<{ active: boolean; startX: number; scrollLeft: number }>({ active: false, startX: 0, scrollLeft: 0 });
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!scrollRef.current) return;
+    dragState.current = { active: true, startX: e.clientX, scrollLeft: scrollRef.current.scrollLeft };
+    scrollRef.current.style.cursor = "grabbing";
+  }, []);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragState.current.active || !scrollRef.current) return;
+    const dx = e.clientX - dragState.current.startX;
+    scrollRef.current.scrollLeft = dragState.current.scrollLeft - dx;
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    dragState.current.active = false;
+    if (scrollRef.current) scrollRef.current.style.cursor = "grab";
+  }, []);
+
   return (
     <div>
       {/* Race strip */}
       <div
         ref={scrollRef}
         onWheel={onWheel}
+        onMouseDown={onMouseDown}
+        onMouseMove={onMouseMove}
+        onMouseUp={onMouseUp}
+        onMouseLeave={onMouseUp}
         style={{
           display: "flex",
           gap: 8,
           overflowX: "auto",
           padding: "8px 0 12px",
           scrollbarWidth: "none",
+          cursor: "grab",
+          userSelect: "none",
         }}
       >
         {races.map(m => {
