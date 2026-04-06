@@ -1,63 +1,137 @@
-import { sty } from "../../lib/styles";
+import { useRef, useEffect } from "react";
+import { F, M } from "../../lib/styles";
 
 interface SelectorBarProps {
-  year: number;
   meetings: any[];
   mk: string;
   sessions: any[];
   sk: string;
-  onYear: (y: number) => void;
   onMeeting: (v: string) => void;
   onSession: (v: string) => void;
 }
 
-export default function SelectorBar({ year, meetings, mk, sessions, sk, onYear, onMeeting, onSession }: SelectorBarProps) {
+export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onSession }: SelectorBarProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const races = meetings.filter(m => !m.meeting_name?.toLowerCase().includes("testing"));
+
+  // Auto-scroll selected race into view
+  useEffect(() => {
+    if (!scrollRef.current || !mk) return;
+    const el = scrollRef.current.querySelector(`[data-mk="${mk}"]`) as HTMLElement;
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [mk]);
+
   return (
-    <div className="fade-in-up card-glow" style={{
-      ...sty.card,
-      display: "flex",
-      alignItems: "flex-end",
-      gap: 0,
-      padding: 0,
-      overflow: "hidden",
-      borderTop: "1px solid rgba(225,6,0,0.08)",
-    }}>
-      {/* Year */}
-      <div style={{ flex: 0.4, padding: "14px 18px", borderRight: "1px solid rgba(255,255,255,0.04)" }}>
-        <div style={{
-          fontSize: 9, fontWeight: 600, color: "#5a5a6e",
-          textTransform: "uppercase" as const, letterSpacing: "1px", marginBottom: 6,
-        }}>SEASON</div>
-        <select
-          style={{ ...sty.sel, width: "100%", boxSizing: "border-box" as const }}
-          value={year}
-          onChange={e => onYear(Number(e.target.value))}
-        >
-          <option value={2026}>2026</option>
-        </select>
+    <div>
+      {/* Race strip */}
+      <div
+        ref={scrollRef}
+        style={{
+          display: "flex",
+          gap: 8,
+          overflowX: "auto",
+          padding: "8px 0 12px",
+          scrollbarWidth: "none",
+        }}
+      >
+        {races.map(m => {
+          const selected = String(m.meeting_key) === mk;
+          const isPast = new Date(m.date_start) < new Date();
+          return (
+            <button
+              key={m.meeting_key}
+              data-mk={m.meeting_key}
+              onClick={() => onMeeting(String(m.meeting_key))}
+              style={{
+                flexShrink: 0,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 12px 6px 6px",
+                borderRadius: 10,
+                border: selected ? "2px solid #e10600" : "2px solid transparent",
+                background: selected
+                  ? "rgba(225,6,0,0.08)"
+                  : "rgba(255,255,255,0.02)",
+                cursor: "pointer",
+                transition: "all 0.2s ease",
+                outline: "none",
+                opacity: isPast ? 1 : 0.4,
+              }}
+            >
+              {m.country_flag && (
+                <img
+                  src={m.country_flag}
+                  alt=""
+                  style={{
+                    width: 28,
+                    height: 18,
+                    borderRadius: 3,
+                    objectFit: "cover",
+                  }}
+                />
+              )}
+              <div style={{ textAlign: "left" }}>
+                <div style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  fontFamily: F,
+                  color: selected ? "#e8e8ec" : "#5a5a6e",
+                  whiteSpace: "nowrap",
+                }}>
+                  {m.circuit_short_name || m.location || m.country_name}
+                </div>
+                <div style={{
+                  fontSize: 8,
+                  fontFamily: M,
+                  color: selected ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.12)",
+                  whiteSpace: "nowrap",
+                }}>
+                  {new Date(m.date_start).toLocaleDateString("en", { month: "short", day: "numeric" })}
+                </div>
+              </div>
+            </button>
+          );
+        })}
       </div>
-      {/* Race */}
-      <div style={{ flex: 1, padding: "14px 18px", borderRight: "1px solid rgba(255,255,255,0.04)" }}>
-        <div style={{
-          fontSize: 9, fontWeight: 600, color: "#5a5a6e",
-          textTransform: "uppercase" as const, letterSpacing: "1px", marginBottom: 6,
-        }}>RACE</div>
-        <select style={{ ...sty.sel, width: "100%", boxSizing: "border-box" as const }} value={mk} onChange={e => onMeeting(e.target.value)}>
-          <option value="">Select Race ({meetings.filter(m => !m.meeting_name?.toLowerCase().includes("testing")).length})</option>
-          {meetings.filter(m => !m.meeting_name?.toLowerCase().includes("testing")).map(m => <option key={m.meeting_key} value={m.meeting_key}>{m.country_name} {"\u2014"} {m.meeting_name}</option>)}
-        </select>
-      </div>
-      {/* Session */}
+
+      {/* Session pills */}
       {sessions.length > 0 && (
-        <div className="fade-in" style={{ flex: 0.6, padding: "14px 18px", borderRight: "1px solid rgba(255,255,255,0.04)" }}>
-          <div style={{
-            fontSize: 9, fontWeight: 600, color: "#5a5a6e",
-            textTransform: "uppercase" as const, letterSpacing: "1px", marginBottom: 6,
-          }}>SESSION</div>
-          <select style={{ ...sty.sel, width: "100%", boxSizing: "border-box" as const }} value={sk} onChange={e => onSession(e.target.value)}>
-            <option value="">Select Session</option>
-            {sessions.map(s => <option key={s.session_key} value={s.session_key}>{s.session_name}</option>)}
-          </select>
+        <div style={{
+          display: "flex",
+          gap: 6,
+          marginBottom: 12,
+          flexWrap: "wrap",
+        }}>
+          {sessions.map(s => {
+            const selected = String(s.session_key) === sk;
+            return (
+              <button
+                key={s.session_key}
+                onClick={() => onSession(String(s.session_key))}
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: 8,
+                  border: "none",
+                  background: selected
+                    ? "linear-gradient(135deg, #e10600, #b80500)"
+                    : "rgba(255,255,255,0.03)",
+                  color: selected ? "#fff" : "#5a5a6e",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  fontFamily: F,
+                  cursor: "pointer",
+                  textTransform: "uppercase" as const,
+                  letterSpacing: "0.8px",
+                  transition: "all 0.2s ease",
+                  outline: "none",
+                  boxShadow: selected ? "0 2px 10px rgba(225,6,0,0.3)" : "none",
+                }}
+              >
+                {s.session_name}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

@@ -331,7 +331,7 @@ export default function App() {
         )}
 
         {/* ====== SELECTOR BAR ====== */}
-        <SelectorBar year={year} meetings={meetings} mk={mk} sessions={sessions} sk={sk} onYear={onYear} onMeeting={onMeeting} onSession={onSession} />
+        <SelectorBar meetings={meetings} mk={mk} sessions={sessions} sk={sk} onMeeting={onMeeting} onSession={onSession} />
 
         {/* ====== DRIVER GRID ====== */}
         {drivers.length > 0 && !loading && (
