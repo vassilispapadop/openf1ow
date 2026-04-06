@@ -586,12 +586,14 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
   }, [traces, drawOverlay, syncRef]);
 
   return (
-    <div ref={wrapRef} style={{ position: "relative", marginBottom: 0 }}>
-      <div style={{ position: "absolute", top: 8, left: LEFT_MARGIN + 8, zIndex: 5 }}>
+    <div ref={wrapRef}>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
         <ShareButton canvasRef={bgRef} filename="openf1ow-telemetry" />
       </div>
-      <canvas ref={bgRef} style={{ display: "block", borderRadius: "8px 8px 0 0" }} />
-      <canvas ref={olRef} style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair", borderRadius: "8px 8px 0 0" }} />
+      <div style={{ position: "relative" }}>
+        <canvas ref={bgRef} style={{ display: "block", borderRadius: "8px 8px 0 0" }} />
+        <canvas ref={olRef} style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair", borderRadius: "8px 8px 0 0" }} />
+      </div>
     </div>
   );
 }
@@ -845,9 +847,6 @@ export function DeltaChart({ traces, syncRef }) {
 
   return (
     <div ref={wrapRef} style={{ position: "relative", marginBottom: 2 }}>
-      <div style={{ position: "absolute", top: 8, left: LEFT_MARGIN + 8, zIndex: 5 }}>
-        <ShareButton canvasRef={bgRef} filename="openf1ow-gap" />
-      </div>
       <canvas ref={bgRef} style={{ display: "block", borderRadius: "0 0 8px 8px" }} />
       <canvas ref={olRef} style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair", borderRadius: "0 0 8px 8px" }} />
     </div>
