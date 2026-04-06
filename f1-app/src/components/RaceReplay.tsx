@@ -397,15 +397,15 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     ctx.lineWidth = 14;
     ctx.stroke();
 
-    // Driver dots
+    // Driver dots — only show drivers who are active (not retired/out)
     const now = timeAxis[idx] || 0;
+    const activeDrivers = new Set(currentState.positions.filter(p => !p.out).map(p => p.dn));
     if (idx >= 0 && idx < totalFrames) {
       allPoints.forEach(driverPts => {
         if (idx >= driverPts.length) return;
         const pt = driverPts[idx];
         if (!pt || pt.dn === 0) return;
-        // Hide retired drivers
-        if (dnfTimes[pt.dn] && now > dnfTimes[pt.dn]) return;
+        if (!activeDrivers.has(pt.dn)) return;
         const drv = drvMap[pt.dn];
         if (!drv) return;
 
