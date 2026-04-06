@@ -8,6 +8,7 @@ import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils
 import ScatterPlot from "./ScatterPlot";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
+import ViewToggle from "./ViewToggle";
 import { detectClipping, buildDrsZones, THROTTLE_THRESHOLD, MIN_SPEED_DROP, type ClipEvent } from "../../lib/clipping";
 import { mergeDistance } from "../../lib/telemetry";
 
@@ -32,6 +33,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState("");
   const [sampleLaps, setSampleLaps] = useState(DEFAULT_SAMPLE_LAPS);
+  const [viewMode, setViewMode] = useState<"list" | "graph">("graph");
   const contentRef = useRef<HTMLDivElement>(null);
 
   const threshold = useMemo(() => computeSlowLapThreshold(allLaps), [allLaps]);
@@ -196,7 +198,10 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
             >{n}</button>
           ))}
         </div>
-        <ShareButton domRef={contentRef} filename="openf1ow-super-clipping" />
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
+          <ShareButton domRef={contentRef} filename="openf1ow-super-clipping" />
+        </div>
       </div>
       <div ref={contentRef}>
         {/* Explanation */}
@@ -208,53 +213,50 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
           </div>
         </div>
 
-        {/* Driver ranking table */}
+        {/* Driver ranking: list (table) or graph (box plot) */}
         <div style={sty.card}>
-          <div style={sty.sectionHead}>Clipping Severity by Driver</div>
-          <div style={{ overflowX: "auto", marginTop: 10 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  {["#", "Driver", "Events", "Median Drop", "Worst Drop", "Laps"].map(h => (
-                    <th key={h} style={sty.th}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {driverSummary.map((d, i) => (
-                  <tr
-                    key={d.driver?.driver_number}
-                    style={rowBg(i)}
-                  >
-                    <td style={{ ...sty.td, color: podiumColor(i), fontWeight: 700, fontFamily: M, width: 30 }}>{i + 1}</td>
-                    <td style={{ ...sty.td, fontWeight: 700, fontFamily: F }}>
-                      <span style={{ display: "inline-block", width: 3, height: 14, borderRadius: 2, background: "#" + (d.driver?.team_colour || "666"), marginRight: 8, verticalAlign: "middle" }} />
-                      {d.driver?.name_acronym || "???"}
-                    </td>
-                    <td style={{ ...sty.td, fontFamily: M }}>{d.totalEvents}</td>
-                    <td style={{ ...sty.td, fontFamily: M, color: d.avgDrop > 10 ? "#ef4444" : d.avgDrop > 5 ? "#eab308" : "#6b7d9e" }}>
-                      {d.avgDrop.toFixed(1)} km/h
-                    </td>
-                    <td style={{ ...sty.td, fontFamily: M, color: d.worstDrop > 10 ? "#ef4444" : d.worstDrop > 5 ? "#eab308" : "#6b7d9e" }}>
-                      {d.worstDrop.toFixed(1)} km/h
-                    </td>
-                    <td style={{ ...sty.td, fontFamily: M, color: "#5a5a6e" }}>{d.lapsAnalyzed}</td>
+          {viewMode === "list" ? (<>
+            <div style={sty.sectionHead}>Clipping Severity by Driver</div>
+            <div style={{ overflowX: "auto", marginTop: 10 }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>
+                    {["#", "Driver", "Events", "Median Drop", "Worst Drop", "Laps"].map(h => (
+                      <th key={h} style={sty.th}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Clipping distribution box plot */}
-        {boxPlotRows.length > 0 && (
-          <div style={{ ...sty.card, marginTop: 12 }}>
+                </thead>
+                <tbody>
+                  {driverSummary.map((d, i) => (
+                    <tr
+                      key={d.driver?.driver_number}
+                      style={rowBg(i)}
+                    >
+                      <td style={{ ...sty.td, color: podiumColor(i), fontWeight: 700, fontFamily: M, width: 30 }}>{i + 1}</td>
+                      <td style={{ ...sty.td, fontWeight: 700, fontFamily: F }}>
+                        <span style={{ display: "inline-block", width: 3, height: 14, borderRadius: 2, background: "#" + (d.driver?.team_colour || "666"), marginRight: 8, verticalAlign: "middle" }} />
+                        {d.driver?.name_acronym || "???"}
+                      </td>
+                      <td style={{ ...sty.td, fontFamily: M }}>{d.totalEvents}</td>
+                      <td style={{ ...sty.td, fontFamily: M, color: d.avgDrop > 10 ? "#ef4444" : d.avgDrop > 5 ? "#eab308" : "#6b7d9e" }}>
+                        {d.avgDrop.toFixed(1)} km/h
+                      </td>
+                      <td style={{ ...sty.td, fontFamily: M, color: d.worstDrop > 10 ? "#ef4444" : d.worstDrop > 5 ? "#eab308" : "#6b7d9e" }}>
+                        {d.worstDrop.toFixed(1)} km/h
+                      </td>
+                      <td style={{ ...sty.td, fontFamily: M, color: "#5a5a6e" }}>{d.lapsAnalyzed}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>) : boxPlotRows.length > 0 ? (<>
             <div style={sty.sectionHead}>Clipping Distribution (Top {sampleLaps} Fastest Laps)</div>
             <div style={{ marginTop: 10 }}>
               <BoxPlotChart rows={boxPlotRows} valueFmt={(v) => v.toFixed(1) + " km/h"} />
             </div>
-          </div>
-        )}
+          </>) : null}
+        </div>
 
         {/* Scatter: all clipping events */}
         {scatterData.length > 0 && (
