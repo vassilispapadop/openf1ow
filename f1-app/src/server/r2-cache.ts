@@ -10,16 +10,48 @@ interface Env {
   F1_DATA: R2Bucket;
 }
 
+/** Telemetry endpoints that are stored as full-session blobs in R2 */
+const TELEMETRY_ENDPOINTS = ["car_data", "location"];
+
 /**
  * Normalize an OpenF1 API path into a stable R2 key.
  * Strips leading slash and sorts query params alphabetically.
+ * For telemetry endpoints, strips date filters so the key matches
+ * the full-session blob stored by the scraper.
  */
 function normalizeKey(path: string): string {
   const [base, qs] = path.split("?");
-  if (!qs) return base.replace(/^\//, "");
+  const clean = base.replace(/^\//, "");
+  if (!qs) return clean;
   const params = new URLSearchParams(qs);
-  const sorted = [...params.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  return base.replace(/^\//, "") + "?" + sorted.map(([k, v]) => `${k}=${v}`).join("&");
+  const isTelemetry = TELEMETRY_ENDPOINTS.includes(clean);
+  const sorted = [...params.entries()]
+    .filter(([k]) => !isTelemetry || (!k.startsWith("date>") && !k.startsWith("date<")))
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  return clean + "?" + sorted.map(([k, v]) => `${k}=${v}`).join("&");
+}
+
+/**
+ * Extract date filter bounds from query params for telemetry slicing.
+ */
+function getDateFilters(url: URL): { gte?: string; lte?: string } | null {
+  const params = url.searchParams;
+  const gte = params.get("date>=") || params.get("date>") || undefined;
+  const lte = params.get("date<=") || params.get("date<") || undefined;
+  if (!gte && !lte) return null;
+  return { gte, lte };
+}
+
+/**
+ * Filter a telemetry array by date range.
+ */
+function sliceByDate(data: any[], filters: { gte?: string; lte?: string }): any[] {
+  return data.filter((item: any) => {
+    if (!item.date) return true;
+    if (filters.gte && item.date < filters.gte) return false;
+    if (filters.lte && item.date > filters.lte) return false;
+    return true;
+  });
 }
 
 /**
@@ -73,10 +105,19 @@ export async function handleF1Request(
   const apiPath = url.pathname.replace(/^\/api\/f1/, "") + url.search;
   const key = normalizeKey(apiPath);
 
+  const endpoint = url.pathname.replace(/^\/api\/f1\//, "");
+  const isTelemetry = TELEMETRY_ENDPOINTS.includes(endpoint);
+  const dateFilters = isTelemetry ? getDateFilters(url) : null;
+
   // Try R2 first
   const cached = await env.F1_DATA.get(key);
   if (cached && isFresh(cached)) {
-    const body = await cached.text();
+    let body = await cached.text();
+    // For telemetry with date filters, slice the full blob
+    if (dateFilters) {
+      const sliced = sliceByDate(JSON.parse(body), dateFilters);
+      body = JSON.stringify(sliced);
+    }
     const maxAge = getTTL(key) === Infinity ? 86400 : 60;
     return new Response(body, {
       headers: {
@@ -87,10 +128,12 @@ export async function handleF1Request(
     });
   }
 
-  // Fetch from OpenF1
+  // Fetch from OpenF1 — for telemetry, fetch full session (no date filter)
+  // so we cache the complete blob and can slice future requests from R2
+  const fetchPath = isTelemetry ? "/" + key : apiPath;
   let res: Response;
   try {
-    res = await fetch(OPENF1 + apiPath);
+    res = await fetch(OPENF1 + fetchPath);
   } catch (e) {
     // If OpenF1 is down but we have stale cache, serve it
     if (cached) {
@@ -127,18 +170,25 @@ export async function handleF1Request(
     });
   }
 
-  const body = await res.text();
+  const fullBody = await res.text();
 
-  // Store in R2 (non-blocking)
+  // Store full blob in R2 (non-blocking)
   ctx.waitUntil(
-    env.F1_DATA.put(key, body, {
+    env.F1_DATA.put(key, fullBody, {
       httpMetadata: { contentType: "application/json" },
       customMetadata: { fetchedAt: String(Date.now()) },
     }),
   );
 
+  // For telemetry with date filters, slice before returning
+  let responseBody = fullBody;
+  if (dateFilters) {
+    const sliced = sliceByDate(JSON.parse(fullBody), dateFilters);
+    responseBody = JSON.stringify(sliced);
+  }
+
   const maxAge = getTTL(key) === Infinity ? 86400 : 60;
-  return new Response(body, {
+  return new Response(responseBody, {
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": `public, max-age=${maxAge}`,
