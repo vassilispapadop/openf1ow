@@ -228,12 +228,14 @@ export default function App() {
     const id = driverNumber + "-" + lap.lap_number;
     setComparisons(prev => {
       if (prev.find(c => c.id === id)) return prev;
+      const idx = prev.length;
+      const PALETTE = ["e10600", "06b6d4", "FFD700", "a855f7", "22c55e", "f43f5e", "f97316", "3b82f6", "ec4899", "84cc16"];
       return [...prev, {
         id,
         driverNumber,
         lapNumber: lap.lap_number,
         label: "#" + driverNumber + " " + (driverInfo.name_acronym || driverInfo.full_name) + " L" + lap.lap_number,
-        color: driverInfo.team_colour || "3b82f6",
+        color: PALETTE[idx % PALETTE.length],
         data: [],
         loading: true,
       }];
