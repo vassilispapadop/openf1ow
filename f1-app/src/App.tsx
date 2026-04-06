@@ -9,6 +9,7 @@ import Header from "./components/shell/Header";
 import SelectorBar from "./components/shell/SelectorBar";
 import DriverInfoCard from "./components/shell/DriverInfoCard";
 import Footer from "./components/shell/Footer";
+import DriverGrid from "./components/shell/DriverGrid";
 import LapsTab from "./components/driver/LapsTab";
 import TelemetryTab from "./components/driver/TelemetryTab";
 import StintsTab from "./components/driver/StintsTab";
@@ -72,7 +73,7 @@ export default function App() {
   const [selLap, setSelLap] = useState(null);
   const [comparisons, setComparisons] = useState([]);
   const [tab, setTab] = useState(() => initParams.current.tab || "laps");
-  const [showAnalysis, setShowAnalysis] = useState(() => initParams.current.view === "analysis");
+  const [showAnalysis, setShowAnalysis] = useState(() => initParams.current.view !== "driver");
   const [subTab, setSubTab] = useState(() => initParams.current.subTab || "pace");
   const [loading, setLoading] = useState("Loading races...");
   const [error, setError] = useState("");
@@ -147,7 +148,7 @@ export default function App() {
   const { pushState, replaceState, markPopState, clearPopState } = useUrlState((p) => {
     markPopState();
     const y = p.year ? Number(p.year) : 2026;
-    setShowAnalysis(p.view === "analysis");
+    setShowAnalysis(p.view !== "driver");
     setTab(p.tab || "laps");
     if (p.subTab) setSubTab(p.subTab);
     if (y !== year) {
@@ -182,7 +183,7 @@ export default function App() {
     if (mk) params.mk = mk;
     if (sk) params.sk = sk;
     if (dn) params.dn = dn;
-    if (showAnalysis) params.view = "analysis";
+    if (!showAnalysis) params.view = "driver";
     if (tab && tab !== "laps") params.tab = tab;
     if (showAnalysis && subTab && subTab !== "pace") params.subTab = subTab;
     if (isInitialLoad.current) {
@@ -330,9 +331,14 @@ export default function App() {
         )}
 
         {/* ====== SELECTOR BAR ====== */}
-        <SelectorBar year={year} meetings={meetings} mk={mk} sessions={sessions} sk={sk} drivers={drivers} dn={dn} onYear={onYear} onMeeting={onMeeting} onSession={onSession} onDriver={onDriver} />
+        <SelectorBar year={year} meetings={meetings} mk={mk} sessions={sessions} sk={sk} onYear={onYear} onMeeting={onMeeting} onSession={onSession} />
 
-        {/* ====== VIEW TOGGLE (Driver vs Analysis) ====== */}
+        {/* ====== DRIVER GRID ====== */}
+        {drivers.length > 0 && !loading && (
+          <DriverGrid drivers={drivers} dn={dn} onDriver={onDriver} />
+        )}
+
+        {/* ====== VIEW TOGGLE (Race Analysis vs Driver View) ====== */}
         {drivers.length > 0 && !loading && (
           <div style={{
             display: "inline-flex",
@@ -345,8 +351,8 @@ export default function App() {
             backdropFilter: "blur(12px)",
           }}>
             {[
-              { label: "Driver View", active: !showAnalysis, onClick: () => setShowAnalysis(false) },
               { label: "Race Analysis", active: showAnalysis, onClick: () => setShowAnalysis(true) },
+              { label: "Driver View", active: !showAnalysis, onClick: () => setShowAnalysis(false) },
             ].map((btn) => (
               <button key={btn.label} onClick={btn.onClick} style={{
                 padding: "9px 26px",

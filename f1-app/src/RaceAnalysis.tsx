@@ -25,6 +25,7 @@ import SectorAnalysis from "./components/analysis/SectorAnalysis";
 import FuelVisualization from "./components/analysis/FuelVisualization";
 import WeatherCorrelation from "./components/analysis/WeatherCorrelation";
 import DirtyAirAnalysis from "./components/analysis/DirtyAirAnalysis";
+import SuperClipping from "./components/analysis/SuperClipping";
 
 export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [], subTab, onSubTabChange }: {
   sessionKey: string;
@@ -225,6 +226,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           ["pace", "Race Pace"],
           ["sectors", "Sectors"],
           ["constructors", "Constructors"],
+          ["clipping", "Super Clipping"],
           ["evolution", "Lap Evolution"],
           ["degradation", "Tire Deg"],
           ["fuel", "Fuel"],
@@ -765,6 +767,10 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           })()}
         </div>
       </>)}
+
+      {subTab === "clipping" && (
+        <SuperClipping sessionKey={sessionKey} allLaps={allLaps} drivers={drivers} />
+      )}
     </div>
   );
 }
