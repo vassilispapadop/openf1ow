@@ -266,7 +266,7 @@ export default function App() {
       }} />
 
       {/* ====== HEADER BAR ====== */}
-      <Header meetings={meetings} mk={mk} sessions={sessions} sk={sk} />
+      <Header meetings={meetings} mk={mk} sessions={sessions} sk={sk} onReset={() => { setMk(""); setSk(""); setDn(""); setSessions([]); setDrivers([]); setLaps([]); setCarData([]); setComparisons([]); }} />
 
       {/* ====== MAIN CONTENT ====== */}
       <div style={{ padding: "20px 28px", position: "relative" as const, zIndex: 1 }}>

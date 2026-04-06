@@ -5,9 +5,10 @@ interface HeaderProps {
   mk: string;
   sessions: any[];
   sk: string;
+  onReset?: () => void;
 }
 
-export default function Header({ meetings, mk, sessions, sk }: HeaderProps) {
+export default function Header({ meetings, mk, sessions, sk, onReset }: HeaderProps) {
   return (
     <div style={{
       position: "sticky" as const, top: 0, zIndex: 100,
@@ -27,7 +28,7 @@ export default function Header({ meetings, mk, sessions, sk }: HeaderProps) {
         borderBottom: "1px solid rgba(255,255,255,0.04)",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 0 }}>
+          <div onClick={onReset} style={{ display: "flex", alignItems: "baseline", gap: 0, cursor: onReset ? "pointer" : undefined }}>
             <span style={{ fontSize: 26, fontWeight: 800, color: "#e8e8ec", letterSpacing: "-0.5px", fontFamily: F }}>Open</span>
             <span style={{ fontSize: 26, fontWeight: 800, color: "#e10600", letterSpacing: "-0.5px", fontFamily: F, textShadow: "0 0 24px rgba(225,6,0,0.4)" }}>F1</span>
             <span style={{ fontSize: 26, fontWeight: 800, color: "#e8e8ec", letterSpacing: "-0.5px", fontFamily: F }}>ow</span>
