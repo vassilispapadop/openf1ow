@@ -20,7 +20,7 @@ export const THROTTLE_THRESHOLD = 100;
 export const MIN_SPEED_DROP = 2;
 const MIN_SPEED = 150;
 const MIN_ZONE_SAMPLES = 2;
-const RECOVERY_TOLERANCE = 2; // allow brief speed gains up to this (km/h) without breaking zone
+const RECOVERY_TOLERANCE = 1; // allow 1 km/h gain per sample (integer quantization noise) but not real recovery
 const ZONE_BUFFER = 200; // meters buffer around DRS activation points
 const ZONE_MERGE_GAP = 300; // merge DRS zones within this distance of each other
 
@@ -69,7 +69,7 @@ export function buildDrsZones(allTelemetry: any[][]): DrsZone[] {
  *
  * A zone starts when speed drops >= 1 km/h at full throttle, no brake,
  * and speed >= 150 km/h. It continues through brief flat spots or minor
- * recoveries (< 2 km/h gain per sample). Zone ends when throttle lifts,
+ * recoveries (< 1 km/h gain per sample). Zone ends when throttle lifts,
  * brake is applied, or speed clearly recovers.
  *
  * When drsZones is provided and non-empty, only events overlapping those
