@@ -229,10 +229,10 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           ["clipping", "Super Clipping"],
           ["evolution", "Lap Evolution"],
           ["degradation", "Tire Deg"],
-          ["fuel", "Fuel"],
           ["dirtyair", "Dirty Air"],
           ["teammates", "Teammates"],
           ["pitstops", "Pit Stops"],
+          ["fuel", "Fuel"],
           ["weather", "Weather"],
         ] as const).map(([k, v]) => (
           <SubTab key={k} active={subTab === k} onClick={() => onSubTabChange(k)}>{v}</SubTab>
