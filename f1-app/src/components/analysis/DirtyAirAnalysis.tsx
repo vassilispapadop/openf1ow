@@ -449,7 +449,7 @@ function DirtyAirAnalysis({ allLaps, drivers, stints }: {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 11 }}>
                     <span style={{ fontFamily: M, color: "#b0b0c0" }}>
-                      Laps {t.fromLap}\u2013{t.toLap}
+                      Laps {t.fromLap}{"\u2013"}{t.toLap}
                     </span>
                     <span style={{ fontFamily: M, color: "#ef4444", fontWeight: 600 }}>
                       {nLaps} laps
