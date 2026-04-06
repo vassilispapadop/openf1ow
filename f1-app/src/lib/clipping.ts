@@ -7,8 +7,8 @@ export interface ClipEvent {
   throttle: number;
 }
 
-const THROTTLE_THRESHOLD = 100;
-const MIN_SPEED_DROP = 2;
+export const THROTTLE_THRESHOLD = 100;
+export const MIN_SPEED_DROP = 2;
 const MAX_CLIP_DROP = 30;
 const MIN_SPEED = 150;
 const MAX_CLIP_DURATION = 3000;

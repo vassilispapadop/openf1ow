@@ -8,7 +8,7 @@ import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils
 import ScatterPlot from "./ScatterPlot";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
-import { detectClipping, type ClipEvent } from "../../lib/clipping";
+import { detectClipping, THROTTLE_THRESHOLD, MIN_SPEED_DROP, type ClipEvent } from "../../lib/clipping";
 
 interface DriverClipResult {
   driver: Driver;
@@ -128,7 +128,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
     setProgress("");
   }, [sessionKey, allLaps, drivers, drvMap, threshold, sampleLaps]);
 
-  useEffect(() => { analyze(); }, [sessionKey, sampleLaps]);
+  useEffect(() => { analyze(); }, [sessionKey, sampleLaps, allLaps, drivers]);
 
   const selectedResult = useMemo(
     () => results.find(r => r.driver.driver_number === selectedDriver),
