@@ -533,13 +533,13 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
           ],
         });
       });
-      // Check if hovering near a clipping zone
-      const clipEvt = clippingEvents?.find(e => hoverDist >= e.distance - 20 && hoverDist <= (e.endDistance || e.distance) + 20);
-      if (clipEvt) {
-        rows.push({ cols: ["CLIP", `-${clipEvt.speedDrop.toFixed(1)}`, `${clipEvt.startSpeed.toFixed(0)}→${clipEvt.endSpeed.toFixed(0)}`, "", "", ""], highlight: { 0: "#eab308", 1: "#eab308", 2: "#eab308" } });
-      }
+      // Check if hovering near clipping zones (may have multiple drivers)
+      const clipEvts = clippingEvents?.filter(e => hoverDist >= e.distance - 20 && hoverDist <= (e.endDistance || e.distance) + 20) || [];
+      clipEvts.forEach(e => {
+        rows.push({ cols: ["CLIP", `-${e.speedDrop.toFixed(1)}`, `${e.startSpeed.toFixed(0)}→${e.endSpeed.toFixed(0)}`, "", "", ""], highlight: { 0: "#eab308", 1: "#eab308", 2: "#eab308" } });
+      });
 
-      drawTooltip(ctx, xLine, midY, W, header, rows, ["", ...points.map(p => p.color), ...(clipEvt ? [""] : [])]);
+      drawTooltip(ctx, xLine, midY, W, header, rows, ["", ...points.map(p => p.color), ...clipEvts.map(e => e.color || "")]);
     }
   }, [traces, clippingEvents]);
 
