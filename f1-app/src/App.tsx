@@ -253,7 +253,7 @@ export default function App() {
   const drv = drivers.find(d => String(d.driver_number) === String(dn));
   const best = laps.reduce((b, l) => (l.lap_duration && (!b || l.lap_duration < b.lap_duration) ? l : b), null);
   const cmpTraces = comparisons.filter(c => c.data.length > 0).map(c => ({ data: c.data, color: c.color, label: c.label }));
-  const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data)), [cmpTraces]);
+  const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data).map(e => ({ ...e, color: t.color }))), [cmpTraces]);
 
   return (
     <div style={sty.bg}>

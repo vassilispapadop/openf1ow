@@ -6,6 +6,7 @@ export interface ClipEvent {
   startSpeed: number;
   endSpeed: number;
   throttle: number;
+  color?: string;
 }
 
 export const THROTTLE_THRESHOLD = 100;

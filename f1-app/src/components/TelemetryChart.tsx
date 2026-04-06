@@ -443,12 +443,14 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
         const x2 = xPos(evt.endDistance || evt.distance);
         const bandW = Math.max(x2 - x1, 8);
         const xMid = (x1 + x2) / 2;
-        // Semi-transparent yellow fill across all panels
-        ctx.fillStyle = "rgba(234, 179, 8, 0.07)";
+        // Use driver color if available, otherwise default yellow
+        const col = evt.color ? "#" + evt.color : "rgba(234, 179, 8, 1)";
+        // Semi-transparent fill across all panels
+        ctx.fillStyle = evt.color ? col + "12" : "rgba(234, 179, 8, 0.07)";
         ctx.fillRect(x1, 0, bandW, plotH);
-        // Dashed yellow borders
+        // Dashed borders
         ctx.save();
-        ctx.strokeStyle = "rgba(234, 179, 8, 0.35)";
+        ctx.strokeStyle = evt.color ? col + "60" : "rgba(234, 179, 8, 0.35)";
         ctx.lineWidth = 1.5;
         ctx.setLineDash([6, 4]);
         ctx.beginPath();
@@ -458,7 +460,7 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
         ctx.restore();
         // Small label at top
         ctx.font = `bold 7px ${M}`;
-        ctx.fillStyle = "rgba(234, 179, 8, 0.5)";
+        ctx.fillStyle = evt.color ? col + "80" : "rgba(234, 179, 8, 0.5)";
         ctx.textAlign = "center";
         ctx.fillText(`-${evt.speedDrop.toFixed(0)}`, xMid, 10);
       });
