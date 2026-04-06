@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo } from "react";
 import type { Driver, Lap, Weather } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
-import { initCanvas } from "../../lib/canvas";
+import { initCanvas, drawWatermark } from "../../lib/canvas";
 import { ft3, ft1, ftn, rowBg } from "../../lib/format";
 import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils";
 import useTooltip from "./useTooltip";
@@ -203,6 +203,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
     ctx.rotate(-Math.PI / 2);
     ctx.fillText("Avg Lap Time", 0, 0);
     ctx.restore();
+    drawWatermark(ctx, W, H);
   }, [analysis]);
 
   if (!analysis) return <div style={{ color: "#5a5a6e", fontSize: 13, padding: 20 }}>No weather data for this session</div>;

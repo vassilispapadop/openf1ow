@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { FUEL_TOTAL_KG, FUEL_SEC_PER_KG } from "../../lib/raceUtils";
+import { drawWatermark } from "../../lib/canvas";
 import useTooltip from "./useTooltip";
 import ShareButton from "../ShareButton";
 
@@ -127,6 +128,7 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
     ctx.fillStyle = "#b0b0c0";
     ctx.fillText("Cumulative Time Gain (s)", LEFT + 172, legendY);
 
+    drawWatermark(ctx, cssW, cssH);
   }, [totalRaceLaps, fuelPerLap, fuelCorrectionPerLap]);
 
   const onFuelHover = useCallback((e: React.MouseEvent) => {

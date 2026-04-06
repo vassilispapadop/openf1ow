@@ -3,7 +3,7 @@ import type { Driver, Lap } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { podiumColor, rowBg } from "../../lib/format";
 import { api } from "../../lib/api";
-import { initCanvas, getCtx } from "../../lib/canvas";
+import { initCanvas, getCtx, drawWatermark } from "../../lib/canvas";
 import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils";
 import ScatterPlot from "./ScatterPlot";
 import type { ScatterPoint } from "./useTooltip";
@@ -224,6 +224,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
       ctx.fillStyle = "#6b7d9e";
       ctx.fillText(item.label, lx + 10, legendY + i * 16 + 3);
     });
+    drawWatermark(ctx, W, H);
   }, [selectedResult]);
 
   // Hover handler for canvas tooltip

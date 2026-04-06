@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M } from "../../lib/styles";
-import { initCanvas } from "../../lib/canvas";
+import { initCanvas, drawWatermark } from "../../lib/canvas";
 import { ft1 } from "../../lib/format";
 import { computeSlowLapThreshold, isCleanLap } from "../../lib/raceUtils";
 import { DRIVER_COLORS } from "../../lib/constants";
@@ -156,6 +156,8 @@ function LapEvolutionChart({ allLaps, drivers }: {
       });
       ctx.stroke(); ctx.globalAlpha = 1; ctx.setLineDash([]);
     });
+
+    drawWatermark(ctx, W, H);
 
     // Hover overlay — only visible drivers
     const ol = olRef.current!;

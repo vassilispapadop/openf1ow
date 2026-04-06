@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useMemo } from "react";
 import { F, M } from "../../lib/styles";
-import { initCanvas } from "../../lib/canvas";
+import { initCanvas, drawWatermark } from "../../lib/canvas";
 import useTooltip from "./useTooltip";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
@@ -137,6 +137,7 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
       ctx.fillStyle = "#" + d.color;
       ctx.fillText(d.label, x + 7, y + 3);
     });
+    drawWatermark(ctx, W, H);
   }, [boundsKey, bounds, xLabel, yLabel, diagonal]);
 
   const onHover = useCallback((e: React.MouseEvent) => {

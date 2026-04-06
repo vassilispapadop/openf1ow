@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Driver } from "../lib/types";
 import { F, M, sty } from "../lib/styles";
 import { api } from "../lib/api";
+import { drawWatermark } from "../lib/canvas";
 import ShareButton from "./ShareButton";
 
 interface LocPoint { x: number; y: number; ts: number; dn: number }
@@ -302,12 +303,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     ctx.fillRect(0, 0, W, H);
 
     // Watermark
-    ctx.save();
-    ctx.font = `bold 13px ${F}`;
-    ctx.fillStyle = "rgba(255,255,255,0.18)";
-    ctx.textAlign = "left";
-    ctx.fillText("openf1ow.com", TOWER_W + 10, H - 12);
-    ctx.restore();
+    drawWatermark(ctx, W, H);
 
     // === TIMING TOWER (left side) ===
     const towerX = 0;

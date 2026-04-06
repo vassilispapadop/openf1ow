@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef, useMemo } from "react";
 import { F, M } from "../lib/styles";
 import { DRS_OPEN, DRS_ELIGIBLE } from "../lib/constants";
-import { initCanvas, getCtx } from "../lib/canvas";
+import { initCanvas, getCtx, drawWatermark } from "../lib/canvas";
 import ShareButton from "./ShareButton";
 import type { ClipEvent } from "../lib/clipping";
 
@@ -465,6 +465,7 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
         ctx.fillText(`-${evt.speedDrop.toFixed(0)}`, xMid, 10);
       });
     }
+    drawWatermark(ctx, W, H);
   }, [traces, clippingEvents]);
 
   // Hover overlay drawing function
@@ -739,6 +740,7 @@ export function DeltaChart({ traces, syncRef }) {
 
     // Legend
     drawLegend(ctx, W, deltas, T + 6);
+    drawWatermark(ctx, W, H);
   }, [traces]);
 
   // Hover overlay drawing

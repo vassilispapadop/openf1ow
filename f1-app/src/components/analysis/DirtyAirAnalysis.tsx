@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Driver, Lap, Stint } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
-import { initCanvas } from "../../lib/canvas";
+import { initCanvas, drawWatermark } from "../../lib/canvas";
 import { ft3, rowBg } from "../../lib/format";
 import { median, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "../../lib/raceUtils";
 import useTooltip from "./useTooltip";
@@ -296,6 +296,7 @@ export function DirtyAirTimeline({ data, totalLaps, drivers }: { data: DirtyAirD
       ctx.fillText(label, lx + 16, legendY);
       lx += ctx.measureText(label).width + 30;
     });
+    drawWatermark(ctx, W, H);
   }, [data, totalLaps, cssH]);
 
   const drvMap = useMemo(() => {

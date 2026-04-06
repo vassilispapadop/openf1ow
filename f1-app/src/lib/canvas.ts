@@ -15,6 +15,16 @@ export function initCanvas(
   return { ctx, W: cssW, H: cssH, dpr };
 }
 
+/** Draw openf1ow.com watermark in bottom-right corner */
+export function drawWatermark(ctx: CanvasRenderingContext2D, W: number, H: number) {
+  ctx.save();
+  ctx.font = "bold 9px 'JetBrains Mono','SF Mono','Cascadia Code','Consolas',monospace";
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  ctx.textAlign = "right";
+  ctx.fillText("openf1ow.com", W - 8, H - 6);
+  ctx.restore();
+}
+
 /** Get canvas 2D context with transform reset and clear */
 export function getCtx(cv: HTMLCanvasElement): { ctx: CanvasRenderingContext2D; W: number; H: number } {
   const dpr = window.devicePixelRatio || 1;
