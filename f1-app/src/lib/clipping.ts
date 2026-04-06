@@ -1,3 +1,5 @@
+import { DRS_OPEN, DRS_ELIGIBLE } from "./constants";
+
 export interface ClipEvent {
   distance: number;
   endDistance: number;
@@ -17,13 +19,17 @@ const RECOVERY_TOLERANCE = 2; // allow brief speed gains up to this (km/h) witho
 
 /**
  * Detect super clipping zones: regions where the car loses speed despite
- * full throttle and no braking — indicates energy harvesting (MGU-K),
- * power delivery limits, or aero drag exceeding available power.
+ * full throttle and no braking in a DRS / Straight Mode zone — indicates
+ * energy harvesting (MGU-K), power delivery limits, or aero drag
+ * exceeding available power.
  *
  * A zone starts when speed drops >= 1 km/h at full throttle, no brake,
  * and speed >= 150 km/h. It continues through brief flat spots or minor
  * recoveries (< 2 km/h gain per sample). Zone ends when throttle lifts,
  * brake is applied, or speed clearly recovers.
+ *
+ * Only zones where at least one sample shows DRS eligible or open are
+ * kept — this restricts detection to Straight Mode / DRS zones.
  *
  * speedDrop = startSpeed - endSpeed (net speed lost across the zone).
  */
@@ -69,6 +75,17 @@ function closeZone(zones: ClipEvent[], telemetry: any[], start: number, end: num
   const endPt = telemetry[end];
   const drop = Math.round((startPt.speed - endPt.speed) * 10) / 10;
   if (drop < MIN_SPEED_DROP) return;
+
+  // Only keep zones that overlap with a DRS / Straight Mode zone
+  let inDrsZone = false;
+  for (let j = start; j <= end; j++) {
+    const drs = telemetry[j].drs;
+    if (drs === DRS_ELIGIBLE || DRS_OPEN.includes(drs)) {
+      inDrsZone = true;
+      break;
+    }
+  }
+  if (!inDrsZone) return;
 
   zones.push({
     distance: startPt.distance || 0,
