@@ -3,6 +3,7 @@ import { F, M } from "../lib/styles";
 import { DRS_OPEN, DRS_ELIGIBLE } from "../lib/constants";
 import { initCanvas, getCtx } from "../lib/canvas";
 import ShareButton from "./ShareButton";
+import type { ClipEvent } from "../lib/clipping";
 
 // ============================================================================
 // CHART INFRASTRUCTURE
@@ -238,7 +239,7 @@ const PANELS = [
 // CHART COMPONENT
 // ============================================================================
 
-export function Chart({ traces, syncRef }) {
+export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRef: any; clippingEvents?: ClipEvent[] }) {
   const wrapRef = useRef(null);
   const bgRef = useRef(null);
   const olRef = useRef(null);
@@ -434,7 +435,35 @@ export function Chart({ traces, syncRef }) {
 
     // Legend
     drawLegend(ctx, W, traces, 8);
-  }, [traces]);
+
+    // Super Clipping overlay zones
+    if (clippingEvents?.length) {
+      clippingEvents.forEach(evt => {
+        const x = xPos(evt.distance);
+        const bandW = Math.max(plotW * 0.018, 8);
+        // Semi-transparent yellow fill across all panels
+        ctx.fillStyle = "rgba(234, 179, 8, 0.07)";
+        ctx.fillRect(x - bandW / 2, 0, bandW, plotH);
+        // Dashed yellow borders
+        ctx.save();
+        ctx.strokeStyle = "rgba(234, 179, 8, 0.35)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(x - bandW / 2, 0);
+        ctx.lineTo(x - bandW / 2, plotH);
+        ctx.moveTo(x + bandW / 2, 0);
+        ctx.lineTo(x + bandW / 2, plotH);
+        ctx.stroke();
+        ctx.restore();
+        // Small label at top
+        ctx.font = `bold 7px ${M}`;
+        ctx.fillStyle = "rgba(234, 179, 8, 0.5)";
+        ctx.textAlign = "center";
+        ctx.fillText(`-${evt.speedDrop.toFixed(0)}`, x, 10);
+      });
+    }
+  }, [traces, clippingEvents]);
 
   // Hover overlay drawing function
   const drawOverlay = useCallback((hoverDist) => {
@@ -501,9 +530,15 @@ export function Chart({ traces, syncRef }) {
           ],
         });
       });
-      drawTooltip(ctx, xLine, midY, W, header, rows, ["", ...points.map(p => p.color)]);
+      // Check if hovering near a clipping zone
+      const clipEvt = clippingEvents?.find(e => Math.abs(e.distance - hoverDist) < (maxDist * 0.015));
+      if (clipEvt) {
+        rows.push({ cols: ["CLIP", `-${clipEvt.speedDrop.toFixed(1)}`, `${clipEvt.startSpeed.toFixed(0)}→${clipEvt.endSpeed.toFixed(0)}`, "", "", ""], highlight: { 0: "#eab308", 1: "#eab308", 2: "#eab308" } });
+      }
+
+      drawTooltip(ctx, xLine, midY, W, header, rows, ["", ...points.map(p => p.color), ...(clipEvt ? [""] : [])]);
     }
-  }, [traces]);
+  }, [traces, clippingEvents]);
 
   // Register syncRef and attach mouse handlers
   useEffect(() => {

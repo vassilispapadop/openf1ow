@@ -8,15 +8,7 @@ import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils
 import ScatterPlot from "./ScatterPlot";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
-
-interface ClipEvent {
-  distance: number;
-  speedDrop: number;
-  duration: number;
-  startSpeed: number;
-  endSpeed: number;
-  throttle: number;
-}
+import { detectClipping, type ClipEvent } from "../../lib/clipping";
 
 interface DriverClipResult {
   driver: Driver;
@@ -28,62 +20,7 @@ interface DriverClipResult {
   clipCount: number;
 }
 
-const THROTTLE_THRESHOLD = 100;
-const MIN_SPEED_DROP = 2; // km/h — minimum per-sample drop to count
-const MAX_CLIP_DROP = 30; // km/h — cap: real clipping is typically 5-20 km/h
-const MIN_SPEED = 150; // km/h — only detect at high speed (rules out corner exit)
-const MAX_CLIP_DURATION = 3000; // ms — cap event duration to avoid accumulating long stretches
 const DEFAULT_SAMPLE_LAPS = 5;
-
-function detectClipping(telemetry: any[]): ClipEvent[] {
-  const events: ClipEvent[] = [];
-
-  // Detect individual sample-to-sample drops where throttle=100% and no brake
-  for (let i = 1; i < telemetry.length; i++) {
-    const prev = telemetry[i - 1];
-    const curr = telemetry[i];
-
-    // Both samples must have full throttle and no brake
-    if (curr.throttle < THROTTLE_THRESHOLD || prev.throttle < THROTTLE_THRESHOLD) continue;
-    if (curr.brake || prev.brake) continue;
-
-    // Must be at high speed — low speed drops are normal grip/aero behavior
-    if (prev.speed < MIN_SPEED) continue;
-
-    const drop = prev.speed - curr.speed;
-    if (drop < MIN_SPEED_DROP) continue;
-
-    // Merge with previous event if they're consecutive (within 500ms)
-    const ts = new Date(curr.date).getTime();
-    const lastEvt = events[events.length - 1];
-    if (lastEvt) {
-      const lastTs = new Date(telemetry[0].date).getTime() + lastEvt.duration;
-      const gap = ts - (lastEvt.distance > 0 ? ts : lastTs); // approximate
-      if (Math.abs((lastEvt.distance || 0) - (prev.distance || 0)) < 200) {
-        // Extend previous event
-        const totalDrop = lastEvt.startSpeed - curr.speed;
-        if (totalDrop <= MAX_CLIP_DROP) {
-          lastEvt.endSpeed = curr.speed;
-          lastEvt.speedDrop = totalDrop;
-          lastEvt.duration = ts - new Date(telemetry[0].date).getTime();
-          continue;
-        }
-      }
-    }
-
-    events.push({
-      distance: prev.distance || 0,
-      speedDrop: Math.min(drop, MAX_CLIP_DROP),
-      duration: new Date(curr.date).getTime() - new Date(prev.date).getTime(),
-      startSpeed: prev.speed,
-      endSpeed: curr.speed,
-      throttle: 100,
-    });
-  }
-
-  // Filter out implausible events
-  return events.filter(e => e.speedDrop >= MIN_SPEED_DROP && e.speedDrop <= MAX_CLIP_DROP && e.duration <= MAX_CLIP_DURATION);
-}
 
 function mergeDistance(cd: any[], loc: any[]): any[] {
   const locDist: { t: number; distance: number }[] = [];
