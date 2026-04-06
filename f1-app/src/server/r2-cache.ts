@@ -46,11 +46,13 @@ function getTTL(key: string): number {
  * Check if cached R2 object is still fresh based on its custom metadata.
  */
 function isFresh(obj: R2Object): boolean {
-  const fetchedAt = obj.customMetadata?.fetchedAt;
-  if (!fetchedAt) return false;
   const ttl = getTTL(obj.key);
   if (ttl === Infinity) return true;
-  return Date.now() - Number(fetchedAt) < ttl;
+  // Use custom metadata if set by Worker, otherwise fall back to R2 upload time
+  const ts = obj.customMetadata?.fetchedAt
+    ? Number(obj.customMetadata.fetchedAt)
+    : obj.uploaded.getTime();
+  return Date.now() - ts < ttl;
 }
 
 /**
