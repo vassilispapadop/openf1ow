@@ -1,6 +1,9 @@
+import { handleF1Request } from "./r2-cache";
+
 interface Env {
   GEMINI_API_KEY: string;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
+  F1_DATA: R2Bucket;
 }
 
 // ============================================================================
@@ -11,9 +14,21 @@ const OPENF1_API = "https://api.openf1.org/v1";
 const metaCache = new Map<string, { data: any; ts: number }>();
 const META_TTL = 3600_000; // 1 hour
 
-async function fetchCached(path: string): Promise<any> {
+async function fetchCached(path: string, r2?: R2Bucket): Promise<any> {
   const cached = metaCache.get(path);
   if (cached && Date.now() - cached.ts < META_TTL) return cached.data;
+  // Try R2 first (data may already be cached by the /api/f1 proxy)
+  if (r2) {
+    try {
+      const key = path.replace(/^\//, "");
+      const obj = await r2.get(key);
+      if (obj) {
+        const data = await obj.json();
+        metaCache.set(path, { data, ts: Date.now() });
+        return data;
+      }
+    } catch { /* fall through to API */ }
+  }
   try {
     const res = await fetch(OPENF1_API + path);
     if (!res.ok) return null;
@@ -32,7 +47,7 @@ const SUB_TAB_LABELS: Record<string, string> = {
   teammates: "Teammates", pitstops: "Pit Stops", weather: "Weather",
 };
 
-async function buildOgTags(url: URL): Promise<{ title: string; description: string; ogUrl: string } | null> {
+async function buildOgTags(url: URL, r2?: R2Bucket): Promise<{ title: string; description: string; ogUrl: string } | null> {
   const sp = url.searchParams;
   const mk = sp.get("mk");
   const sk = sp.get("sk");
@@ -44,9 +59,9 @@ async function buildOgTags(url: URL): Promise<{ title: string; description: stri
 
   // Fetch all metadata in parallel — none depend on each other
   const [meetings, drivers, sessions] = await Promise.all([
-    fetchCached("/meetings?meeting_key=" + mk),
-    dn && sk ? fetchCached("/drivers?session_key=" + sk + "&driver_number=" + dn) : null,
-    sk ? fetchCached("/sessions?session_key=" + sk) : null,
+    fetchCached("/meetings?meeting_key=" + mk, r2),
+    dn && sk ? fetchCached("/drivers?session_key=" + sk + "&driver_number=" + dn, r2) : null,
+    sk ? fetchCached("/sessions?session_key=" + sk, r2) : null,
   ]);
 
   const meeting = meetings?.[0];
@@ -223,7 +238,7 @@ const CORS_HEADERS = {
 };
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
@@ -232,7 +247,7 @@ export default {
 
     // OG image endpoint — returns SVG with race/driver branding
     if (url.pathname === "/og-image" && request.method === "GET") {
-      const og = await buildOgTags(url);
+      const og = await buildOgTags(url, env.F1_DATA);
       if (!og) {
         return new Response("Missing params", { status: 400 });
       }
@@ -254,7 +269,7 @@ export default {
       try {
         const assetRes = await env.ASSETS.fetch(new Request(url.origin + "/index.html"));
         let html = await assetRes.text();
-        const og = await buildOgTags(url);
+        const og = await buildOgTags(url, env.F1_DATA);
         if (og) html = injectOgTags(html, og);
         return new Response(html, {
           headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -262,6 +277,11 @@ export default {
       } catch {
         // Fall through to asset serving on error
       }
+    }
+
+    // OpenF1 API proxy — serve from R2 cache
+    if (url.pathname.startsWith("/api/f1/")) {
+      return handleF1Request(request, env, ctx);
     }
 
     if (url.pathname !== "/api/analyze") {

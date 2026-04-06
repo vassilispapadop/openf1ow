@@ -11,5 +11,11 @@
   },
   "compatibility_flags": [
     "nodejs_compat"
+  ],
+  "r2_buckets": [
+    {
+      "binding": "F1_DATA",
+      "bucket_name": "openf1-data"
+    }
   ]
 }
