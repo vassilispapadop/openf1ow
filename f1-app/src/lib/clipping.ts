@@ -18,12 +18,11 @@ const MAX_SINGLE_DROP = 25; // max plausible per-zone drop — real clipping is 
 /**
  * Detect super clipping zones: contiguous regions where throttle=100%,
  * brake=off, speed >= 150 km/h, and speed is actively DROPPING
- * (not just flat — must have measurable deceleration).
+ * (>= 1 km/h per sample).
  *
- * The speedDrop reported is the sum of individual sample-to-sample
- * drops divided by the number of dropping samples, giving the
- * average per-sample loss. This avoids the issue of reporting the
- * entire peak-to-trough range as one giant number.
+ * Zone ends when throttle lifts, brake applied, or speed stops dropping.
+ * speedDrop = startSpeed - endSpeed (total speed lost across the zone).
+ * Capped at 2-25 km/h to filter noise and non-clipping deceleration.
  */
 export function detectClipping(telemetry: any[]): ClipEvent[] {
   if (telemetry.length < 3) return [];
