@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from "react";
+import { useMemo, useRef } from "react";
 import type { Driver, Pit } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { rowBg, podiumColor } from "../../lib/format";

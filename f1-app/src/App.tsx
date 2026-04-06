@@ -17,36 +17,7 @@ import PositionTab from "./components/driver/PositionTab";
 import WeatherTab from "./components/driver/WeatherTab";
 import RaceControlTab from "./components/driver/RaceControlTab";
 import ResultsTab from "./components/driver/ResultsTab";
-
-
-// OpenF1 location x,y are in ~decimeter-scale units; divide by 10 to approximate meters
-const LOC_TO_METERS = 10;
-
-function mergeDistance(cd, loc) {
-  const locDist = [];
-  let cum = 0;
-  for (let i = 0; i < loc.length; i++) {
-    if (i > 0) {
-      const dx = loc[i].x - loc[i - 1].x, dy = loc[i].y - loc[i - 1].y;
-      cum += Math.sqrt(dx * dx + dy * dy);
-    }
-    locDist.push({ t: new Date(loc[i].date).getTime(), distance: cum / LOC_TO_METERS });
-  }
-  if (!locDist.length) return cd.map(c => ({ ...c, distance: 0 }));
-  return cd.map(c => {
-    const t = new Date(c.date).getTime();
-    // Binary search for nearest timestamp
-    let lo = 0, hi = locDist.length - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (locDist[mid].t < t) lo = mid + 1; else hi = mid;
-    }
-    // Check lo and lo-1 for closest match
-    let best = lo;
-    if (lo > 0 && Math.abs(locDist[lo - 1].t - t) < Math.abs(locDist[lo].t - t)) best = lo - 1;
-    return { ...c, distance: locDist[best].distance };
-  });
-}
+import { mergeDistance } from "./lib/telemetry";
 
 // ============================================================================
 // APP COMPONENT

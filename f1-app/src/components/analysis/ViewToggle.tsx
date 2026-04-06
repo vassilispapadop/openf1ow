@@ -1,4 +1,3 @@
-import React from "react";
 import { F } from "../../lib/styles";
 
 function ViewToggle({ mode, onChange }: { mode: "list" | "graph"; onChange: (m: "list" | "graph") => void }) {

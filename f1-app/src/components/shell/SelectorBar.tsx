@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useMemo } from "react";
 import { F, M } from "../../lib/styles";
 
 interface SelectorBarProps {
@@ -12,7 +12,7 @@ interface SelectorBarProps {
 
 export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onSession }: SelectorBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const races = meetings.filter(m => !m.meeting_name?.toLowerCase().includes("testing"));
+  const races = useMemo(() => meetings.filter(m => !m.meeting_name?.toLowerCase().includes("testing")), [meetings]);
 
   // Auto-scroll selected race into view
   useEffect(() => {

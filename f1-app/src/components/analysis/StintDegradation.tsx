@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef } from "react";
 import type { Driver, Lap, Stint } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { ft3, ft1, podiumColor, rowBg } from "../../lib/format";

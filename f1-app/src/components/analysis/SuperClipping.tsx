@@ -9,6 +9,7 @@ import ScatterPlot from "./ScatterPlot";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
 import { detectClipping, THROTTLE_THRESHOLD, MIN_SPEED_DROP, type ClipEvent } from "../../lib/clipping";
+import { mergeDistance } from "../../lib/telemetry";
 
 interface DriverClipResult {
   driver: Driver;
@@ -21,27 +22,6 @@ interface DriverClipResult {
 }
 
 const DEFAULT_SAMPLE_LAPS = 5;
-
-function mergeDistance(cd: any[], loc: any[]): any[] {
-  const locDist: { t: number; distance: number }[] = [];
-  let cum = 0;
-  for (let i = 0; i < loc.length; i++) {
-    if (i > 0) {
-      const dx = loc[i].x - loc[i - 1].x, dy = loc[i].y - loc[i - 1].y;
-      cum += Math.sqrt(dx * dx + dy * dy);
-    }
-    locDist.push({ t: new Date(loc[i].date).getTime(), distance: cum / 10 });
-  }
-  if (!locDist.length) return cd.map(c => ({ ...c, distance: 0 }));
-  return cd.map(c => {
-    const t = new Date(c.date).getTime();
-    let lo = 0, hi = locDist.length - 1;
-    while (lo < hi) { const mid = (lo + hi) >> 1; locDist[mid].t < t ? lo = mid + 1 : hi = mid; }
-    let best = lo;
-    if (lo > 0 && Math.abs(locDist[lo - 1].t - t) < Math.abs(locDist[lo].t - t)) best = lo - 1;
-    return { ...c, distance: locDist[best].distance };
-  });
-}
 
 export default function SuperClipping({ sessionKey, allLaps, drivers }: {
   sessionKey: string;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M } from "../../lib/styles";
 import { initCanvas } from "../../lib/canvas";

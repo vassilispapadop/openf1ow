@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import { useRef } from "react";
 import { F, M } from "../../lib/styles";
 import { ft1, ft3, podiumColor } from "../../lib/format";
 import useTooltip from "./useTooltip";
