@@ -1,3 +1,5 @@
+import { M } from "./styles";
+
 /** Initialize a HiDPI canvas and return context + CSS dimensions */
 export function initCanvas(
   cv: HTMLCanvasElement,
@@ -18,7 +20,7 @@ export function initCanvas(
 /** Draw openf1ow.com watermark in bottom-right corner */
 export function drawWatermark(ctx: CanvasRenderingContext2D, W: number, H: number) {
   ctx.save();
-  ctx.font = "bold 9px 'JetBrains Mono','SF Mono','Cascadia Code','Consolas',monospace";
+  ctx.font = `bold 9px ${M}`;
   ctx.fillStyle = "rgba(255,255,255,0.08)";
   ctx.textAlign = "right";
   ctx.fillText("openf1ow.com", W - 8, H - 6);

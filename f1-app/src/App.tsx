@@ -20,6 +20,8 @@ import ResultsTab from "./components/driver/ResultsTab";
 import { mergeDistance } from "./lib/telemetry";
 import { detectClipping } from "./lib/clipping";
 
+const CMP_PALETTE = ["e10600", "06b6d4", "FFD700", "a855f7", "22c55e", "f43f5e", "f97316", "3b82f6", "ec4899", "84cc16"];
+
 // ============================================================================
 // APP COMPONENT
 // ============================================================================
@@ -228,14 +230,12 @@ export default function App() {
     const id = driverNumber + "-" + lap.lap_number;
     setComparisons(prev => {
       if (prev.find(c => c.id === id)) return prev;
-      const idx = prev.length;
-      const PALETTE = ["e10600", "06b6d4", "FFD700", "a855f7", "22c55e", "f43f5e", "f97316", "3b82f6", "ec4899", "84cc16"];
       return [...prev, {
         id,
         driverNumber,
         lapNumber: lap.lap_number,
         label: "#" + driverNumber + " " + (driverInfo.name_acronym || driverInfo.full_name) + " L" + lap.lap_number,
-        color: PALETTE[idx % PALETTE.length],
+        color: CMP_PALETTE[prev.length % CMP_PALETTE.length],
         data: [],
         loading: true,
       }];
@@ -252,9 +252,13 @@ export default function App() {
     setComparisons(prev => prev.filter(c => c.id !== id));
   }, []);
 
+  const onReset = useCallback(() => {
+    setMk(""); setSk(""); setDn(""); setSessions([]); setDrivers([]); setLaps([]); setCarData([]); setComparisons([]);
+  }, []);
+
   const drv = drivers.find(d => String(d.driver_number) === String(dn));
   const best = laps.reduce((b, l) => (l.lap_duration && (!b || l.lap_duration < b.lap_duration) ? l : b), null);
-  const cmpTraces = comparisons.filter(c => c.data.length > 0).map(c => ({ data: c.data, color: c.color, label: c.label }));
+  const cmpTraces = useMemo(() => comparisons.filter(c => c.data.length > 0).map(c => ({ data: c.data, color: c.color, label: c.label })), [comparisons]);
   const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data).map(e => ({ ...e, color: t.color }))), [cmpTraces]);
 
   return (
@@ -266,7 +270,7 @@ export default function App() {
       }} />
 
       {/* ====== HEADER BAR ====== */}
-      <Header meetings={meetings} mk={mk} sessions={sessions} sk={sk} onReset={() => { setMk(""); setSk(""); setDn(""); setSessions([]); setDrivers([]); setLaps([]); setCarData([]); setComparisons([]); }} />
+      <Header meetings={meetings} mk={mk} sessions={sessions} sk={sk} onReset={onReset} />
 
       {/* ====== MAIN CONTENT ====== */}
       <div style={{ padding: "20px 28px", position: "relative" as const, zIndex: 1 }}>

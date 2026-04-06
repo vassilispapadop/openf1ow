@@ -146,7 +146,7 @@ const btnStyle: React.CSSProperties = {
   padding: "6px 14px",
   fontSize: 10,
   fontWeight: 700,
-  fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif",
+  fontFamily: F,
   color: "#a855f7",
   cursor: "pointer",
   textTransform: "uppercase",
