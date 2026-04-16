@@ -56,16 +56,21 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
       .filter(d => d.count >= 5)
       .sort((a, b) => a.temp - b.temp);
 
-    // Per-driver adaptability: variance in pace at different temps
+    // Per-driver adaptability: variance in pace at different temps.
+    // Compute the global temperature bounds once — they don't depend on the driver.
+    const allTemps = weatherTimes.map(w => w.track_temperature);
+    const globalMinTemp = Math.min(...allTemps);
+    const globalMaxTemp = Math.max(...allTemps);
+    const globalRange = globalMaxTemp - globalMinTemp;
+    const tempRangeSufficient = globalRange >= 3;
+
     const driverAdaptability = drivers.map(d => {
+      if (!tempRangeSufficient) return null;
       const driverLaps = cleanLaps.filter(l => l.driver_number === d.driver_number);
       if (driverLaps.length < 10) return null;
       const tempGroups: Record<string, number[]> = { low: [], mid: [], high: [] };
-      const temps = weatherTimes.map(w => w.track_temperature);
-      const minTemp = Math.min(...temps);
-      const maxTemp = Math.max(...temps);
-      const range = maxTemp - minTemp;
-      if (range < 3) return null;
+      const minTemp = globalMinTemp;
+      const range = globalRange;
 
       driverLaps.forEach(l => {
         const w = findWeather(l.date_start);
@@ -312,7 +317,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
                 </tr>
               </thead>
               <tbody>
-                {analysis.driverAdaptability
+                {[...analysis.driverAdaptability]
                   .sort((a, b) => ((a.midAvg || a.lowAvg || a.highAvg) || 0) - ((b.midAvg || b.lowAvg || b.highAvg) || 0))
                   .map((da, i) => {
                     const hotCool = (da.highAvg && da.lowAvg) ? da.highAvg - da.lowAvg : null;

@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import type { Driver, Pit } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { rowBg, podiumColor } from "../../lib/format";
+import { median } from "../../lib/raceUtils";
 import ShareButton from "../ShareButton";
 
 function PitStopRanking({ pits, drivers }: {
@@ -13,6 +14,12 @@ function PitStopRanking({ pits, drivers }: {
     const drvMap: Record<number, Driver> = {};
     drivers.forEach(d => { drvMap[d.driver_number] = d; });
 
+    // Pick one duration field per dataset so team-vs-team comparisons are fair.
+    const hasPit = pits.some(p => p.pit_duration);
+    const hasLane = pits.some(p => p.lane_duration);
+    const pickDuration = (s: Pit): number | null =>
+      (hasPit ? s.pit_duration : hasLane ? s.lane_duration : s.stop_duration) ?? null;
+
     const byTeam: Record<string, { stops: Pit[]; color: string }> = {};
     pits.forEach(p => {
       const d = drvMap[p.driver_number];
@@ -23,22 +30,21 @@ function PitStopRanking({ pits, drivers }: {
     });
 
     return Object.entries(byTeam).map(([team, { stops, color }]) => {
-      const durations = stops
-        .map(s => s.pit_duration || s.lane_duration || s.stop_duration)
-        .filter(Boolean) as number[];
+      const durations = stops.map(pickDuration).filter((d): d is number => d != null && d > 0);
       if (!durations.length) return null;
-      const avg = durations.reduce((s, d) => s + d, 0) / durations.length;
+      // Median resists one outlier stop (wheel-gun failure) skewing a team's rating.
+      const med = median(durations);
       const best = Math.min(...durations);
       const worst = Math.max(...durations);
-      return { team, color, count: stops.length, avg, best, worst, stops };
+      return { team, color, count: durations.length, med, best, worst, stops };
     })
     .filter(Boolean)
-    .sort((a, b) => a!.avg - b!.avg) as NonNullable<typeof teamPits[number]>[];
+    .sort((a, b) => a!.med - b!.med) as NonNullable<typeof teamPits[number]>[];
   }, [pits, drivers]);
 
   if (!teamPits.length) return <div style={{ color: "#5a5a6e", fontSize: 13, padding: 20 }}>No pit stop data</div>;
 
-  const fastest = teamPits[0]?.avg || 0;
+  const fastest = teamPits[0]?.med || 0;
 
   return (
     <div>
@@ -50,7 +56,7 @@ function PitStopRanking({ pits, drivers }: {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr>
-              {["#", "Team", "Stops", "Avg", "Best", "Worst", "vs Best"].map((h, i) => (
+              {["#", "Team", "Stops", "Median", "Best", "Worst", "vs Best"].map((h, i) => (
                 <th key={i} style={{ ...sty.th, textAlign: i <= 1 ? "left" : "right" }}>{h}</th>
               ))}
             </tr>
@@ -69,7 +75,7 @@ function PitStopRanking({ pits, drivers }: {
                   fontWeight: 600,
                 }}>{t.team}</td>
                 <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#b0b0c0" }}>{t.count}</td>
-                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700 }}>{t.avg.toFixed(2)}s</td>
+                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700 }}>{t.med.toFixed(2)}s</td>
                 <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#22c55e" }}>{t.best.toFixed(2)}s</td>
                 <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#ef4444" }}>{t.worst.toFixed(2)}s</td>
                 <td style={{
@@ -77,7 +83,7 @@ function PitStopRanking({ pits, drivers }: {
                   color: i === 0 ? "#22c55e" : "#fbbf24",
                   fontWeight: 600,
                 }}>
-                  {i === 0 ? "—" : "+" + (t.avg - fastest).toFixed(2) + "s"}
+                  {i === 0 ? "—" : "+" + (t.med - fastest).toFixed(2) + "s"}
                 </td>
               </tr>
             ))}

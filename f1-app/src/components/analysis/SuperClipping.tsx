@@ -44,7 +44,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
     return m;
   }, [drivers]);
 
-  const analyze = useCallback(async () => {
+  const analyze = useCallback(async (cancelled: () => boolean) => {
     if (!sessionKey || !allLaps.length || !drivers.length) return;
     setLoading(true);
     setResults([]);
@@ -62,11 +62,13 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
     let done = 0;
 
     for (const dn of driverNums) {
+      if (cancelled()) return;
       const drv = drvMap[dn];
       if (!drv) continue;
       const cleanLaps = lapsByDriver[dn]
         .filter(l => isCleanLap(l, threshold))
-        .sort((a, b) => a.lap_duration - b.lap_duration)
+        // isCleanLap guarantees lap_duration > 0, so the non-null assertion is safe.
+        .sort((a, b) => a.lap_duration! - b.lap_duration!)
         .slice(0, sampleLaps);
 
       if (!cleanLaps.length) continue;
@@ -75,8 +77,9 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
       setProgress(`Fetching telemetry (${done}/${driverNums.length} drivers)...`);
 
       for (const lap of cleanLaps) {
+        if (cancelled()) return;
         try {
-          const end = new Date(new Date(lap.date_start).getTime() + lap.lap_duration * 1000 + 2000).toISOString();
+          const end = new Date(new Date(lap.date_start).getTime() + lap.lap_duration! * 1000 + 2000).toISOString();
           const q = `?session_key=${sessionKey}&driver_number=${dn}&date>=${lap.date_start}&date<=${end}`;
           const [cd, loc] = await Promise.all([
             api("/car_data" + q),
@@ -86,6 +89,8 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
         } catch { /* skip failed laps */ }
       }
     }
+
+    if (cancelled()) return;
 
     // Build DRS / Straight Mode zone map from all drivers' telemetry
     setProgress("Analyzing clipping zones...");
@@ -107,13 +112,20 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
       }
     }
 
+    if (cancelled()) return;
     allResults.sort((a, b) => b.worstDrop - a.worstDrop);
     setResults(allResults);
     setLoading(false);
     setProgress("");
   }, [sessionKey, allLaps, drivers, drvMap, threshold, sampleLaps]);
 
-  useEffect(() => { analyze(); }, [sessionKey, sampleLaps, allLaps, drivers]);
+  useEffect(() => {
+    // Guard against overlapping analyze() calls when deps change mid-flight
+    // (e.g., user toggles sampleLaps while the previous run is still fetching).
+    let stale = false;
+    analyze(() => stale);
+    return () => { stale = true; };
+  }, [analyze]);
 
   // Box plot data: clipping drops per driver across all analyzed laps
   const boxPlotRows = useMemo(() => {

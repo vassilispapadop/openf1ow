@@ -62,17 +62,20 @@ function StintDegradation({ allLaps, drivers, stints, viewMode }: {
           allStintLaps.push(l);
         }
       }
-      const stintLaps = allStintLaps.slice(2);
+      // Skip warm-up by tyre age, not clean-lap index — early dirty laps
+      // shouldn't push the usable window deeper into the stint.
+      const stintLaps = allStintLaps.filter(l => l.lap_number - st.lap_start >= 2);
       if (stintLaps.length < 3) return null;
 
-      const xs = stintLaps.map((_, i) => i);
+      // x = tyre age in laps (not sequential clean-lap index)
+      const xs = stintLaps.map(l => l.lap_number - st.lap_start);
       const fuelCorrectedYs = stintLaps.map(l =>
         l.lap_duration! + (l.lap_number - 1) * fuelCorrectionPerLap
       );
       const rawYs = stintLaps.map(l => l.lap_duration!);
       const degradation = Math.max(0, linearSlope(xs, fuelCorrectedYs));
       const rawDegradation = Math.max(0, linearSlope(xs, rawYs));
-      const avgPace = rawYs.reduce((s, y) => s + y, 0) / rawYs.length;
+      const avgPace = median(rawYs);
 
       return {
         driver: drv,
