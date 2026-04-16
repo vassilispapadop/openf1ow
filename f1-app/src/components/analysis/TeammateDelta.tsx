@@ -2,6 +2,7 @@ import { useMemo, useRef } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { ft3, rowBg } from "../../lib/format";
+import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils";
 import ShareButton from "../ShareButton";
 
 function TeammateDelta({ allLaps, drivers }: {
@@ -24,43 +25,52 @@ function TeammateDelta({ allLaps, drivers }: {
       lapMap[l.driver_number].push(l);
     });
 
+    // Clean-lap threshold (drops SC/traffic/pit laps) — keeps the comparison
+    // representative of racing pace, not situational laps.
+    const threshold = computeSlowLapThreshold(allLaps);
+
     return Object.entries(teams)
       .filter(([_, ds]) => ds.length >= 2)
       .map(([team, ds]) => {
         // Take first two drivers per team
         const [d1, d2] = ds.slice(0, 2);
-        const laps1 = (lapMap[d1.driver_number] || []).filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1);
-        const laps2 = (lapMap[d2.driver_number] || []).filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1);
+        const laps1 = (lapMap[d1.driver_number] || []).filter(l => isCleanLap(l, threshold));
+        const laps2 = (lapMap[d2.driver_number] || []).filter(l => isCleanLap(l, threshold));
 
-        // Find common laps (both drivers have data)
+        // Find common laps (both drivers have clean data on the same lap)
         const l1Map: Record<number, number> = {};
         laps1.forEach(l => { l1Map[l.lap_number] = l.lap_duration!; });
-        const commonLaps: { lap: number; t1: number; t2: number }[] = [];
+        const t1Common: number[] = [];
+        const t2Common: number[] = [];
+        const commonPairs: { lap: number; t1: number; t2: number }[] = [];
         laps2.forEach(l => {
           if (l1Map[l.lap_number]) {
-            commonLaps.push({ lap: l.lap_number, t1: l1Map[l.lap_number], t2: l.lap_duration! });
+            t1Common.push(l1Map[l.lap_number]);
+            t2Common.push(l.lap_duration!);
+            commonPairs.push({ lap: l.lap_number, t1: l1Map[l.lap_number], t2: l.lap_duration! });
           }
         });
 
-        if (!commonLaps.length) return null;
+        if (commonPairs.length < 3) return null;
 
-        const avg1 = commonLaps.reduce((s, c) => s + c.t1, 0) / commonLaps.length;
-        const avg2 = commonLaps.reduce((s, c) => s + c.t2, 0) / commonLaps.length;
+        // Median is robust to outlier laps (a single traffic lap doesn't flip
+        // the ranking the way a mean would).
+        const med1 = median(t1Common);
+        const med2 = median(t2Common);
 
-        // Determine who is faster by average, then show gap as positive
-        const d1Faster = avg1 <= avg2;
+        const d1Faster = med1 <= med2;
         const faster = d1Faster ? d1 : d2;
         const slower = d1Faster ? d2 : d1;
-        const fasterAvg = d1Faster ? avg1 : avg2;
-        const slowerAvg = d1Faster ? avg2 : avg1;
-        const gap = slowerAvg - fasterAvg; // always positive
+        const fasterMed = d1Faster ? med1 : med2;
+        const slowerMed = d1Faster ? med2 : med1;
+        const gap = slowerMed - fasterMed; // always non-negative
 
         return {
           team,
           faster, slower,
-          commonLaps: commonLaps.length,
+          commonLaps: commonPairs.length,
           gap,
-          fasterAvg, slowerAvg,
+          fasterAvg: fasterMed, slowerAvg: slowerMed,
           color: d1.team_colour || "666",
         };
       })

@@ -386,7 +386,7 @@ function DirtyAirAnalysis({ allLaps, drivers, stints }: {
             {analysis[0].driver.name_acronym}
           </div>
           <div style={{ fontSize: 11, fontFamily: M, color: "#b0b0c0" }}>
-            +{analysis[0].delta.toFixed(3)}s/lap
+            {analysis[0].delta >= 0 ? "+" : ""}{analysis[0].delta.toFixed(3)}s/lap
           </div>
         </div>
         <div style={{
@@ -398,7 +398,7 @@ function DirtyAirAnalysis({ allLaps, drivers, stints }: {
             {analysis[analysis.length - 1].driver.name_acronym}
           </div>
           <div style={{ fontSize: 11, fontFamily: M, color: "#b0b0c0" }}>
-            +{analysis[analysis.length - 1].delta.toFixed(3)}s/lap
+            {analysis[analysis.length - 1].delta >= 0 ? "+" : ""}{analysis[analysis.length - 1].delta.toFixed(3)}s/lap
           </div>
         </div>
         <div style={{
@@ -517,7 +517,7 @@ function DirtyAirAnalysis({ allLaps, drivers, stints }: {
                   ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700,
                   color: a.delta > 0.5 ? "#ef4444" : a.delta > 0.2 ? "#fbbf24" : "#22c55e",
                 }}>
-                  +{a.delta.toFixed(3)}s
+                  {a.delta >= 0 ? "+" : ""}{a.delta.toFixed(3)}s
                 </td>
               </tr>
             ))}

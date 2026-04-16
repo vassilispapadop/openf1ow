@@ -1,11 +1,6 @@
 import type { Driver, Lap, Stint, Pit, Weather } from "./types";
 import { median, linearSlope, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "./raceUtils";
-
-function ft(s: number): string {
-  const m = Math.floor(s / 60);
-  const r = (s % 60).toFixed(3);
-  return m > 0 ? m + ":" + r.padStart(6, "0") : r + "s";
-}
+import { ft3 as ft } from "./format";
 
 // --- Summary builders ---
 
@@ -20,7 +15,8 @@ function buildPaceRanking(allLaps: Lap[], drivers: Driver[], threshold: number) 
     const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold));
     if (clean.length < 3) return null;
     const times = clean.map(l => l.lap_duration!).sort((a, b) => a - b);
-    return { driver: d.name_acronym, team: d.team_name, medianPace: ft(median(times)), bestLap: ft(times[0]), cleanLaps: clean.length, _med: median(times) };
+    const med = median(times);
+    return { driver: d.name_acronym, team: d.team_name, medianPace: ft(med), bestLap: ft(times[0]), cleanLaps: clean.length, _med: med };
   }).filter(Boolean) as { driver: string; team: string; medianPace: string; bestLap: string; cleanLaps: number; _med: number }[];
 
   rankings.sort((a, b) => a._med - b._med);
@@ -86,10 +82,13 @@ function buildTireDegradation(allLaps: Lap[], drivers: Driver[], stints: Stint[]
       const l = lapMap[st.driver_number + "-" + ln];
       if (l && isCleanLap(l, threshold)) allStintLaps.push(l);
     }
-    const usable = allStintLaps.slice(2);
+    // Drop the first two laps of the stint (tyre warm-up) by tyre age,
+    // not by clean-lap index — otherwise dirty early laps push the cutoff deeper.
+    const usable = allStintLaps.filter(l => l.lap_number - st.lap_start >= 2);
     if (usable.length < 3) return null;
 
-    const xs = usable.map((_, i) => i);
+    // x = tyre age in laps so gaps from dirty/missing laps don't bias the slope.
+    const xs = usable.map(l => l.lap_number - st.lap_start);
     const fuelCorrectedYs = usable.map(l => l.lap_duration! + (l.lap_number - 1) * fuelCorrectionPerLap);
     const deg = Math.max(0, linearSlope(xs, fuelCorrectedYs));
 
@@ -158,31 +157,38 @@ function buildPitStops(pits: Pit[], drivers: Driver[]) {
   const drvMap: Record<number, Driver> = {};
   drivers.forEach(d => { drvMap[d.driver_number] = d; });
 
+  // Pick ONE duration field for the whole dataset so comparisons are apples-to-apples.
+  // Prefer pit_duration (full pit lane time), fall back only if no stops have it.
+  const hasPit = pits.some(p => p.pit_duration);
+  const hasLane = pits.some(p => p.lane_duration);
+  const pickDuration = (p: Pit): number | null =>
+    (hasPit ? p.pit_duration : hasLane ? p.lane_duration : p.stop_duration) ?? null;
+
   const byTeam: Record<string, number[]> = {};
   pits.forEach(p => {
     const d = drvMap[p.driver_number];
     if (!d) return;
     const team = d.team_name || "Unknown";
     if (!byTeam[team]) byTeam[team] = [];
-    const dur = p.pit_duration || p.lane_duration || p.stop_duration;
+    const dur = pickDuration(p);
     if (dur) byTeam[team].push(dur);
   });
 
   return Object.entries(byTeam)
     .map(([team, durations]) => {
       if (!durations.length) return null;
-      const avg = durations.reduce((s, d) => s + d, 0) / durations.length;
+      const med = median(durations);
       return {
         team,
         stops: durations.length,
-        avgDuration: avg.toFixed(2) + "s",
+        medianDuration: med.toFixed(2) + "s",
         bestDuration: Math.min(...durations).toFixed(2) + "s",
-        _avg: avg,
+        _med: med,
       };
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
-    .sort((a, b) => a._avg - b._avg)
-    .map(({ _avg, ...rest }) => rest);
+    .sort((a, b) => a._med - b._med)
+    .map(({ _med, ...rest }) => rest);
 }
 
 function buildDirtyAir(allLaps: Lap[], drivers: Driver[], _stints: Stint[], threshold: number) {
@@ -286,6 +292,90 @@ function buildResultsSummary(results: { position?: number; driver_number?: numbe
   });
 }
 
+function buildSectorAnalysis(allLaps: Lap[], drivers: Driver[], threshold: number) {
+  // Find global best sectors
+  const allS1: number[] = [], allS2: number[] = [], allS3: number[] = [];
+  allLaps.forEach(l => {
+    if (!isCleanLap(l, threshold)) return;
+    if (l.duration_sector_1 != null) allS1.push(l.duration_sector_1);
+    if (l.duration_sector_2 != null) allS2.push(l.duration_sector_2);
+    if (l.duration_sector_3 != null) allS3.push(l.duration_sector_3);
+  });
+  const bestS1 = allS1.length ? Math.min(...allS1) : 0;
+  const bestS2 = allS2.length ? Math.min(...allS2) : 0;
+  const bestS3 = allS3.length ? Math.min(...allS3) : 0;
+
+  // Per-driver sector breakdown
+  const byDriver: Record<number, { s1: number[]; s2: number[]; s3: number[] }> = {};
+  allLaps.forEach(l => {
+    if (!isCleanLap(l, threshold)) return;
+    if (l.duration_sector_1 == null || l.duration_sector_2 == null || l.duration_sector_3 == null) return;
+    if (!byDriver[l.driver_number]) byDriver[l.driver_number] = { s1: [], s2: [], s3: [] };
+    byDriver[l.driver_number].s1.push(l.duration_sector_1);
+    byDriver[l.driver_number].s2.push(l.duration_sector_2);
+    byDriver[l.driver_number].s3.push(l.duration_sector_3);
+  });
+
+  const entries = drivers.map(d => {
+    const dd = byDriver[d.driver_number];
+    if (!dd || dd.s1.length < 3) return null;
+    const medS1 = median(dd.s1), medS2 = median(dd.s2), medS3 = median(dd.s3);
+    const theoretical = Math.min(...dd.s1) + Math.min(...dd.s2) + Math.min(...dd.s3);
+    return {
+      driver: d.name_acronym,
+      team: d.team_name,
+      bestS1: ft(Math.min(...dd.s1)),
+      bestS2: ft(Math.min(...dd.s2)),
+      bestS3: ft(Math.min(...dd.s3)),
+      medianS1: ft(medS1),
+      medianS2: ft(medS2),
+      medianS3: ft(medS3),
+      deltaS1: "+" + (medS1 - bestS1).toFixed(3),
+      deltaS2: "+" + (medS2 - bestS2).toFixed(3),
+      deltaS3: "+" + (medS3 - bestS3).toFixed(3),
+      theoreticalBest: ft(theoretical),
+      _total: medS1 + medS2 + medS3,
+    };
+  }).filter((e): e is NonNullable<typeof e> => e !== null);
+
+  entries.sort((a, b) => a._total - b._total);
+  return {
+    sessionBestS1: ft(bestS1),
+    sessionBestS2: ft(bestS2),
+    sessionBestS3: ft(bestS3),
+    drivers: entries.map(({ _total, ...rest }) => rest),
+  };
+}
+
+function buildTopSpeeds(allLaps: Lap[], drivers: Driver[], threshold: number) {
+  const byDriver: Record<number, { st: number[]; i1: number[]; i2: number[] }> = {};
+  allLaps.forEach(l => {
+    if (!isCleanLap(l, threshold)) return;
+    if (!byDriver[l.driver_number]) byDriver[l.driver_number] = { st: [], i1: [], i2: [] };
+    if (l.st_speed != null && l.st_speed > 0) byDriver[l.driver_number].st.push(l.st_speed);
+    if (l.i1_speed != null && l.i1_speed > 0) byDriver[l.driver_number].i1.push(l.i1_speed);
+    if (l.i2_speed != null && l.i2_speed > 0) byDriver[l.driver_number].i2.push(l.i2_speed);
+  });
+
+  const entries = drivers.map(d => {
+    const dd = byDriver[d.driver_number];
+    if (!dd || dd.st.length < 3) return null;
+    const maxST = Math.max(...dd.st);
+    return {
+      driver: d.name_acronym,
+      team: d.team_name,
+      maxSpeedTrap: maxST,
+      medianSpeedTrap: Math.round(median(dd.st)),
+      maxI1: dd.i1.length ? Math.max(...dd.i1) : null,
+      maxI2: dd.i2.length ? Math.max(...dd.i2) : null,
+      _max: maxST,
+    };
+  }).filter((e): e is NonNullable<typeof e> => e !== null);
+
+  entries.sort((a, b) => b._max - a._max);
+  return entries.map(({ _max, ...rest }) => rest);
+}
+
 // --- Main export ---
 
 export interface RaceSummaryInput {
@@ -296,10 +386,11 @@ export interface RaceSummaryInput {
   weather: Weather[];
   raceControl: { flag?: string; category?: string; message?: string; date?: string }[];
   results: { position?: number; driver_number?: number; full_name?: string; time?: string; gap_to_leader?: string; status?: string }[];
+  clippingSummary?: { driver: string; team: string; clipCount: number; totalSpeedLost: number; worstDrop: number; avgSpeedDrop: number }[];
 }
 
 export function buildFullSummary(input: RaceSummaryInput) {
-  const { allLaps, drivers, stints, pits, weather, raceControl, results } = input;
+  const { allLaps, drivers, stints, pits, weather, raceControl, results, clippingSummary } = input;
   const threshold = computeSlowLapThreshold(allLaps);
 
   return {
@@ -314,6 +405,9 @@ export function buildFullSummary(input: RaceSummaryInput) {
     teammateGaps: buildTeammateGaps(allLaps, drivers, threshold),
     pitStops: buildPitStops(pits, drivers),
     dirtyAir: buildDirtyAir(allLaps, drivers, stints, threshold),
+    sectorAnalysis: buildSectorAnalysis(allLaps, drivers, threshold),
+    topSpeeds: buildTopSpeeds(allLaps, drivers, threshold),
+    ...(clippingSummary?.length ? { clippingSummary } : {}),
     weather: buildWeatherSummary(weather),
     raceControl: buildRaceControlSummary(raceControl),
     results: buildResultsSummary(results, drivers),
