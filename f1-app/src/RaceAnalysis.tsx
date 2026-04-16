@@ -26,6 +26,7 @@ import FuelVisualization from "./components/analysis/FuelVisualization";
 import WeatherCorrelation from "./components/analysis/WeatherCorrelation";
 import DirtyAirAnalysis from "./components/analysis/DirtyAirAnalysis";
 import SuperClipping from "./components/analysis/SuperClipping";
+import HeadlineInsights from "./components/analysis/HeadlineInsights";
 
 export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [], subTab, onSubTabChange }: {
   sessionKey: string;
@@ -177,17 +178,30 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
 
   return (
     <div>
-      {/* Summary stats */}
-      <div style={{ ...sty.card, display: "flex", alignItems: "center", justifyContent: "space-around", padding: "14px 18px" }}>
+      {/* Headline insights — narrative cards that hook casual visitors */}
+      <HeadlineInsights
+        allLaps={allLaps}
+        drivers={drivers}
+        stints={allStints}
+        results={results}
+        onOpenTab={onSubTabChange}
+      />
+
+      {/* Session stats + export */}
+      <div style={{
+        display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" as const,
+        padding: "10px 4px", marginBottom: 12,
+        borderBottom: "1px solid rgba(255,255,255,0.04)",
+      }}>
         {([
           ["Drivers", driverCount],
-          ["Total Laps", allLaps.length],
+          ["Laps", allLaps.length],
           ["Pit Stops", allPits.length],
           ["Stints", allStints.length],
         ] as const).map(([label, val]) => (
-          <div key={label} style={{ textAlign: "center" }}>
-            <div style={sty.statLabel}>{label}</div>
-            <div style={{ fontSize: 18, fontWeight: 700, fontFamily: M }}>{val}</div>
+          <div key={label} style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+            <span style={{ fontSize: 13, fontWeight: 700, fontFamily: M, color: "#e8e8ec" }}>{val}</span>
+            <span style={{ ...sty.statLabel, marginBottom: 0 }}>{label}</span>
           </div>
         ))}
         <button onClick={() => {
@@ -203,12 +217,13 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           a.click();
           URL.revokeObjectURL(url);
         }} style={{
-          background: "rgba(255,255,255,0.06)",
-          border: "1px solid rgba(255,255,255,0.08)",
-          color: "#b0b0c0",
+          marginLeft: "auto" as const,
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          color: "#5a5a6e",
           cursor: "pointer",
           borderRadius: 6,
-          padding: "6px 12px",
+          padding: "5px 10px",
           fontSize: 10,
           fontWeight: 600,
           fontFamily: F,
