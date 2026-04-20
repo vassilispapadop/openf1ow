@@ -12,7 +12,7 @@ export default function HomePage() {
   useEffect(() => {
     if (loading || meetings.length === 0 || mk) return;
     const now = new Date();
-    const past = meetings.filter((m: any) => m.date_start && new Date(m.date_start) < now);
+    const past = meetings.filter(m => m.date_start && new Date(m.date_start) < now);
     const latest = past.length ? past[past.length - 1] : meetings[0];
     navigate(paths.meeting(year, String(latest.meeting_key)), { replace: true });
   }, [meetings, mk, loading, year, navigate]);
@@ -20,7 +20,7 @@ export default function HomePage() {
   // Auto-pick Race session once a meeting is selected
   useEffect(() => {
     if (loading || sessions.length === 0 || sk || !mk) return;
-    const race = sessions.find((s: any) => s.session_name === "Race") || sessions[sessions.length - 1];
+    const race = sessions.find(s => s.session_name === "Race") || sessions[sessions.length - 1];
     navigate(paths.analysis(year, mk, String(race.session_key)), { replace: true });
   }, [sessions, sk, mk, loading, year, navigate]);
 

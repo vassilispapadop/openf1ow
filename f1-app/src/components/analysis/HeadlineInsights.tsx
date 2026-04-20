@@ -1,14 +1,14 @@
 import { useMemo, type ReactNode } from "react";
 import type { Driver, Lap, Stint } from "../../lib/types";
+import type { ViewKey } from "../../lib/constants";
 import { F, M, C } from "../../lib/styles";
-import { ft3 } from "../../lib/format";
+import { ft3, podiumColor } from "../../lib/format";
 import {
   computeSlowLapThreshold,
   isCleanLap,
   median,
-  linearSlope,
-  FUEL_TOTAL_KG,
-  FUEL_SEC_PER_KG,
+  fuelCorrPerLap,
+  stintDegradation,
 } from "../../lib/raceUtils";
 
 interface RaceResult {
@@ -53,25 +53,17 @@ function computeInsights(
   const fastestLap = fastestLapDrv ? { driver: fastestLapDrv, time: bestLap } : null;
 
   const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
-  const fuelCorrPerLap = (FUEL_TOTAL_KG / totalRaceLaps) * FUEL_SEC_PER_KG;
+  const fuelCorr = fuelCorrPerLap(totalRaceLaps);
   const lapMap: Record<string, Lap> = {};
   allLaps.forEach(l => { lapMap[l.driver_number + "-" + l.lap_number] = l; });
 
   const degAcc: Record<number, { weighted: number; laps: number }> = {};
   for (const st of stints) {
-    const clean: Lap[] = [];
-    for (let ln = st.lap_start; ln <= st.lap_end; ln++) {
-      const l = lapMap[st.driver_number + "-" + ln];
-      if (l && isCleanLap(l, threshold)) clean.push(l);
-    }
-    const usable = clean.filter(l => l.lap_number - st.lap_start >= 2);
-    if (usable.length < 3) continue;
-    const xs = usable.map(l => l.lap_number - st.lap_start);
-    const ys = usable.map(l => l.lap_duration! + (l.lap_number - 1) * fuelCorrPerLap);
-    const deg = Math.max(0, linearSlope(xs, ys));
-    const acc = degAcc[st.driver_number] || (degAcc[st.driver_number] = { weighted: 0, laps: 0 });
-    acc.weighted += deg * usable.length;
-    acc.laps += usable.length;
+    const res = stintDegradation(st, lapMap, threshold, fuelCorr);
+    if (!res) continue;
+    const acc = degAcc[st.driver_number] ||= { weighted: 0, laps: 0 };
+    acc.weighted += res.deg * res.usable.length;
+    acc.laps += res.usable.length;
   }
   let tyreMasterDn = -1;
   let tyreMasterDeg = Infinity;
@@ -113,18 +105,18 @@ function computeInsights(
   return { winner, fastestLap, tyreMaster, overperformer };
 }
 
-function Card({ label, accent, driver, primary, secondary, onClick }: {
+function Card({ label, accent, teamColor, primary, secondary, onClick }: {
   label: string;
   accent: string;
-  driver: Driver;
+  teamColor: string;
   primary: string;
   secondary: ReactNode;
   onClick?: () => void;
 }) {
-  const teamColor = "#" + (driver.team_colour || "666");
   return (
     <button
       onClick={onClick}
+      className="hover-border-strong"
       style={{
         flex: "1 1 200px",
         minWidth: 200,
@@ -136,16 +128,6 @@ function Card({ label, accent, driver, primary, secondary, onClick }: {
         cursor: onClick ? "pointer" : "default",
         color: "inherit",
         fontFamily: F,
-        transition: "border-color 0.15s ease, transform 0.15s ease",
-      }}
-      onMouseEnter={e => {
-        if (!onClick) return;
-        e.currentTarget.style.borderColor = C.borderStrong;
-        e.currentTarget.style.transform = "translateY(-1px)";
-      }}
-      onMouseLeave={e => {
-        e.currentTarget.style.borderColor = C.border;
-        e.currentTarget.style.transform = "";
       }}
     >
       <div style={{
@@ -157,10 +139,7 @@ function Card({ label, accent, driver, primary, secondary, onClick }: {
         color: C.textMute,
         marginBottom: 10,
       }}>
-        <span style={{
-          width: 6, height: 6, borderRadius: "50%",
-          background: accent,
-        }} />
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent }} />
         <span>{label}</span>
       </div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
@@ -173,7 +152,7 @@ function Card({ label, accent, driver, primary, secondary, onClick }: {
         }}>{primary}</span>
       </div>
       <div style={{
-        fontSize: 11.5, fontFamily: M, color: C.textDim, fontWeight: 500,
+        fontSize: 12, fontFamily: M, color: C.textDim, fontWeight: 500,
         paddingLeft: 11,
       }}>{secondary}</div>
     </button>
@@ -187,7 +166,7 @@ export default function HeadlineInsights({
   drivers: Driver[];
   stints: Stint[];
   results: RaceResult[];
-  onOpenTab?: (tab: string) => void;
+  onOpenTab?: (tab: ViewKey) => void;
 }) {
   const insights = useMemo(
     () => computeInsights(allLaps, drivers, stints, results),
@@ -200,8 +179,8 @@ export default function HeadlineInsights({
       <Card
         key="winner"
         label="Winner"
-        accent="#FFD700"
-        driver={insights.winner.driver}
+        accent={podiumColor(0)}
+        teamColor={"#" + (insights.winner.driver.team_colour || "666")}
         primary={insights.winner.driver.name_acronym}
         secondary={insights.winner.gap ? `Margin ${insights.winner.gap}` : "Race winner"}
         onClick={onOpenTab && (() => onOpenTab("pace"))}
@@ -213,8 +192,8 @@ export default function HeadlineInsights({
       <Card
         key="fastest"
         label="Fastest lap"
-        accent="#a78bfa"
-        driver={insights.fastestLap.driver}
+        accent={C.violet}
+        teamColor={"#" + (insights.fastestLap.driver.team_colour || "666")}
         primary={insights.fastestLap.driver.name_acronym}
         secondary={ft3(insights.fastestLap.time)}
         onClick={onOpenTab && (() => onOpenTab("pace"))}
@@ -226,8 +205,8 @@ export default function HeadlineInsights({
       <Card
         key="tyre"
         label="Tyre master"
-        accent="#2ed573"
-        driver={insights.tyreMaster.driver}
+        accent={C.pos}
+        teamColor={"#" + (insights.tyreMaster.driver.team_colour || "666")}
         primary={insights.tyreMaster.driver.name_acronym}
         secondary={`+${(insights.tyreMaster.degPerLap * 1000).toFixed(0)} ms/lap deg`}
         onClick={onOpenTab && (() => onOpenTab("strategy"))}
@@ -240,8 +219,8 @@ export default function HeadlineInsights({
       <Card
         key="overperformer"
         label="Overperformer"
-        accent="#ffb547"
-        driver={insights.overperformer.driver}
+        accent={C.warn}
+        teamColor={"#" + (insights.overperformer.driver.team_colour || "666")}
         primary={insights.overperformer.driver.name_acronym}
         secondary={`P${finishPos} from P${paceRank} pace (+${delta})`}
         onClick={onOpenTab && (() => onOpenTab("pace"))}

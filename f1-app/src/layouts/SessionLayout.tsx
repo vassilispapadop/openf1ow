@@ -8,6 +8,7 @@ import Footer from "../components/shell/Footer";
 import Spinner from "../components/Spinner";
 import { F, C, sty } from "../lib/styles";
 import { paths } from "../lib/constants";
+import Pill from "../components/Pill";
 
 function LayoutInner() {
   const { year, meetings, sessions, drivers, mk, sk, loading, error, clearError, retry } = useSession();
@@ -77,36 +78,23 @@ function LayoutInner() {
             padding: 3,
             border: "1px solid " + C.border,
           }}>
-            {[
-              { label: "Race analysis", active: !isDriver, onClick: () => navigate(paths.analysis(year, mk, sk)) },
-              {
-                label: "Driver view",
-                active: isDriver,
-                onClick: () => {
-                  if (dn) navigate(paths.driver(year, mk, sk, dn));
-                  else if (drivers.length > 0) navigate(paths.driver(year, mk, sk, String(drivers[0].driver_number)));
-                },
-              },
-            ].map(btn => (
-              <button
-                key={btn.label}
-                onClick={btn.onClick}
-                style={{
-                  padding: "7px 18px",
-                  border: "none",
-                  borderRadius: 999,
-                  background: btn.active ? C.text : "transparent",
-                  color: btn.active ? C.bg : C.textDim,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: F,
-                  transition: "background 0.2s ease, color 0.2s ease",
-                  outline: "none",
-                }}>
-                {btn.label}
-              </button>
-            ))}
+            <Pill
+              size="lg"
+              variant="inverted"
+              active={!isDriver}
+              onClick={() => navigate(paths.analysis(year, mk, sk))}>
+              Race analysis
+            </Pill>
+            <Pill
+              size="lg"
+              variant="inverted"
+              active={isDriver}
+              onClick={() => {
+                if (dn) navigate(paths.driver(year, mk, sk, dn));
+                else if (drivers.length > 0) navigate(paths.driver(year, mk, sk, String(drivers[0].driver_number)));
+              }}>
+              Driver view
+            </Pill>
           </div>
         )}
 

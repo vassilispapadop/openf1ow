@@ -1,4 +1,5 @@
 import { F, C } from "../../lib/styles";
+import Pill from "../Pill";
 
 interface HeaderProps {
   meetings: any[];
@@ -64,27 +65,16 @@ export default function Header({ meetings, mk, sessions, sk, onReset }: HeaderPr
         )}
       </div>
 
-      <a
+      <Pill
+        as="a"
+        size="sm"
         href="https://openf1.org"
         target="_blank"
         rel="noreferrer"
         className="hide-mobile"
-        style={{
-          fontSize: 11,
-          color: C.textMute,
-          textDecoration: "none",
-          fontFamily: F,
-          fontWeight: 500,
-          padding: "4px 10px",
-          border: "1px solid " + C.border,
-          borderRadius: 999,
-          transition: "color 0.2s ease, border-color 0.2s ease",
-        }}
-        onMouseEnter={e => { e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.borderStrong; }}
-        onMouseLeave={e => { e.currentTarget.style.color = C.textMute; e.currentTarget.style.borderColor = C.border; }}
       >
         data · openf1.org
-      </a>
+      </Pill>
     </header>
   );
 }

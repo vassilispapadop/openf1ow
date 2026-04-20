@@ -22,11 +22,22 @@ export const DRIVER_COLORS = [
 ];
 
 export const DEFAULT_YEAR = 2026;
-export const DEFAULT_ANALYSIS_TAB = "overview";
 export const DEFAULT_DRIVER_TAB = "laps";
 
+export const ANALYSIS_VIEWS = [
+  { key: "overview", label: "Overview" },
+  { key: "pace", label: "Pace" },
+  { key: "strategy", label: "Strategy" },
+  { key: "battles", label: "Battles" },
+  { key: "track", label: "Track" },
+] as const;
+
+export type ViewKey = typeof ANALYSIS_VIEWS[number]["key"];
+
+export const DEFAULT_ANALYSIS_TAB: ViewKey = ANALYSIS_VIEWS[0].key;
+
 // Legacy tab slug → new view. Old URLs keep working.
-export const TAB_REDIRECT: Record<string, string> = {
+export const TAB_REDIRECT: Record<string, ViewKey> = {
   ai: "overview",
   commentary: "overview",
   sectors: "pace",

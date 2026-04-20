@@ -3,12 +3,16 @@ import AIAnalysis from "./components/AIAnalysis";
 import RaceReplay from "./components/RaceReplay";
 import Commentary from "./components/Commentary";
 import type { Driver, Lap, Stint, Pit, Weather } from "./lib/types";
-import { median, linearSlope, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "./lib/raceUtils";
+import {
+  median, computeSlowLapThreshold, isCleanLap,
+  DIRTY_AIR_THRESHOLD, fuelCorrPerLap, stintDegradation,
+} from "./lib/raceUtils";
 import { F, M, C, sty } from "./lib/styles";
 import { buildFullSummary } from "./lib/buildAnalysisSummary";
 import { api } from "./lib/api";
 import { ft3, podiumColor } from "./lib/format";
-import { TC } from "./lib/constants";
+import { TC, ANALYSIS_VIEWS, type ViewKey } from "./lib/constants";
+import Pill from "./components/Pill";
 import ScatterPlot from "./components/analysis/ScatterPlot";
 import type { ScatterPoint } from "./components/analysis/useTooltip";
 import SubTab from "./components/analysis/SubTab";
@@ -26,15 +30,6 @@ import DirtyAirAnalysis from "./components/analysis/DirtyAirAnalysis";
 import SuperClipping from "./components/analysis/SuperClipping";
 import HeadlineInsights from "./components/analysis/HeadlineInsights";
 
-const VIEWS = [
-  { key: "overview", label: "Overview" },
-  { key: "pace", label: "Pace" },
-  { key: "strategy", label: "Strategy" },
-  { key: "battles", label: "Battles" },
-  { key: "track", label: "Track" },
-] as const;
-
-// Section wrapper — replaces the repetitive ...sty.card + sectionHead + paragraph pattern.
 function Section({ title, hint, actions, children }: {
   title: string;
   hint?: string;
@@ -50,12 +45,12 @@ function Section({ title, hint, actions, children }: {
         gap: 12,
         marginBottom: hint ? 6 : 14,
       }}>
-        <h3 style={{ ...sty.sectionHead, margin: 0 }}>{title}</h3>
+        <h3 style={sty.sectionHead}>{title}</h3>
         {actions}
       </header>
       {hint && (
         <p style={{
-          fontSize: 12.5,
+          fontSize: 12,
           color: C.textMute,
           margin: "0 0 14px",
           lineHeight: 1.55,
@@ -73,8 +68,8 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   weather: Weather[];
   raceControl?: any[];
   results?: any[];
-  subTab: string;
-  onSubTabChange: (tab: string) => void;
+  subTab: ViewKey;
+  onSubTabChange: (tab: ViewKey) => void;
 }) {
   const [allLaps, setAllLaps] = useState<Lap[]>([]);
   const [allStints, setAllStints] = useState<Stint[]>([]);
@@ -94,7 +89,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
     setError("");
   }, [sessionKey]);
 
-  // Shared derived data
   const sharedThreshold = useMemo(() => computeSlowLapThreshold(allLaps), [allLaps]);
   const sharedLapMap = useMemo(() => {
     const m: Record<number, Lap[]> = {};
@@ -124,6 +118,70 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
     });
     return m;
   }, [drivers]);
+
+  // Clean-lap durations per driver. Feeds pace consistency + best-vs-median.
+  const cleanByDriver = useMemo(() => {
+    const m: Record<number, number[]> = {};
+    allLaps.forEach(l => {
+      if (!isCleanLap(l, sharedThreshold)) return;
+      (m[l.driver_number] ||= []).push(l.lap_duration!);
+    });
+    return m;
+  }, [allLaps, sharedThreshold]);
+
+  // Per-stint fuel-corrected degradation. Feeds compound-summary + stint-vs-deg.
+  const stintStats = useMemo(() => {
+    const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
+    const fuelCorr = fuelCorrPerLap(totalRaceLaps);
+    return allStints.map(st => {
+      const res = stintDegradation(st, sharedLapLookup, sharedThreshold, fuelCorr);
+      return res ? { stint: st, deg: res.deg, usable: res.usable } : null;
+    }).filter(Boolean) as { stint: Stint; deg: number; usable: Lap[] }[];
+  }, [allLaps, allStints, sharedLapLookup, sharedThreshold]);
+
+  // Single pass over lap-order buckets: clean/dirty counts + lap times per driver.
+  // Feeds traffic interaction summary + gap-vs-loss scatter.
+  const trafficStats = useMemo(() => {
+    const stats: Record<number, { clean: number; dirty: number; gaps: number[]; cleanTimes: number[]; dirtyTimes: number[] }> = {};
+    for (const [lapNumStr, entries] of Object.entries(sharedLapsByNumber)) {
+      const lapNum = Number(lapNumStr);
+      const sorted = [...entries].sort((a, b) => a.ts - b.ts);
+      for (let i = 0; i < sorted.length; i++) {
+        const lap = sharedLapLookup[sorted[i].dn + "-" + lapNum];
+        if (!lap || !isCleanLap(lap, sharedThreshold)) continue;
+        const gap = i > 0 ? (sorted[i].ts - sorted[i - 1].ts) / 1000 : 999;
+        const dd = stats[sorted[i].dn] ||= { clean: 0, dirty: 0, gaps: [], cleanTimes: [], dirtyTimes: [] };
+        if (gap < DIRTY_AIR_THRESHOLD) {
+          dd.dirty++;
+          dd.gaps.push(gap);
+          dd.dirtyTimes.push(lap.lap_duration!);
+        } else {
+          dd.clean++;
+          dd.cleanTimes.push(lap.lap_duration!);
+        }
+      }
+    }
+    return stats;
+  }, [sharedLapsByNumber, sharedLapLookup, sharedThreshold]);
+
+  // Team pit stops keyed by team name, ordered by first-stop lap. Feeds pit-timeline.
+  const teamPitStops = useMemo(() => {
+    const drvMap: Record<number, Driver> = {};
+    drivers.forEach(d => { drvMap[d.driver_number] = d; });
+    const byTeam: Record<string, { color: string; stops: { driver: string; lap: number; dur: number | null }[] }> = {};
+    allPits.forEach(p => {
+      const d = drvMap[p.driver_number];
+      if (!d) return;
+      const t = d.team_name || "Unknown";
+      (byTeam[t] ||= { color: d.team_colour || "666", stops: [] })
+        .stops.push({ driver: d.name_acronym, lap: p.lap_number, dur: p.pit_duration || p.lane_duration || p.stop_duration });
+    });
+    return Object.entries(byTeam).sort((a, b) => {
+      const aFirst = Math.min(...a[1].stops.map(s => s.lap));
+      const bFirst = Math.min(...b[1].stops.map(s => s.lap));
+      return aFirst - bFirst;
+    });
+  }, [drivers, allPits]);
 
   const fetchAll = useCallback(async () => {
     if (!sessionKey || !drivers.length) return;
@@ -218,7 +276,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
 
   return (
     <div>
-      {/* Hero insights — always visible */}
       <HeadlineInsights
         allLaps={allLaps}
         drivers={drivers}
@@ -227,7 +284,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         onOpenTab={onSubTabChange}
       />
 
-      {/* View switcher + export */}
       <div style={{
         display: "flex",
         alignItems: "center",
@@ -237,31 +293,17 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         flexWrap: "wrap",
       }}>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {VIEWS.map(v => (
+          {ANALYSIS_VIEWS.map(v => (
             <SubTab key={v.key} active={subTab === v.key} onClick={() => onSubTabChange(v.key)}>
               {v.label}
             </SubTab>
           ))}
         </div>
-        <button onClick={exportJson} style={{
-          background: "transparent",
-          border: "1px solid " + C.border,
-          color: C.textDim,
-          cursor: "pointer",
-          borderRadius: 8,
-          padding: "6px 12px",
-          fontSize: 11,
-          fontWeight: 600,
-          fontFamily: F,
-        }}
-        onMouseEnter={e => { e.currentTarget.style.color = C.text; e.currentTarget.style.borderColor = C.borderStrong; }}
-        onMouseLeave={e => { e.currentTarget.style.color = C.textDim; e.currentTarget.style.borderColor = C.border; }}
-        title="Download race analysis data as JSON">
+        <Pill size="sm" onClick={exportJson} title="Download race analysis data as JSON">
           Export JSON
-        </button>
+        </Pill>
       </div>
 
-      {/* ============================ OVERVIEW ============================ */}
       {subTab === "overview" && (
         <>
           <AIAnalysis
@@ -284,7 +326,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         </>
       )}
 
-      {/* ============================ PACE ============================ */}
       {subTab === "pace" && (
         <>
           <Section
@@ -301,31 +342,35 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           >
             {(() => {
               const rows = drivers.map(d => {
-                const clean = (sharedLapMap[d.driver_number] || []).filter(l => isCleanLap(l, sharedThreshold)).map(l => l.lap_duration!);
+                const clean = cleanByDriver[d.driver_number] || [];
                 if (clean.length < 5) return null;
                 const mean = clean.reduce((s, t) => s + t, 0) / clean.length;
                 const stdDev = Math.sqrt(clean.reduce((s, t) => s + (t - mean) ** 2, 0) / clean.length);
                 const totalLaps = (sharedLapMap[d.driver_number] || []).length;
-                const cleanPct = (clean.length / totalLaps * 100);
-                return { driver: d, color: d.team_colour || "666", stdDev, cleanLaps: clean.length, totalLaps, cleanPct };
-              }).filter(Boolean) as any[];
+                const cleanPct = (clean.length / totalLaps) * 100;
+                return { driver: d, color: d.team_colour || "666", stdDev, cleanPct };
+              }).filter((r): r is NonNullable<typeof r> => r !== null);
               rows.sort((a, b) => a.stdDev - b.stdDev);
               if (!rows.length) return null;
               const maxStd = Math.max(...rows.map(r => r.stdDev));
               return (
                 <div>
-                  {rows.map((r, i) => (
-                    <div key={r.driver.driver_number} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <div style={{ width: 22, textAlign: "right", fontWeight: 700, fontSize: 11, color: podiumColor(i), fontFamily: F }}>{i + 1}</div>
-                      <div style={{ width: 44, fontWeight: 600, fontSize: 12, fontFamily: F, color: "#" + r.color }}>{r.driver.name_acronym}</div>
-                      <div style={{ flex: 1, position: "relative", height: 16 }}>
-                        <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 16, borderRadius: 3, background: "rgba(255,255,255,0.03)" }} />
-                        <div style={{ position: "absolute", top: 0, left: 0, width: Math.max(2, (r.stdDev / maxStd) * 100) + "%", height: 16, borderRadius: 3, background: r.stdDev < 0.3 ? "rgba(46,213,115,0.35)" : r.stdDev < 0.6 ? "rgba(255,181,71,0.35)" : "rgba(255,84,114,0.35)" }} />
+                  {rows.map((r, i) => {
+                    const barColor = r.stdDev < 0.3 ? C.posDim : r.stdDev < 0.6 ? C.warnDim : C.negBar;
+                    const textColor = r.stdDev < 0.3 ? C.pos : r.stdDev < 0.6 ? C.warn : C.neg;
+                    return (
+                      <div key={r.driver.driver_number} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <div style={{ width: 22, textAlign: "right", fontWeight: 700, fontSize: 11, color: podiumColor(i), fontFamily: F }}>{i + 1}</div>
+                        <div style={{ width: 44, fontWeight: 600, fontSize: 12, fontFamily: F, color: "#" + r.color }}>{r.driver.name_acronym}</div>
+                        <div style={{ flex: 1, position: "relative", height: 16 }}>
+                          <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 16, borderRadius: 3, background: "rgba(255,255,255,0.03)" }} />
+                          <div style={{ position: "absolute", top: 0, left: 0, width: Math.max(2, (r.stdDev / maxStd) * 100) + "%", height: 16, borderRadius: 3, background: barColor }} />
+                        </div>
+                        <div style={{ fontFamily: M, fontSize: 11, fontWeight: 600, width: 48, textAlign: "right", color: textColor }}>{r.stdDev.toFixed(3)}s</div>
+                        <div style={{ fontFamily: M, fontSize: 10, width: 52, textAlign: "right", color: C.textMute }}>{r.cleanPct.toFixed(0)}% clean</div>
                       </div>
-                      <div style={{ fontFamily: M, fontSize: 11, fontWeight: 600, width: 48, textAlign: "right", color: r.stdDev < 0.3 ? C.pos : r.stdDev < 0.6 ? C.warn : C.neg }}>{r.stdDev.toFixed(3)}s</div>
-                      <div style={{ fontFamily: M, fontSize: 10, width: 52, textAlign: "right", color: C.textMute }}>{r.cleanPct.toFixed(0)}% clean</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               );
             })()}
@@ -338,7 +383,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             {(() => {
               const pts: ScatterPoint[] = [];
               drivers.forEach(d => {
-                const clean = (sharedLapMap[d.driver_number] || []).filter(l => isCleanLap(l, sharedThreshold)).map(l => l.lap_duration!);
+                const clean = cleanByDriver[d.driver_number] || [];
                 if (clean.length < 3) return;
                 pts.push({ x: Math.min(...clean), y: median(clean), color: d.team_colour || "666", label: d.name_acronym });
               });
@@ -362,7 +407,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         </>
       )}
 
-      {/* ============================ STRATEGY ============================ */}
       {subTab === "strategy" && (
         <>
           <Section
@@ -378,27 +422,14 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             hint="Average degradation and stint length by tire compound across all drivers — which compound was fastest and which lasted longest."
           >
             {(() => {
-              const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
-              const fuelCorr = (FUEL_TOTAL_KG / totalRaceLaps) * FUEL_SEC_PER_KG;
               const compoundStats: Record<string, { degs: number[]; paces: number[]; stintLens: number[]; count: number }> = {};
-              allStints.forEach(st => {
-                const laps: Lap[] = [];
-                for (let ln = st.lap_start; ln <= st.lap_end; ln++) {
-                  const l = sharedLapLookup[st.driver_number + "-" + ln];
-                  if (l && isCleanLap(l, sharedThreshold)) laps.push(l);
-                }
-                const usable = laps.slice(2);
-                if (usable.length < 3) return;
-                const xs = usable.map((_, i) => i);
-                const ys = usable.map(l => l.lap_duration! + (l.lap_number - 1) * fuelCorr);
-                const deg = Math.max(0, linearSlope(xs, ys));
-                const avgPace = median(usable.map(l => l.lap_duration!));
+              stintStats.forEach(({ stint: st, deg, usable }) => {
                 const c = st.compound;
-                if (!compoundStats[c]) compoundStats[c] = { degs: [], paces: [], stintLens: [], count: 0 };
-                compoundStats[c].degs.push(deg);
-                compoundStats[c].paces.push(avgPace);
-                compoundStats[c].stintLens.push(st.lap_end - st.lap_start + 1);
-                compoundStats[c].count++;
+                const entry = compoundStats[c] ||= { degs: [], paces: [], stintLens: [], count: 0 };
+                entry.degs.push(deg);
+                entry.paces.push(median(usable.map(l => l.lap_duration!)));
+                entry.stintLens.push(st.lap_end - st.lap_start + 1);
+                entry.count++;
               });
               const order = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"];
               const compounds = Object.entries(compoundStats).sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
@@ -441,25 +472,14 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             hint="Do longer stints suffer more degradation? Each dot is one stint. Colored by compound."
           >
             {(() => {
-              const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
-              const fuelCorr = (FUEL_TOTAL_KG / totalRaceLaps) * FUEL_SEC_PER_KG;
               const pts: ScatterPoint[] = [];
-              allStints.forEach(st => {
-                const drv = drivers.find(d => d.driver_number === st.driver_number);
+              const drvMap: Record<number, Driver> = {};
+              drivers.forEach(d => { drvMap[d.driver_number] = d; });
+              stintStats.forEach(({ stint: st, deg }) => {
+                const drv = drvMap[st.driver_number];
                 if (!drv) return;
-                const laps: Lap[] = [];
-                for (let ln = st.lap_start; ln <= st.lap_end; ln++) {
-                  const l = sharedLapLookup[st.driver_number + "-" + ln];
-                  if (l && isCleanLap(l, sharedThreshold)) laps.push(l);
-                }
-                const usable = laps.slice(2);
-                if (usable.length < 3) return;
-                const xs = usable.map((_, i) => i);
-                const ys = usable.map(l => l.lap_duration! + (l.lap_number - 1) * fuelCorr);
-                const deg = Math.max(0, linearSlope(xs, ys));
-                const stintLen = st.lap_end - st.lap_start + 1;
                 const compColor = TC[st.compound]?.replace("#", "") || drv.team_colour || "666";
-                pts.push({ x: stintLen, y: deg, color: compColor, label: drv.name_acronym });
+                pts.push({ x: st.lap_end - st.lap_start + 1, y: deg, color: compColor, label: drv.name_acronym });
               });
               return <ScatterPlot data={pts} xLabel="Stint Length (laps)" yLabel="Deg/Lap (s)" xFmt={v => v.toFixed(0)} yFmt={v => v.toFixed(4)} />;
             })()}
@@ -484,24 +504,9 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             hint="When did each team pit? Dots show pit laps — clustered stops indicate a strategic pit window. Stops outside the cluster may be undercut or overcut attempts."
           >
             {(() => {
+              if (!teamPitStops.length) return null;
               const totalLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
-              const drvMap: Record<number, Driver> = {};
-              drivers.forEach(d => { drvMap[d.driver_number] = d; });
-              const teamStops: Record<string, { color: string; stops: { driver: string; lap: number; dur: number | null }[] }> = {};
-              allPits.forEach(p => {
-                const d = drvMap[p.driver_number];
-                if (!d) return;
-                const t = d.team_name || "Unknown";
-                if (!teamStops[t]) teamStops[t] = { color: d.team_colour || "666", stops: [] };
-                teamStops[t].stops.push({ driver: d.name_acronym, lap: p.lap_number, dur: p.pit_duration || p.lane_duration || p.stop_duration });
-              });
-              const sorted = Object.entries(teamStops).sort((a, b) => {
-                const aFirst = Math.min(...a[1].stops.map(s => s.lap));
-                const bFirst = Math.min(...b[1].stops.map(s => s.lap));
-                return aFirst - bFirst;
-              });
-              if (!sorted.length) return null;
-              const step = totalLaps <= 30 ? 5 : totalLaps <= 50 ? 5 : 10;
+              const step = totalLaps <= 50 ? 5 : 10;
               return (
                 <div>
                   <div style={{ display: "flex", marginBottom: 4 }}>
@@ -512,7 +517,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                       ))}
                     </div>
                   </div>
-                  {sorted.map(([team, { color, stops }]) => (
+                  {teamPitStops.map(([team, { color, stops }]) => (
                     <div key={team} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
                       <div style={{ width: 80, fontSize: 11, fontWeight: 600, color: "#" + color, flexShrink: 0, overflow: "hidden", whiteSpace: "nowrap" }}>{team.length > 12 ? team.slice(0, 12) + "…" : team}</div>
                       <div style={{ flex: 1, position: "relative", height: 20 }}>
@@ -557,7 +562,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         </>
       )}
 
-      {/* ============================ BATTLES ============================ */}
       {subTab === "battles" && (
         <>
           <Section
@@ -594,10 +598,10 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{ width: 36, fontSize: 11, fontWeight: 600, color: d1Pct >= 50 ? C.pos : C.textDim, textAlign: "right" }}>{d1.name_acronym}</div>
                       <div style={{ flex: 1, display: "flex", height: 20, borderRadius: 4, overflow: "hidden" }}>
-                        <div style={{ width: d1Pct + "%", background: d1Pct >= 50 ? "rgba(46,213,115,0.45)" : "rgba(255,84,114,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ width: d1Pct + "%", background: d1Pct >= 50 ? C.posBg : C.negDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
                           {d1Pct >= 25 && <span style={{ fontSize: 10, fontWeight: 600, fontFamily: M, color: "#fff" }}>{d1Wins} ({d1Pct.toFixed(0)}%)</span>}
                         </div>
-                        <div style={{ width: (100 - d1Pct) + "%", background: d1Pct < 50 ? "rgba(46,213,115,0.45)" : "rgba(255,84,114,0.3)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <div style={{ width: (100 - d1Pct) + "%", background: d1Pct < 50 ? C.posBg : C.negDim, display: "flex", alignItems: "center", justifyContent: "center" }}>
                           {(100 - d1Pct) >= 25 && <span style={{ fontSize: 10, fontWeight: 600, fontFamily: M, color: "#fff" }}>{d2Wins} ({(100 - d1Pct).toFixed(0)}%)</span>}
                         </div>
                       </div>
@@ -641,7 +645,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                   <div style={{ fontSize: 11, fontWeight: 600, color: C.pos, width: 36, textAlign: "center" }}>{g.faster.name_acronym}</div>
                   <div style={{ flex: 1, position: "relative", height: 18 }}>
                     <div style={{ position: "absolute", top: 0, left: 0, width: "100%", height: 18, borderRadius: 4, background: "rgba(255,255,255,0.03)" }} />
-                    <div style={{ position: "absolute", top: 0, left: 0, width: Math.max(4, maxGap > 0 ? (g.gap / maxGap) * 100 : 0) + "%", height: 18, borderRadius: 4, background: g.gap < 0.1 ? "rgba(46,213,115,0.35)" : g.gap < 0.3 ? "rgba(255,181,71,0.35)" : "rgba(255,84,114,0.35)" }} />
+                    <div style={{ position: "absolute", top: 0, left: 0, width: Math.max(4, maxGap > 0 ? (g.gap / maxGap) * 100 : 0) + "%", height: 18, borderRadius: 4, background: g.gap < 0.1 ? C.posDim : g.gap < 0.3 ? C.warnDim : C.negBar }} />
                     <div style={{ position: "absolute", top: 2, left: "50%", transform: "translateX(-50%)", fontSize: 11, fontWeight: 600, fontFamily: M, color: g.gap < 0.1 ? C.pos : g.gap < 0.3 ? C.warn : C.neg }}>
                       {g.gap.toFixed(3)}s
                     </div>
@@ -683,25 +687,12 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             hint="Clean-air ratio — what share of a driver's racing laps were spent in clean air. Front-runners naturally have more; midfield drivers lose more time stuck behind."
           >
             {(() => {
-              const drvData: Record<number, { clean: number; dirty: number }> = {};
-              drivers.forEach(d => { drvData[d.driver_number] = { clean: 0, dirty: 0 }; });
-              for (const [lapNumStr, entries] of Object.entries(sharedLapsByNumber)) {
-                const lapNum = Number(lapNumStr);
-                const sorted = [...entries].sort((a, b) => a.ts - b.ts);
-                for (let i = 0; i < sorted.length; i++) {
-                  const lap = sharedLapLookup[sorted[i].dn + "-" + lapNum];
-                  if (!lap || !isCleanLap(lap, sharedThreshold)) continue;
-                  const gap = i > 0 ? (sorted[i].ts - sorted[i - 1].ts) / 1000 : 999;
-                  const dd = drvData[sorted[i].dn];
-                  if (gap < DIRTY_AIR_THRESHOLD) dd.dirty++; else dd.clean++;
-                }
-              }
               const rows = drivers.map(d => {
-                const dd = drvData[d.driver_number];
-                const total = dd.clean + dd.dirty;
+                const dd = trafficStats[d.driver_number];
+                const total = (dd?.clean || 0) + (dd?.dirty || 0);
                 if (total < 5) return null;
-                return { driver: d, color: d.team_colour || "666", clean: dd.clean, dirty: dd.dirty, total, pct: (dd.clean / total) * 100 };
-              }).filter(Boolean) as { driver: Driver; color: string; clean: number; dirty: number; total: number; pct: number }[];
+                return { driver: d, color: d.team_colour || "666", clean: dd.clean, total, pct: (dd.clean / total) * 100 };
+              }).filter((r): r is NonNullable<typeof r> => r !== null);
               rows.sort((a, b) => b.pct - a.pct);
               if (!rows.length) return null;
               return rows.map((r, i) => (
@@ -709,8 +700,8 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                   <div style={{ width: 22, textAlign: "right", fontWeight: 700, fontSize: 11, color: podiumColor(i) }}>{i + 1}</div>
                   <div style={{ width: 44, fontWeight: 600, fontSize: 12, color: "#" + r.color }}>{r.driver.name_acronym}</div>
                   <div style={{ flex: 1, display: "flex", height: 16, borderRadius: 3, overflow: "hidden" }}>
-                    <div style={{ width: r.pct + "%", background: "rgba(46,213,115,0.45)" }} />
-                    <div style={{ width: (100 - r.pct) + "%", background: "rgba(255,84,114,0.3)" }} />
+                    <div style={{ width: r.pct + "%", background: C.posBg }} />
+                    <div style={{ width: (100 - r.pct) + "%", background: C.negDim }} />
                   </div>
                   <div style={{ fontFamily: M, fontSize: 11, fontWeight: 600, width: 38, textAlign: "right", color: r.pct > 70 ? C.pos : r.pct > 50 ? C.warn : C.neg }}>{r.pct.toFixed(0)}%</div>
                   <div style={{ fontFamily: M, fontSize: 10, width: 52, textAlign: "right", color: C.textMute }}>{r.clean}/{r.total}</div>
@@ -724,23 +715,9 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             hint="How close each driver followed (avg gap to the car ahead on dirty laps) vs how much time they lost. Shows at what gap dirty air becomes costly."
           >
             {(() => {
-              const drvStats: Record<number, { gaps: number[]; cleanTimes: number[]; dirtyTimes: number[] }> = {};
-              for (const [lapNumStr, entries] of Object.entries(sharedLapsByNumber)) {
-                const lapNum = Number(lapNumStr);
-                const sorted = [...entries].sort((a, b) => a.ts - b.ts);
-                for (let i = 0; i < sorted.length; i++) {
-                  const lap = sharedLapLookup[sorted[i].dn + "-" + lapNum];
-                  if (!lap || !isCleanLap(lap, sharedThreshold)) continue;
-                  const gap = i > 0 ? (sorted[i].ts - sorted[i - 1].ts) / 1000 : 999;
-                  if (!drvStats[sorted[i].dn]) drvStats[sorted[i].dn] = { gaps: [], cleanTimes: [], dirtyTimes: [] };
-                  const dd = drvStats[sorted[i].dn];
-                  if (gap < DIRTY_AIR_THRESHOLD) { dd.dirtyTimes.push(lap.lap_duration!); dd.gaps.push(gap); }
-                  else { dd.cleanTimes.push(lap.lap_duration!); }
-                }
-              }
               const pts: ScatterPoint[] = [];
               drivers.forEach(d => {
-                const dd = drvStats[d.driver_number];
+                const dd = trafficStats[d.driver_number];
                 if (!dd || dd.gaps.length < 3 || dd.cleanTimes.length < 3 || dd.dirtyTimes.length < 3) return;
                 const timeLoss = median(dd.dirtyTimes) - median(dd.cleanTimes);
                 pts.push({ x: median(dd.gaps), y: Math.max(0, timeLoss), color: d.team_colour || "666", label: d.name_acronym });
@@ -751,7 +728,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         </>
       )}
 
-      {/* ============================ TRACK ============================ */}
       {subTab === "track" && (
         <>
           <Section

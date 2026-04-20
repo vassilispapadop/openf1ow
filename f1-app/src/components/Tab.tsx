@@ -1,31 +1,10 @@
-import { F, C } from "../lib/styles";
+import Pill from "./Pill";
+import type { ReactNode } from "react";
 
 export default function Tab({ active, onClick, children }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: "7px 14px",
-        border: "1px solid " + (active ? C.borderStrong : "transparent"),
-        cursor: "pointer",
-        fontSize: 12,
-        fontWeight: 600,
-        fontFamily: F,
-        whiteSpace: "nowrap",
-        borderRadius: 999,
-        background: active ? C.surfaceHi : "transparent",
-        color: active ? C.text : C.textDim,
-        transition: "background 0.15s ease, color 0.15s ease, border-color 0.15s ease",
-        outline: "none",
-      }}
-      onMouseEnter={e => { if (!active) e.currentTarget.style.color = C.text; }}
-      onMouseLeave={e => { if (!active) e.currentTarget.style.color = C.textDim; }}
-    >
-      {children}
-    </button>
-  );
+  return <Pill active={active} onClick={onClick}>{children}</Pill>;
 }

@@ -1,10 +1,6 @@
-// Design system — 2026 editorial, quiet chrome, data-first.
-// Exported token names are stable so dependent files inherit the refresh.
-
 export const F = "'Inter','SF Pro Display',system-ui,sans-serif";
 export const M = "'JetBrains Mono','SF Mono','Cascadia Code','Consolas',monospace";
 
-// Semantic palette. Red is reserved — only winner accents + primary CTA.
 export const C = {
   bg: "#0a0a0d",
   surface: "#131318",
@@ -19,12 +15,16 @@ export const C = {
   accent: "#ff1e00",
   accentDim: "rgba(255,30,0,0.12)",
   pos: "#2ed573",
+  posDim: "rgba(46,213,115,0.35)",
+  posBg: "rgba(46,213,115,0.45)",
   warn: "#ffb547",
+  warnDim: "rgba(255,181,71,0.35)",
   neg: "#ff5472",
+  negDim: "rgba(255,84,114,0.3)",
+  negBar: "rgba(255,84,114,0.35)",
   violet: "#a78bfa",
 };
 
-// Radii. Editorial > playful.
 export const R = { sm: 6, md: 10, lg: 14 };
 
 export const sty = {
@@ -36,7 +36,6 @@ export const sty = {
     padding: 0,
     position: "relative" as const,
   },
-  // Card: flat surface, subtle border, no backdrop-blur. Hover handled via CSS.
   card: {
     background: C.surface,
     borderRadius: R.lg,
@@ -44,7 +43,6 @@ export const sty = {
     marginBottom: 10,
     border: "1px solid " + C.border,
   },
-  // Table header: quiet, data-first.
   th: {
     padding: "9px 12px",
     borderBottom: "1px solid " + C.border,
@@ -62,7 +60,6 @@ export const sty = {
     borderBottom: "1px solid rgba(255,255,255,0.03)",
     transition: "background 0.15s ease",
   },
-  // Select: flat, no red chevron — neutral.
   sel: {
     background: C.surfaceAlt,
     color: C.text,
@@ -82,7 +79,6 @@ export const sty = {
     backgroundPosition: "right 12px center",
   },
   mono: { fontFamily: M },
-  // Error toast — neutral red tone, flat.
   err: {
     background: "rgba(255,30,0,0.08)",
     border: "1px solid rgba(255,30,0,0.18)",
@@ -95,12 +91,12 @@ export const sty = {
     alignItems: "center",
     gap: 8,
   },
-  // Section heading: plain sentence-case, readable. No uppercase spam.
   sectionHead: {
     fontSize: 14,
     fontWeight: 600,
     color: C.text,
     letterSpacing: "-0.01em",
+    margin: 0,
   },
   statLabel: {
     fontSize: 11,
