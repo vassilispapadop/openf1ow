@@ -1,4 +1,4 @@
-import { F, M } from "../../lib/styles";
+import { F, M, C } from "../../lib/styles";
 import type { Driver } from "../../lib/types";
 
 export default function DriverGrid({ drivers, dn, onDriver }: {
@@ -12,9 +12,8 @@ export default function DriverGrid({ drivers, dn, onDriver }: {
     <div style={{
       display: "flex",
       flexWrap: "wrap",
-      gap: 6,
-      marginBottom: 14,
-      padding: "10px 0",
+      gap: 5,
+      marginBottom: 16,
     }}>
       {drivers.map(d => {
         const selected = String(d.driver_number) === dn;
@@ -27,12 +26,12 @@ export default function DriverGrid({ drivers, dn, onDriver }: {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "4px 10px 4px 4px",
-              borderRadius: 10,
-              border: selected ? `2px solid ${color}` : "2px solid transparent",
-              background: selected ? `${color}18` : "rgba(255,255,255,0.02)",
+              padding: "3px 10px 3px 3px",
+              borderRadius: 999,
+              border: "1px solid " + (selected ? color : C.border),
+              background: selected ? `${color}14` : C.surface,
               cursor: "pointer",
-              transition: "all 0.2s ease",
+              transition: "border-color 0.15s ease, background 0.15s ease",
               outline: "none",
             }}
           >
@@ -41,37 +40,35 @@ export default function DriverGrid({ drivers, dn, onDriver }: {
                 src={d.headshot_url}
                 alt=""
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 24,
+                  height: 24,
                   borderRadius: "50%",
-                  border: `2px solid ${color}`,
                   objectFit: "cover",
+                  boxShadow: `inset 0 0 0 2px ${color}`,
                 }}
               />
             ) : (
               <div style={{
-                width: 28,
-                height: 28,
+                width: 24,
+                height: 24,
                 borderRadius: "50%",
-                border: `2px solid ${color}`,
-                background: `${color}30`,
+                background: `${color}24`,
+                color,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 fontSize: 9,
                 fontWeight: 700,
                 fontFamily: M,
-                color,
               }}>
                 {d.driver_number}
               </div>
             )}
             <span style={{
-              fontSize: 10,
-              fontWeight: 700,
+              fontSize: 11,
+              fontWeight: 600,
               fontFamily: F,
-              color: selected ? "#e8e8ec" : "#5a5a6e",
-              letterSpacing: "0.3px",
+              color: selected ? C.text : C.textDim,
             }}>
               {d.name_acronym}
             </span>

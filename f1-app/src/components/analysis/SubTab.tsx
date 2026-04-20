@@ -1,30 +1,31 @@
-import React, { useState } from "react";
-import { F } from "../../lib/styles";
+import React from "react";
+import { F, C } from "../../lib/styles";
 
-function SubTab({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  const [hovered, setHovered] = useState(false);
+export default function SubTab({ active, onClick, children }: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
   return (
     <button
       onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       style={{
         padding: "6px 14px",
-        border: "none",
+        border: "1px solid " + (active ? C.borderStrong : "transparent"),
         cursor: "pointer",
-        fontSize: 10,
+        fontSize: 12,
         fontWeight: 600,
         fontFamily: F,
-        textTransform: "uppercase" as const,
-        letterSpacing: "0.5px",
-        borderRadius: 16,
-        background: active ? "#e10600" : hovered ? "rgba(225,6,0,0.1)" : "transparent",
-        color: active ? "#fff" : hovered ? "#e8e8ec" : "#6a6a7e",
-        transition: "all 0.2s ease",
+        borderRadius: 999,
+        background: active ? C.surfaceHi : "transparent",
+        color: active ? C.text : C.textDim,
+        transition: "background 0.15s ease, color 0.15s ease, border-color 0.15s ease",
         outline: "none",
-        boxShadow: active ? "0 0 10px rgba(225,6,0,0.25)" : "none",
-      }}>{children}</button>
+      }}
+      onMouseEnter={e => { if (!active) e.currentTarget.style.color = C.text; }}
+      onMouseLeave={e => { if (!active) e.currentTarget.style.color = C.textDim; }}
+    >
+      {children}
+    </button>
   );
 }
-
-export default SubTab;
