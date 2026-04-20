@@ -1,17 +1,22 @@
 import { F, C } from "../../lib/styles";
 import Pill from "../Pill";
+import type { Driver } from "../../lib/types";
 
 interface HeaderProps {
   meetings: any[];
   mk: string;
   sessions: any[];
   sk: string;
+  drivers?: Driver[];
+  dn?: string;
   onReset?: () => void;
 }
 
-export default function Header({ meetings, mk, sessions, sk, onReset }: HeaderProps) {
+export default function Header({ meetings, mk, sessions, sk, drivers, dn, onReset }: HeaderProps) {
   const meeting = meetings.find(m => String(m.meeting_key) === mk);
   const session = sessions.find(s => String(s.session_key) === sk);
+  const driver = dn && drivers ? drivers.find(d => String(d.driver_number) === dn) : undefined;
+  const driverColor = driver?.team_colour ? "#" + driver.team_colour : C.text;
 
   return (
     <header style={{
@@ -56,8 +61,21 @@ export default function Header({ meetings, mk, sessions, sk, onReset }: HeaderPr
             {session && (
               <>
                 <span style={{ color: C.textFaint }}>/</span>
-                <span style={{ color: C.text, fontWeight: 600, whiteSpace: "nowrap" }}>
+                <span style={{ color: driver ? C.textDim : C.text, fontWeight: driver ? 500 : 600, whiteSpace: "nowrap" }}>
                   {session.session_name}
+                </span>
+              </>
+            )}
+            {driver && (
+              <>
+                <span style={{ color: C.textFaint }}>/</span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
+                  <span style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: driverColor,
+                    boxShadow: `0 0 0 2px ${driverColor}33`,
+                  }} />
+                  <span style={{ color: C.text, fontWeight: 600 }}>{driver.name_acronym}</span>
                 </span>
               </>
             )}

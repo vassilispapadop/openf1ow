@@ -25,7 +25,15 @@ function LayoutInner() {
 
   return (
     <div style={sty.bg}>
-      <Header meetings={meetings} mk={mk} sessions={sessions} sk={sk} onReset={onReset} />
+      <Header
+        meetings={meetings}
+        mk={mk}
+        sessions={sessions}
+        sk={sk}
+        drivers={isDriver ? drivers : undefined}
+        dn={isDriver ? dn : undefined}
+        onReset={onReset}
+      />
 
       <main style={{ padding: "24px 28px", maxWidth: 1400, margin: "0 auto" }}>
         {error && (
