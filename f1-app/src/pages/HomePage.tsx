@@ -17,14 +17,18 @@ export default function HomePage() {
     navigate(paths.meeting(year, String(latest.meeting_key)), { replace: true });
   }, [meetings, mk, loading, year, navigate]);
 
-  // Auto-pick Race session once a meeting is selected
+  // Auto-pick Race session once a meeting is selected. Falls back to the last
+  // session in the list (Qualifying on a sprint weekend if the Race hasn't run).
   useEffect(() => {
     if (loading || sessions.length === 0 || sk || !mk) return;
     const race = sessions.find(s => s.session_name === "Race") || sessions[sessions.length - 1];
     navigate(paths.analysis(year, mk, String(race.session_key)), { replace: true });
   }, [sessions, sk, mk, loading, year, navigate]);
 
-  if (sk) return null;
+  // Only show the landing hero when no meeting has been picked. Once mk is set
+  // we're one navigate() away from the analysis page — the spinner in
+  // SessionLayout covers that window, no need to flash the hero.
+  if (mk) return null;
 
   return (
     <div className="fade-in-up" style={{
@@ -102,7 +106,7 @@ export default function HomePage() {
         color: C.textFaint,
         fontFamily: F,
       }}>
-        {!mk ? "Loading latest race…" : "Loading sessions…"}
+        Loading latest race…
       </div>
     </div>
   );
