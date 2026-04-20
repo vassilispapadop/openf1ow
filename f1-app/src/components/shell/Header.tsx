@@ -1,4 +1,5 @@
-import { F, M } from "../../lib/styles";
+import { F, C } from "../../lib/styles";
+import Pill from "../Pill";
 
 interface HeaderProps {
   meetings: any[];
@@ -9,56 +10,71 @@ interface HeaderProps {
 }
 
 export default function Header({ meetings, mk, sessions, sk, onReset }: HeaderProps) {
+  const meeting = meetings.find(m => String(m.meeting_key) === mk);
+  const session = sessions.find(s => String(s.session_key) === sk);
+
   return (
-    <div style={{
-      position: "sticky" as const, top: 0, zIndex: 100,
+    <header style={{
+      position: "sticky",
+      top: 0,
+      zIndex: 100,
+      padding: "14px 28px",
+      background: "rgba(10,10,13,0.85)",
+      backdropFilter: "blur(12px)",
+      WebkitBackdropFilter: "blur(12px)",
+      borderBottom: "1px solid " + C.border,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 20,
     }}>
-      {/* Racing stripe accent line */}
-      <div style={{
-        height: 2,
-        background: "linear-gradient(90deg, transparent, #e10600 20%, #e10600 80%, transparent)",
-        boxShadow: "0 0 12px rgba(225,6,0,0.4), 0 0 30px rgba(225,6,0,0.15)",
-      }} />
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "14px 28px",
-        background: "rgba(5,5,8,0.9)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        borderBottom: "1px solid rgba(255,255,255,0.04)",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div onClick={onReset} style={{ display: "flex", alignItems: "baseline", gap: 0, cursor: onReset ? "pointer" : undefined }}>
-            <span style={{ fontSize: 26, fontWeight: 800, color: "#e8e8ec", letterSpacing: "-0.5px", fontFamily: F }}>Open</span>
-            <span style={{ fontSize: 26, fontWeight: 800, color: "#e10600", letterSpacing: "-0.5px", fontFamily: F, textShadow: "0 0 24px rgba(225,6,0,0.4)" }}>F1</span>
-            <span style={{ fontSize: 26, fontWeight: 800, color: "#e8e8ec", letterSpacing: "-0.5px", fontFamily: F }}>ow</span>
-          </div>
-          {mk && meetings.length > 0 && (
-            <div className="fade-in hide-mobile" style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "5px 14px",
-              background: "rgba(255,255,255,0.03)",
-              borderRadius: 8,
-              border: "1px solid rgba(255,255,255,0.04)",
-            }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "#b0b0c0", fontFamily: F }}>
-                {meetings.find(m => String(m.meeting_key) === mk)?.location || ""}
-              </span>
-              {sk && sessions.length > 0 && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#e10600", fontFamily: M }}>
-                  {sessions.find(s => String(s.session_key) === sk)?.session_name || ""}
+      <div style={{ display: "flex", alignItems: "center", gap: 20, minWidth: 0 }}>
+        <button
+          onClick={onReset}
+          style={{
+            border: "none",
+            background: "transparent",
+            padding: 0,
+            cursor: onReset ? "pointer" : "default",
+            display: "flex",
+            alignItems: "baseline",
+            gap: 0,
+            color: "inherit",
+            fontFamily: F,
+          }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>open</span>
+          <span style={{ fontSize: 18, fontWeight: 700, color: C.accent, letterSpacing: "-0.02em" }}>f1</span>
+          <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>ow</span>
+        </button>
+
+        {meeting && (
+          <nav className="hide-mobile" style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, minWidth: 0 }}>
+            <span style={{ color: C.textFaint }}>/</span>
+            <span style={{ color: C.textDim, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {meeting.location || meeting.country_name}
+            </span>
+            {session && (
+              <>
+                <span style={{ color: C.textFaint }}>/</span>
+                <span style={{ color: C.text, fontWeight: 600, whiteSpace: "nowrap" }}>
+                  {session.session_name}
                 </span>
-              )}
-            </div>
-          )}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#e10600", animation: "livePulse 2s ease-in-out infinite" }} />
-            <span style={{ fontSize: 9, fontWeight: 700, color: "rgba(255,255,255,0.3)", letterSpacing: "1.5px", fontFamily: M, textTransform: "uppercase" as const }}>LIVE</span>
-          </div>
-        </div>
+              </>
+            )}
+          </nav>
+        )}
       </div>
-    </div>
+
+      <Pill
+        as="a"
+        size="sm"
+        href="https://openf1.org"
+        target="_blank"
+        rel="noreferrer"
+        className="hide-mobile"
+      >
+        data · openf1.org
+      </Pill>
+    </header>
   );
 }

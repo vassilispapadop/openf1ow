@@ -47,13 +47,40 @@ const SUB_TAB_LABELS: Record<string, string> = {
   teammates: "Teammates", pitstops: "Pit Stops", weather: "Weather",
 };
 
+function parsePathParams(pathname: string): { year?: string; mk?: string; sk?: string; dn?: string; subTab?: string; view?: string } {
+  // Routes: /:year/:mk/:sk/analysis/:subTab  or  /:year/:mk/:sk/driver/:dn/:tab
+  // Skip non-app paths (API, og-image, etc.)
+  if (pathname.startsWith("/api/") || pathname.startsWith("/og-image")) return {};
+  const segs = pathname.split("/").filter(Boolean);
+  // First segment must be a numeric year
+  if (segs.length < 1 || !/^\d{4}$/.test(segs[0])) return {};
+  const p: { year?: string; mk?: string; sk?: string; dn?: string; subTab?: string; view?: string } = {};
+  p.year = segs[0];
+  if (segs.length >= 2) p.mk = segs[1];
+  if (segs.length >= 3) p.sk = segs[2];
+  if (segs.length >= 4 && segs[3] === "analysis") { p.view = "analysis"; if (segs[4]) p.subTab = segs[4]; }
+  if (segs.length >= 4 && segs[3] === "driver") { p.view = "driver"; if (segs[4]) p.dn = segs[4]; }
+  return p;
+}
+
 async function buildOgTags(url: URL, r2?: R2Bucket): Promise<{ title: string; description: string; ogUrl: string } | null> {
-  const sp = url.searchParams;
-  const mk = sp.get("mk");
-  const sk = sp.get("sk");
-  const dn = sp.get("dn");
-  const view = sp.get("view");
-  const subTab = sp.get("subTab");
+  // Support both new path-based URLs and legacy query-param URLs
+  let mk: string | null, sk: string | null, dn: string | null, view: string | null, subTab: string | null;
+  const pathParams = parsePathParams(url.pathname);
+  if (pathParams.mk) {
+    mk = pathParams.mk;
+    sk = pathParams.sk || null;
+    dn = pathParams.dn || null;
+    view = pathParams.view || null;
+    subTab = pathParams.subTab || null;
+  } else {
+    const sp = url.searchParams;
+    mk = sp.get("mk");
+    sk = sp.get("sk");
+    dn = sp.get("dn");
+    view = sp.get("view");
+    subTab = sp.get("subTab");
+  }
 
   if (!mk) return null;
 
@@ -264,27 +291,60 @@ export default {
       });
     }
 
-    // Serve dynamic OG tags for page navigation requests
-    if (url.pathname === "/" && request.method === "GET" && url.searchParams.has("mk")) {
+    // OpenF1 API proxy — serve from R2 cache (must be before OG/SPA handlers)
+    if (url.pathname.startsWith("/api/f1/")) {
+      return handleF1Request(request, env, ctx);
+    }
+
+    // Helper: fetch index.html from assets
+    async function fetchIndexHtml(): Promise<Response | null> {
+      if (!env.ASSETS) return null; // ASSETS binding not available in dev
+      for (const path of ["/", "/index.html"]) {
+        try {
+          const res = await env.ASSETS.fetch(new Request(url.origin + path));
+          if (res.ok) return res;
+        } catch { /* try next */ }
+      }
+      return null;
+    }
+
+    // Serve dynamic OG tags for page navigation requests (path-based or legacy query params)
+    const ogParams = parsePathParams(url.pathname);
+    if (request.method === "GET" && (ogParams.mk || (url.pathname === "/" && url.searchParams.has("mk")))) {
       try {
-        const assetRes = await env.ASSETS.fetch(new Request(url.origin + "/index.html"));
-        let html = await assetRes.text();
-        const og = await buildOgTags(url, env.F1_DATA);
-        if (og) html = injectOgTags(html, og);
-        return new Response(html, {
-          headers: { "Content-Type": "text/html; charset=utf-8" },
-        });
+        const assetRes = env.ASSETS ? await fetchIndexHtml() : null;
+        if (assetRes) {
+          let html = await assetRes.text();
+          const og = await buildOgTags(url, env.F1_DATA);
+          if (og) html = injectOgTags(html, og);
+          return new Response(html, {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          });
+        }
+        // Dev mode fallback: proxy to root for SPA
+        if (!env.ASSETS) {
+          return await fetch(new Request(url.origin + "/"));
+        }
       } catch {
         // Fall through to asset serving on error
       }
     }
 
-    // OpenF1 API proxy — serve from R2 cache
-    if (url.pathname.startsWith("/api/f1/")) {
-      return handleF1Request(request, env, ctx);
-    }
-
     if (url.pathname !== "/api/analyze") {
+      // SPA fallback — serve index.html for non-API routes
+      if (env.ASSETS) {
+        const assetRes = await fetchIndexHtml();
+        if (assetRes) {
+          return new Response(await assetRes.text(), {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          });
+        }
+      } else {
+        // Dev: proxy to Vite dev server root to get index.html
+        try {
+          return await fetch(new Request(url.origin + "/"));
+        } catch { /* fall through */ }
+      }
       return new Response(null, { status: 404 });
     }
 

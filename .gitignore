@@ -1,1 +1,5 @@
 .claude
+pipeline/output/
+pipeline/segments/
+pipeline/voice_sample/*.wav
+f1-app/public/commentary/

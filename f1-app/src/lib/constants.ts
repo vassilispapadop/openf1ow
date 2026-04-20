@@ -20,3 +20,44 @@ export const DRIVER_COLORS = [
   "6366f1", "ec4899", "14b8a6", "eab308", "8b5cf6",
   "22c55e", "3b82f6", "ef4444", "64748b", "d946ef",
 ];
+
+export const DEFAULT_YEAR = 2026;
+export const DEFAULT_DRIVER_TAB = "laps";
+
+export const ANALYSIS_VIEWS = [
+  { key: "overview", label: "Overview" },
+  { key: "pace", label: "Pace" },
+  { key: "strategy", label: "Strategy" },
+  { key: "battles", label: "Battles" },
+  { key: "track", label: "Track" },
+] as const;
+
+export type ViewKey = typeof ANALYSIS_VIEWS[number]["key"];
+
+export const DEFAULT_ANALYSIS_TAB: ViewKey = ANALYSIS_VIEWS[0].key;
+
+// Legacy tab slug → new view. Old URLs keep working.
+export const TAB_REDIRECT: Record<string, ViewKey> = {
+  ai: "overview",
+  commentary: "overview",
+  sectors: "pace",
+  evolution: "pace",
+  degradation: "strategy",
+  fuel: "strategy",
+  pitstops: "strategy",
+  teammates: "battles",
+  constructors: "battles",
+  dirtyair: "battles",
+  weather: "track",
+  clipping: "track",
+  replay: "track",
+};
+
+export const paths = {
+  home: () => "/",
+  meeting: (year: number, mk: string) => `/${year}/${mk}`,
+  analysis: (year: number, mk: string, sk: string, subTab = DEFAULT_ANALYSIS_TAB) =>
+    `/${year}/${mk}/${sk}/analysis/${subTab}`,
+  driver: (year: number, mk: string, sk: string, dn: string, tab = DEFAULT_DRIVER_TAB) =>
+    `/${year}/${mk}/${sk}/driver/${dn}/${tab}`,
+};
