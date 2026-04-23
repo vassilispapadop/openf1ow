@@ -1,42 +1,26 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../contexts/SessionContext";
-import { api } from "../lib/api";
 import { F, C } from "../lib/styles";
 import { paths } from "../lib/constants";
 
 export default function HomePage() {
-  const { year, meetings, sessions, mk, sk, loading } = useSession();
+  const { year, sessions, mk, sk, loading } = useSession();
   const navigate = useNavigate();
 
-  // Auto-pick the latest Race session that actually has data. OpenF1 flags
-  // yet-to-be-uploaded race sessions with is_cancelled=true — using it to pick
-  // lands us on a race that really happened instead of an empty analysis page.
-  useEffect(() => {
-    if (loading || meetings.length === 0 || mk) return;
-    let cancelled = false;
-    api(`/sessions?year=${year}&session_name=Race`)
-      .then((races: any[]) => {
-        if (cancelled) return;
-        const now = Date.now();
-        const ready = races
-          .filter(s => !s.is_cancelled && s.date_start && new Date(s.date_start).getTime() < now)
-          .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
-        const latest = ready[ready.length - 1];
-        if (latest) {
-          navigate(paths.analysis(year, String(latest.meeting_key), String(latest.session_key)), { replace: true });
-        }
-      })
-      .catch(() => { /* silent — hero stays visible, user picks manually */ });
-    return () => { cancelled = true; };
-  }, [meetings, mk, loading, year, navigate]);
-
-  // Auto-pick Race session once a meeting is selected (user clicked a race in
-  // SelectorBar). Falls back to the last session listed if Race isn't present.
+  // Auto-pick the last available session once a meeting is selected (user
+  // clicked a race in SelectorBar). Prefers the latest session that has
+  // already started; falls back to Race by name, then the last listed.
   useEffect(() => {
     if (loading || sessions.length === 0 || sk || !mk) return;
-    const race = sessions.find(s => s.session_name === "Race") || sessions[sessions.length - 1];
-    navigate(paths.analysis(year, mk, String(race.session_key)), { replace: true });
+    const now = Date.now();
+    const started = sessions
+      .filter(s => s.date_start && new Date(s.date_start).getTime() < now)
+      .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
+    const pick = started[started.length - 1]
+      || sessions.find(s => s.session_name === "Race")
+      || sessions[sessions.length - 1];
+    navigate(paths.analysis(year, mk, String(pick.session_key)), { replace: true });
   }, [sessions, sk, mk, loading, year, navigate]);
 
   // Only show the landing hero when no meeting has been picked. Once mk is set
@@ -114,14 +98,6 @@ export default function HomePage() {
         ))}
       </div>
 
-      <div style={{
-        marginTop: 36,
-        fontSize: 12,
-        color: C.textFaint,
-        fontFamily: F,
-      }}>
-        Loading latest race…
-      </div>
     </div>
   );
 }
