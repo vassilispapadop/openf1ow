@@ -11,15 +11,22 @@ export default function HomePage() {
   // Auto-pick the last available session once a meeting is selected (user
   // clicked a race in SelectorBar). Prefers the latest session that has
   // already started; falls back to Race by name, then the last listed.
+  //
+  // Filter by meeting_key first — after switching meetings, `sessions` is
+  // briefly the PREVIOUS meeting's list until SessionContext refetches. Picking
+  // blindly from that stale list would navigate to /newmk/OLDsk, leaving the
+  // analysis page stuck on the previous race's data.
   useEffect(() => {
-    if (loading || sessions.length === 0 || sk || !mk) return;
+    if (loading || sk || !mk) return;
+    const own = sessions.filter(s => String(s.meeting_key) === mk);
+    if (own.length === 0) return;
     const now = Date.now();
-    const started = sessions
+    const started = own
       .filter(s => s.date_start && new Date(s.date_start).getTime() < now)
       .sort((a, b) => new Date(a.date_start).getTime() - new Date(b.date_start).getTime());
     const pick = started[started.length - 1]
-      || sessions.find(s => s.session_name === "Race")
-      || sessions[sessions.length - 1];
+      || own.find(s => s.session_name === "Race")
+      || own[own.length - 1];
     navigate(paths.analysis(year, mk, String(pick.session_key)), { replace: true });
   }, [sessions, sk, mk, loading, year, navigate]);
 

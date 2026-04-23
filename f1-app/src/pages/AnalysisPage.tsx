@@ -10,7 +10,7 @@ const isViewKey = (s: string | undefined): s is ViewKey => !!s && VIEW_KEYS.has(
 export default function AnalysisPage() {
   const { subTab } = useParams<{ subTab?: string }>();
   const navigate = useNavigate();
-  const { sk, drivers, weather, rc, results } = useSession();
+  const { sk, drivers, weather, rc, results, meetings, sessions, mk, year } = useSession();
 
   useEffect(() => {
     if (subTab && TAB_REDIRECT[subTab]) {
@@ -27,6 +27,16 @@ export default function AnalysisPage() {
   const redirected = subTab ? TAB_REDIRECT[subTab] : undefined;
   const view: ViewKey = redirected ?? (isViewKey(subTab) ? subTab : DEFAULT_ANALYSIS_TAB);
 
+  const meeting = meetings.find((m: any) => String(m.meeting_key) === mk);
+  const session = sessions.find((s: any) => String(s.session_key) === sk);
+  const raceMeta = {
+    meetingName: meeting?.meeting_name,
+    circuit: meeting?.circuit_short_name,
+    country: meeting?.country_name,
+    year,
+    sessionName: session?.session_name,
+  };
+
   return (
     <div className="fade-in-up">
       <RaceAnalysis
@@ -35,6 +45,7 @@ export default function AnalysisPage() {
         weather={weather}
         raceControl={rc}
         results={results}
+        raceMeta={raceMeta}
         subTab={view}
         onSubTabChange={onSubTabChange}
       />

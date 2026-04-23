@@ -1,7 +1,8 @@
 import { handleF1Request } from "./r2-cache";
 
 interface Env {
-  GEMINI_API_KEY: string;
+  GROQ_API_KEY: string;
+  GROQ_MODEL?: string;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   F1_DATA: R2Bucket;
 }
@@ -199,11 +200,11 @@ function generateOgImageSvg(title: string, subtitle: string): string {
 }
 
 // ============================================================================
-// GEMINI AI ANALYSIS
+// GROQ AI ANALYSIS
 // ============================================================================
 
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:streamGenerateContent?alt=sse";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
 
 const SYSTEM_PROMPT = `You are an expert Formula 1 race analyst and strategist — think Martin Brundle meets a data scientist. You produce broadcast-quality race summaries from telemetry-derived data.
 
@@ -254,8 +255,41 @@ Produce these sections with markdown headers:
 - If a data section is empty or has limited entries, skip that angle rather than speculating
 - Write with personality — this should read like expert TV commentary, not a spreadsheet summary`;
 
-function buildPrompt(summary: unknown): string {
-  return `Analyze this Formula 1 race using the data below. The data has been pre-computed from telemetry — trust the numbers.\n\n${JSON.stringify(summary, null, 1)}`;
+// Shrink the summary before sending to the LLM — Groq free tier has a 12k TPM
+// cap on 70B. Full-grid sector/speed/dirty-air breakdowns are ~23k tokens;
+// we cap the long-tail sections to the interesting entries and drop
+// over-precise decimals, keeping ~90% of the analytical signal.
+function compactSummary(s: any): any {
+  if (!s || typeof s !== "object") return s;
+  const round3 = (x: unknown) => typeof x === "number" ? +x.toFixed(3) : x;
+  const mapRound = <T extends Record<string, unknown>>(o: T): T => {
+    const out: Record<string, unknown> = {};
+    for (const k in o) out[k] = typeof o[k] === "number" ? round3(o[k]) : o[k];
+    return out as T;
+  };
+
+  const cap = <T>(arr: T[] | undefined, n: number): T[] | undefined =>
+    Array.isArray(arr) ? arr.slice(0, n) : arr;
+
+  return {
+    ...s,
+    tireDegradation: Array.isArray(s.tireDegradation) ? s.tireDegradation.map(mapRound) : s.tireDegradation,
+    dirtyAir: cap(Array.isArray(s.dirtyAir) ? s.dirtyAir.map(mapRound) : s.dirtyAir, 12),
+    sectorAnalysis: s.sectorAnalysis
+      ? { ...s.sectorAnalysis, drivers: cap(s.sectorAnalysis.drivers, 10) }
+      : s.sectorAnalysis,
+    topSpeeds: cap(Array.isArray(s.topSpeeds) ? s.topSpeeds.map(mapRound) : s.topSpeeds, 10),
+  };
+}
+
+function buildPrompt(payload: any): string {
+  const meta = payload?.raceMeta;
+  const header = meta
+    ? `Race: ${meta.year ?? ""} ${meta.meetingName ?? ""}${meta.country ? " (" + meta.country + ")" : ""}${meta.sessionName ? " — " + meta.sessionName : ""}`.trim()
+    : "";
+  const body = { ...payload };
+  delete body.raceMeta;
+  return `Analyze this Formula 1 race using the data below. The data has been pre-computed from telemetry — trust the numbers.${header ? "\n\n" + header : ""}\n\n${JSON.stringify(compactSummary(body))}`;
 }
 
 const CORS_HEADERS = {
@@ -352,38 +386,47 @@ export default {
       return new Response("Method not allowed", { status: 405, headers: CORS_HEADERS });
     }
 
-    if (!env.GEMINI_API_KEY) {
-      return new Response("GEMINI_API_KEY not configured", { status: 500, headers: CORS_HEADERS });
+    if (!env.GROQ_API_KEY) {
+      return new Response("GROQ_API_KEY not configured", { status: 500, headers: CORS_HEADERS });
     }
 
-    let body: unknown;
+    let body: any;
     try {
       body = await request.json();
     } catch {
       return new Response("Invalid JSON body", { status: 400, headers: CORS_HEADERS });
     }
 
-    const geminiBody = {
-      system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents: [{ parts: [{ text: buildPrompt(body) }] }],
-      generationConfig: { maxOutputTokens: 8192, temperature: 0.3 },
+    const groqBody = {
+      model: env.GROQ_MODEL || DEFAULT_GROQ_MODEL,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: buildPrompt(body) },
+      ],
+      temperature: 0.3,
+      max_tokens: 8192,
+      stream: true,
     };
 
-    const geminiRes = await fetch(`${GEMINI_URL}&key=${env.GEMINI_API_KEY}`, {
+    const groqRes = await fetch(GROQ_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(geminiBody),
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify(groqBody),
     });
 
-    if (!geminiRes.ok) {
-      const err = await geminiRes.text();
-      return new Response(`Gemini API error: ${geminiRes.status} ${err}`, {
+    if (!groqRes.ok) {
+      const err = await groqRes.text();
+      return new Response(`Groq API error: ${groqRes.status} ${err}`, {
         status: 502,
         headers: CORS_HEADERS,
       });
     }
 
-    // Stream the Gemini SSE response back to the client, extracting text chunks
+    // Stream the Groq SSE response back to the client, normalizing OpenAI-style
+    // chunks into the { text } shape AIAnalysis.tsx already parses.
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
@@ -394,7 +437,7 @@ export default {
       if (!data || data === "[DONE]") return;
       try {
         const parsed = JSON.parse(data);
-        const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const text = parsed?.choices?.[0]?.delta?.content;
         if (text) {
           await writer.write(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
         }
@@ -405,8 +448,8 @@ export default {
 
     (async () => {
       try {
-        if (!geminiRes.body) throw new Error("No response body from Gemini");
-        const reader = geminiRes.body.getReader();
+        if (!groqRes.body) throw new Error("No response body from Groq");
+        const reader = groqRes.body.getReader();
         const decoder = new TextDecoder();
         let buffer = "";
 

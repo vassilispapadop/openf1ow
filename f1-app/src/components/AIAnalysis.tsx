@@ -70,9 +70,10 @@ interface AIAnalysisProps {
   weather: any[];
   raceControl: any[];
   results: any[];
+  raceMeta?: { meetingName?: string; circuit?: string; country?: string; year?: number; sessionName?: string };
 }
 
-export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, raceControl, results }: AIAnalysisProps) {
+export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, raceControl, results, raceMeta }: AIAnalysisProps) {
   const [analysis, setAnalysis] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -116,11 +117,12 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
       const summary = buildFullSummary({
         allLaps, drivers, stints, pits, weather, raceControl, results,
       } as RaceSummaryInput);
+      const payload = raceMeta ? { ...summary, raceMeta } : summary;
 
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(summary),
+        body: JSON.stringify(payload),
         signal: controller.signal,
       });
 

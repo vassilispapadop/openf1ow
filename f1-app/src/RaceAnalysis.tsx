@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import AIAnalysis from "./components/AIAnalysis";
 import RaceReplay from "./components/RaceReplay";
-import Commentary from "./components/Commentary";
 import type { Driver, Lap, Stint, Pit, Weather } from "./lib/types";
 import {
   median, computeSlowLapThreshold, isCleanLap,
@@ -62,12 +61,13 @@ function Section({ title, hint, actions, children }: {
   );
 }
 
-export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [], subTab, onSubTabChange }: {
+export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [], raceMeta, subTab, onSubTabChange }: {
   sessionKey: string;
   drivers: Driver[];
   weather: Weather[];
   raceControl?: any[];
   results?: any[];
+  raceMeta?: { meetingName?: string; circuit?: string; country?: string; year?: number; sessionName?: string };
   subTab: ViewKey;
   onSubTabChange: (tab: ViewKey) => void;
 }) {
@@ -277,6 +277,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   return (
     <div>
       <HeadlineInsights
+        key={sessionKey}
         allLaps={allLaps}
         drivers={drivers}
         stints={allStints}
@@ -305,25 +306,17 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
       </div>
 
       {subTab === "overview" && (
-        <>
-          <AIAnalysis
-            allLaps={allLaps}
-            drivers={drivers}
-            stints={allStints}
-            pits={allPits}
-            weather={weather}
-            raceControl={raceControl}
-            results={results}
-          />
-          <Commentary
-            sessionKey={sessionKey}
-            allLaps={allLaps}
-            drivers={drivers}
-            stints={allStints}
-            pits={allPits}
-            results={results}
-          />
-        </>
+        <AIAnalysis
+          key={sessionKey}
+          allLaps={allLaps}
+          drivers={drivers}
+          stints={allStints}
+          pits={allPits}
+          weather={weather}
+          raceControl={raceControl}
+          results={results}
+          raceMeta={raceMeta}
+        />
       )}
 
       {subTab === "pace" && (
