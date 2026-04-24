@@ -22,10 +22,6 @@ export default function Footer() {
         <span style={{ marginLeft: 10, color: C.textFaint }}>not affiliated with Formula 1</span>
       </span>
       <span style={{ color: C.textFaint, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <span>
-          data · <a href="https://openf1.org" target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>openf1.org</a>
-        </span>
-        <span>·</span>
         <a
           href="https://github.com/vassilispapadop/openf1ow"
           target="_blank"
@@ -38,6 +34,10 @@ export default function Footer() {
           </svg>
           github
         </a>
+        <span>·</span>
+        <span>
+          data · <a href="https://openf1.org" target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>openf1.org</a>
+        </span>
       </span>
     </footer>
   );
