@@ -89,7 +89,7 @@ export default function HomePage() {
           ["Pace", "Median pace, sector deltas, lap evolution"],
           ["Strategy", "Tire deg, fuel model, pit efficiency"],
           ["Battles", "Teammate duels, constructor gaps, dirty air"],
-          ["AI verdict", "Gemini-written race breakdown"],
+          ["AI verdict", "LLM-written race breakdown"],
         ].map(([title, sub]) => (
           <div
             key={title}

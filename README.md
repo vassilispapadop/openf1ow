@@ -1,8 +1,20 @@
 # OpenF1ow
 
-Real-time Formula 1 telemetry dashboard and race analysis platform powered by the [OpenF1 API](https://openf1.org).
+Formula 1 telemetry dashboard and race analysis platform powered by the [OpenF1 API](https://openf1.org).
 
-**Live:** [www.openf1ow.com](https://www.openf1ow.com)
+**Live:** [www.openf1ow.com](https://www.openf1ow.com) · **Source:** [github.com/vassilispapadop/openf1ow](https://github.com/vassilispapadop/openf1ow)
+
+## Screenshots
+
+<!-- Drop images into docs/images/ with the names below and they'll render here. -->
+
+| Home | Race Analysis |
+|---|---|
+| ![Home](docs/images/home.png) | ![Race Analysis](docs/images/analysis.png) |
+
+| Driver View | AI Race Analysis |
+|---|---|
+| ![Driver View](docs/images/driver.png) | ![AI Analysis](docs/images/ai-analysis.png) |
 
 ## Features
 
@@ -22,10 +34,10 @@ Real-time Formula 1 telemetry dashboard and race analysis platform powered by th
 - **Dirty Air Analysis** — traffic heatmap, time loss quantification, gap vs loss scatter
 - **Weather Correlation** — temperature vs pace scatter, driver adaptability
 - **Fuel Model** — estimated fuel load curve and cumulative time gain
-- **Scatter Plots** across all tabs for deeper correlation analysis
+- **Scatter plots** across all tabs for deeper correlation analysis
 
 ### AI Race Analysis
-- **Gemini-powered** natural language race breakdown
+- **Groq-powered** natural language race breakdown (Llama 3.3 70B)
 - Covers strategy, battles, tire management, and race verdict
 - Streamed in real-time with markdown rendering
 
@@ -39,10 +51,10 @@ Real-time Formula 1 telemetry dashboard and race analysis platform powered by th
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | React 18 + TypeScript + Vite 6 |
+| Frontend | React 18 + TypeScript + Vite 6 + React Router 7 |
 | Hosting | Cloudflare Workers + Pages |
 | Data | [OpenF1 API](https://openf1.org) |
-| AI | Google Gemini API (via Cloudflare Worker proxy) |
+| AI | Groq API, `llama-3.3-70b-versatile` (via Cloudflare Worker proxy) |
 | Charts | Custom canvas rendering (no chart library) |
 
 ## Getting Started
@@ -55,10 +67,12 @@ npm run dev
 
 ### Environment Setup
 
-For AI analysis, set the Gemini API key as a Cloudflare Worker secret:
+For AI analysis, set the Groq API key as a Cloudflare Worker secret:
 
 ```bash
-npx wrangler secret put GEMINI_API_KEY
+npx wrangler secret put GROQ_API_KEY
+# optional: override the default model
+npx wrangler secret put GROQ_MODEL
 ```
 
 ### Deploy
@@ -74,19 +88,28 @@ Or push to `master` — Cloudflare auto-deploys via GitHub integration.
 ```
 f1-app/
   src/
-    App.tsx              # Main app — driver view, telemetry, selectors
-    RaceAnalysis.tsx     # Race analysis — all analysis tabs and charts
+    App.tsx                    # Router + app shell
+    RaceAnalysis.tsx           # Race analysis — all analysis tabs and charts
+    pages/
+      HomePage.tsx             # Landing page
+      DriverPage.tsx           # Per-driver telemetry view
+      AnalysisPage.tsx         # Full race analysis view
+    layouts/
+      SessionLayout.tsx        # Shared header/selectors/footer shell
+    contexts/
+      SessionContext.tsx       # Meeting/session/driver state
     components/
-      AIAnalysis.tsx     # AI-powered race narrative (Gemini streaming)
+      AIAnalysis.tsx           # AI-powered race narrative (Groq streaming)
+      analysis/                # Individual analysis modules (pace, sectors, ...)
+      shell/                   # Header, Footer, SelectorBar, DriverGrid, ...
     lib/
       buildAnalysisSummary.ts  # Compact race summary builder for LLM
-      raceUtils.ts       # Shared math (median, linear regression, etc.)
-      styles.ts          # Shared style constants
-      types.ts           # TypeScript interfaces (Driver, Lap, Stint, etc.)
-      useUrlState.ts     # URL ↔ state sync hook
+      raceUtils.ts             # Shared math (median, linear regression, ...)
+      styles.ts                # Shared style constants
+      types.ts                 # TypeScript interfaces (Driver, Lap, Stint, ...)
     server/
-      index.ts           # Cloudflare Worker — Gemini API proxy
-  wrangler.jsonc         # Cloudflare deployment config
+      index.ts                 # Cloudflare Worker — Groq API proxy
+  wrangler.jsonc               # Cloudflare deployment config
 ```
 
 ## License
