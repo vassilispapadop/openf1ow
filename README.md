@@ -16,6 +16,9 @@ Formula 1 telemetry dashboard and race analysis platform powered by the [OpenF1 
 |---|---|
 | ![Driver View](docs/images/driver.png) | ![AI Analysis](docs/images/ai-analysis.png) |
 
+![Telemetry](docs/images/telemetry.png)
+*Single-lap telemetry — speed, throttle, brake, gear, DRS.*
+
 ## Features
 
 ### Driver View
