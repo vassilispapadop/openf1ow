@@ -31,32 +31,35 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
     }
   }, []);
 
-  // Pointer events handle mouse + touch + pen with one set of handlers.
-  // Touch users get the same drag-to-scroll as desktop without a separate
-  // touch path. dragSuppress flag swallows the click-after-drag so a small
-  // accidental drag doesn't unintentionally select a meeting.
+  // Pointer events handle mouse + touch + pen with one set of handlers, but
+  // we deliberately skip setPointerCapture: it can intercept the synthetic
+  // click that follows a real button click (the captured element receives
+  // pointer events, but the click target on browsers like Chrome can drop
+  // when capture is active). Plain pointer events without capture is enough
+  // for drag-to-scroll inside a scrollable container — the browser ends the
+  // gesture if the cursor leaves the wrap, which is fine.
+  //
+  // suppressClick is only set after MEANINGFUL movement (>= 8px). Most
+  // mouse clicks have 1–3px of drift between mousedown and mouseup; we
+  // don't want that to swallow the click on a flag chip.
+  const DRAG_THRESHOLD = 8;
   const dragState = useRef({ active: false, startX: 0, scrollLeft: 0, suppressClick: false });
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (!scrollRef.current) return;
-    // Native horizontal scroll on touch is more responsive than JS-driven —
-    // skip the JS drag for touch and let the browser handle it.
-    if (e.pointerType === "touch") return;
+    if (e.pointerType === "touch") return;       // native scroll on touch
+    if (e.button !== 0) return;                  // primary button only
     dragState.current = { active: true, startX: e.clientX, scrollLeft: scrollRef.current.scrollLeft, suppressClick: false };
     scrollRef.current.style.cursor = "grabbing";
-    scrollRef.current.setPointerCapture(e.pointerId);
   }, []);
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragState.current.active || !scrollRef.current) return;
     const dx = e.clientX - dragState.current.startX;
-    if (Math.abs(dx) > 4) dragState.current.suppressClick = true;
-    scrollRef.current.scrollLeft = dragState.current.scrollLeft - dx;
+    if (Math.abs(dx) > DRAG_THRESHOLD) dragState.current.suppressClick = true;
+    if (Math.abs(dx) > 0) scrollRef.current.scrollLeft = dragState.current.scrollLeft - dx;
   }, []);
-  const onPointerUp = useCallback((e: React.PointerEvent) => {
+  const onPointerUp = useCallback(() => {
     dragState.current.active = false;
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = "grab";
-      try { scrollRef.current.releasePointerCapture(e.pointerId); } catch { /* not captured */ }
-    }
+    if (scrollRef.current) scrollRef.current.style.cursor = "grab";
   }, []);
   const onClickCapture = useCallback((e: React.MouseEvent) => {
     if (dragState.current.suppressClick) {
@@ -77,6 +80,7 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
         onPointerCancel={onPointerUp}
         onClickCapture={onClickCapture}
         style={{
