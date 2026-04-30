@@ -25,27 +25,38 @@ export default function ConstructorPaceTile({ year }: { year: number }) {
       const trends = await loadSeasonTrends(year);
       if (cancelled) return;
       const races = trends?.constructorPace ?? [];
-      if (races.length < 2) { setState("empty"); return; }
+      if (races.length < 1) { setState("empty"); return; }
 
-      // Take the last race; pick its P2 team. Then trace that team's gap
-      // across all races where it appeared.
       const latest = races[races.length - 1];
-      const p2 = latest.teams.find(t => t.gapToFastest > 0);
-      if (!p2) { setState("empty"); return; }
-
       const window = races.slice(-Math.min(8, races.length));
-      const values: number[] = [];
-      for (const r of window) {
-        const row = r.teams.find(t => t.team === p2.team);
-        if (row) values.push(row.gapToFastest);
+
+      // Among the top-5 chasers in the latest race, prefer whichever team
+      // has the most data points across the window — keeps the tile useful
+      // even when sprint weekends or rate-limit gaps drop a team from a
+      // race. Falls back to plain P2 if everyone has identical coverage.
+      const candidates = latest.teams.filter(t => t.gapToFastest > 0).slice(0, 5);
+      if (candidates.length === 0) { setState("empty"); return; }
+
+      let chosen: { team: string; values: number[] } | null = null;
+      for (const c of candidates) {
+        const values: number[] = [];
+        for (const r of window) {
+          const row = r.teams.find(t => t.team === c.team);
+          if (row) values.push(row.gapToFastest);
+        }
+        if (!chosen || values.length > chosen.values.length) {
+          chosen = { team: c.team, values };
+        }
       }
-      if (values.length < 2) { setState("empty"); return; }
+      if (!chosen || chosen.values.length === 0) { setState("empty"); return; }
 
       setState({
-        team: p2.team,
-        values,
-        delta: values[values.length - 1] - values[0],
-        latestGap: values[values.length - 1],
+        team: chosen.team,
+        values: chosen.values,
+        delta: chosen.values.length >= 2
+          ? chosen.values[chosen.values.length - 1] - chosen.values[0]
+          : 0,
+        latestGap: chosen.values[chosen.values.length - 1],
       });
     })();
     return () => { cancelled = true; };
@@ -65,22 +76,27 @@ export default function ConstructorPaceTile({ year }: { year: number }) {
   }
 
   const closing = state.delta < 0;            // smaller gap = closing
-  const arrow = closing ? "↘" : state.delta > 0 ? "↗" : "→";
-  const deltaText = `${state.delta >= 0 ? "+" : ""}${state.delta.toFixed(3)}s ${arrow} over ${state.values.length} races`;
+  const showTrend = state.values.length >= 2;
+  const arrow = !showTrend ? "" : closing ? "↘" : state.delta > 0 ? "↗" : "→";
+  const deltaText = showTrend
+    ? `${state.delta >= 0 ? "+" : ""}${state.delta.toFixed(3)}s ${arrow} over ${state.values.length} races`
+    : "single race so far";
 
   return (
     <TrendTile
       label="CONSTRUCTOR PACE"
-      headline={`${state.team} ${arrow} +${state.latestGap.toFixed(3)}s`}
-      detail={`vs. fastest team, last ${state.values.length} races`}
+      headline={`${state.team} ${arrow} +${state.latestGap.toFixed(3)}s`.trim()}
+      detail={`vs. fastest team${showTrend ? `, last ${state.values.length} races` : ""}`}
       delta={{ value: deltaText, positive: closing }}
       spark={
-        <Sparkline
-          values={state.values}
-          stroke={closing ? C.pos : C.warn}
-          fill={closing ? "rgba(46,213,115,0.08)" : "rgba(255,181,71,0.08)"}
-          invert      // smaller gap on top
-        />
+        showTrend ? (
+          <Sparkline
+            values={state.values}
+            stroke={closing ? C.pos : C.warn}
+            fill={closing ? "rgba(46,213,115,0.08)" : "rgba(255,181,71,0.08)"}
+            invert      // smaller gap on top
+          />
+        ) : undefined
       }
       href={`/${year}/trends`}
     />

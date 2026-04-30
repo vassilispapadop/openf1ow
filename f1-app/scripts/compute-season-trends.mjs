@@ -250,19 +250,28 @@ function localCachePath(endpoint, sk) {
 async function fetchEndpoint(endpoint, sk) {
   const cached = localCachePath(endpoint, sk);
   if (existsSync(cached)) {
-    return JSON.parse(readFileSync(cached, "utf-8"));
+    const data = JSON.parse(readFileSync(cached, "utf-8"));
+    // Don't trust empty cached arrays — they're almost always rate-limit
+    // fallout from a previous run. Refetch on next call instead of leaving
+    // the artifact permanently incomplete. Real "no data" cases (404) are
+    // returned as null, not [], so don't get cached.
+    if (!Array.isArray(data) || data.length > 0) return data;
   }
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
       const res = await fetch(`${API}/${endpoint}?session_key=${sk}`);
       if (res.ok) {
         const data = await res.json();
-        // Treat empty array as transient on first attempts (OpenF1 rate-limit pattern)
+        // Treat empty array as transient on first attempts
         if (Array.isArray(data) && data.length === 0 && attempt < 3) {
           await sleep(800 * (attempt + 1));
           continue;
         }
-        writeFileSync(cached, JSON.stringify(data));
+        // Only cache non-empty responses so we never freeze rate-limit
+        // fallout into the local cache.
+        if (!Array.isArray(data) || data.length > 0) {
+          writeFileSync(cached, JSON.stringify(data));
+        }
         return data;
       }
       if (res.status === 404) return null;
