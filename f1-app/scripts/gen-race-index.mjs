@@ -130,6 +130,14 @@ async function buildYear(year) {
   const out = [];
 
   for (const m of meetings) {
+    // Drop meetings the FIA / promoter has cancelled (e.g. 2026 Bahrain
+    // and Saudi Arabian Grand Prix were dropped from the calendar after
+    // initial scheduling). OpenF1 sets is_cancelled on the meeting itself.
+    if (m.is_cancelled) {
+      console.log(`  [cancelled] ${m.meeting_name || m.location} mk=${m.meeting_key}`);
+      continue;
+    }
+
     const slug = meetingSlug(m, taken);
     taken.add(slug);
 

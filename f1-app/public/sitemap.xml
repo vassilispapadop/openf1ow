@@ -1941,54 +1941,6 @@
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/recap/2026/sakhir</loc>
-    <lastmod>2026-04-10</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.openf1ow.com/2026/1282</loc>
-    <lastmod>2026-04-10</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://www.openf1ow.com/2026/1282/11261/analysis/overview</loc>
-    <lastmod>2026-04-10</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.openf1ow.com/2026/1282/11257/analysis/overview</loc>
-    <lastmod>2026-04-10</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
-    <loc>https://www.openf1ow.com/recap/2026/jeddah</loc>
-    <lastmod>2026-04-17</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.openf1ow.com/2026/1283</loc>
-    <lastmod>2026-04-17</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://www.openf1ow.com/2026/1283/11269/analysis/overview</loc>
-    <lastmod>2026-04-17</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://www.openf1ow.com/2026/1283/11265/analysis/overview</loc>
-    <lastmod>2026-04-17</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.6</priority>
-  </url>
-  <url>
     <loc>https://www.openf1ow.com/recap/2026/miami-gardens</loc>
     <lastmod>2026-05-01</lastmod>
     <changefreq>weekly</changefreq>

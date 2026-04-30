@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-04-30T11:36:19.694Z",
+  "generatedAt": "2026-04-30T18:40:16.111Z",
   "byYear": {
     "2023": [
       {
@@ -1338,42 +1338,6 @@
           "fp3": 11248,
           "qualifying": 11249,
           "race": 11253
-        }
-      },
-      {
-        "slug": "sakhir",
-        "meetingKey": 1282,
-        "meetingName": "Bahrain Grand Prix",
-        "officialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2026",
-        "country": "Bahrain",
-        "countryCode": "BRN",
-        "location": "Sakhir",
-        "circuit": "Sakhir",
-        "dateStart": "2026-04-10",
-        "sessions": {
-          "fp1": 11254,
-          "fp2": 11255,
-          "fp3": 11256,
-          "qualifying": 11257,
-          "race": 11261
-        }
-      },
-      {
-        "slug": "jeddah",
-        "meetingKey": 1283,
-        "meetingName": "Saudi Arabian Grand Prix",
-        "officialName": "FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2026",
-        "country": "Saudi Arabia",
-        "countryCode": "KSA",
-        "location": "Jeddah",
-        "circuit": "Jeddah",
-        "dateStart": "2026-04-17",
-        "sessions": {
-          "fp1": 11262,
-          "fp2": 11263,
-          "fp3": 11264,
-          "qualifying": 11265,
-          "race": 11269
         }
       },
       {
