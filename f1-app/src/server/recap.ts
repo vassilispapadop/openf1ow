@@ -196,6 +196,19 @@ function escScriptJson(o: unknown): string {
   return JSON.stringify(o).replace(/<\/script/gi, "<\\/script");
 }
 
+// gtag snippet for Worker-rendered HTML pages. Mirrors initAnalytics() in
+// src/lib/analytics.ts so a recap page tracks the same way as the SPA. Empty
+// string when no GA_ID is configured — keeps dev noise out of production.
+export function gaSnippet(gaId: string | undefined): string {
+  if (!gaId || !/^[\w-]{4,40}$/.test(gaId)) return "";
+  const id = JSON.stringify(gaId);
+  return `<script async src="https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(gaId)}"></script>
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}
+gtag('js',new Date());gtag('config',${id});
+</script>`;
+}
+
 interface RecapData {
   race: RaceIndexEntry;
   year: string;
@@ -206,7 +219,7 @@ interface RecapData {
   hasRaceData: boolean;
 }
 
-export function renderRecapHtml(d: RecapData, origin: string): string {
+export function renderRecapHtml(d: RecapData, origin: string, gaId?: string): string {
   const { race, year } = d;
   const slug = race.slug;
   const canonical = `${origin}/recap/${year}/${slug}`;
@@ -335,6 +348,7 @@ export function renderRecapHtml(d: RecapData, origin: string): string {
 
 <script type="application/ld+json">${escScriptJson(jsonLd)}</script>
 <script type="application/ld+json">${escScriptJson(breadcrumb)}</script>
+${gaSnippet(gaId)}
 
 <style>
 :root { color-scheme: dark; }
@@ -440,8 +454,9 @@ export async function handleRecapRequest(opts: {
   url: URL;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   F1_DATA: R2Bucket;
+  gaId?: string;
 }): Promise<Response | null> {
-  const { url, ASSETS, F1_DATA } = opts;
+  const { url, ASSETS, F1_DATA, gaId } = opts;
   // /recap/2026/imola
   const m = url.pathname.match(/^\/recap\/(\d{4})\/([a-z0-9-]+)\/?$/);
   if (!m) return null;
@@ -481,7 +496,7 @@ export async function handleRecapRequest(opts: {
     pace,
     gainers,
     hasRaceData: results.length > 0 || pace.length > 0,
-  }, url.origin);
+  }, url.origin, gaId);
 
   return new Response(html, {
     headers: {
@@ -499,8 +514,9 @@ export async function handleRecapRequest(opts: {
 export async function handleInsightsRequest(opts: {
   url: URL;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
+  gaId?: string;
 }): Promise<Response | null> {
-  const { url, ASSETS } = opts;
+  const { url, ASSETS, gaId } = opts;
   const m = url.pathname.match(/^\/insights(?:\/(\d{4}))?\/?$/);
   if (!m) return null;
   const yearFilter = m[1];
@@ -562,6 +578,7 @@ export async function handleInsightsRequest(opts: {
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${escHtml(title)}" />
 <meta name="twitter:description" content="${escHtml(description)}" />
+${gaSnippet(gaId)}
 <style>
 :root { color-scheme: dark; }
 body { margin: 0; font-family: 'Inter','SF Pro Display',system-ui,sans-serif; background: linear-gradient(180deg,#050508 0%,#0a0e14 100%); color: #e8e8ec; min-height: 100vh; -webkit-font-smoothing: antialiased; }

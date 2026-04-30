@@ -1,15 +1,29 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { useEffect } from "react";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import SessionLayout from "./layouts/SessionLayout";
 import HomePage from "./pages/HomePage";
 import AnalysisPage from "./pages/AnalysisPage";
 import DriverPage from "./pages/DriverPage";
 import LegacyRedirect from "./components/LegacyRedirect";
 import { DEFAULT_ANALYSIS_TAB, DEFAULT_DRIVER_TAB } from "./lib/constants";
+import { trackPageview } from "./lib/analytics";
+
+function PageviewTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    // Defer one tick so document.title updates from per-page useEffect hooks
+    // before we send the pageview.
+    const id = setTimeout(() => trackPageview(location.pathname + location.search), 0);
+    return () => clearTimeout(id);
+  }, [location.pathname, location.search]);
+  return null;
+}
 
 export default function App() {
   return (
     <>
       <LegacyRedirect />
+      <PageviewTracker />
       <Routes>
         <Route element={<SessionLayout />}>
           <Route index element={<HomePage />} />

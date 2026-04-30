@@ -7,6 +7,9 @@ interface Env {
   GROQ_MODEL?: string;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   F1_DATA: R2Bucket;
+  // Google Analytics 4 measurement ID (G-XXXXXXXXXX). Optional — when unset,
+  // Worker-rendered pages skip the gtag snippet.
+  GA_ID?: string;
 }
 
 // ============================================================================
@@ -444,11 +447,11 @@ export default {
 
     // Worker-rendered SEO pages: /recap/:year/:slug and /insights[/:year]
     if (url.pathname.startsWith("/recap/") && env.ASSETS) {
-      const r = await handleRecapRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA });
+      const r = await handleRecapRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA, gaId: env.GA_ID });
       if (r) return r;
     }
     if ((url.pathname === "/insights" || url.pathname.startsWith("/insights/")) && env.ASSETS) {
-      const r = await handleInsightsRequest({ url, ASSETS: env.ASSETS });
+      const r = await handleInsightsRequest({ url, ASSETS: env.ASSETS, gaId: env.GA_ID });
       if (r) return r;
     }
     // PNG share cards for race recaps (Twitter/Slack/Discord preview)
