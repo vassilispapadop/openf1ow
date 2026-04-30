@@ -1,7 +1,3 @@
-// Tiny inline sparkline (SVG, not canvas — needs no resize handling).
-// Used by ConstructorPaceTile + TeammateGapTile. Lower-is-better, so the
-// chart is auto-inverted (small Y values render at the top).
-
 import { F, C } from "../../lib/styles";
 
 interface Props {

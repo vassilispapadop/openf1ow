@@ -1,10 +1,6 @@
-// Compact race chip grid for the homepage. Replaces the auto-redirect-only
-// pattern in the old HomePage with explicit links — clicking a race goes to
-// the recap page (full-content landing for SEO), where users can drill into
-// the live SPA analysis.
-
 import { useEffect, useState } from "react";
 import { F, C, R } from "../../lib/styles";
+import { fd } from "../../lib/format";
 import { loadRaceIndex } from "../../lib/raceIndex";
 
 interface RaceChip {
@@ -91,7 +87,7 @@ export default function SeasonGrid({ year }: { year: number }) {
                 marginBottom: 4,
                 fontVariantNumeric: "tabular-nums",
               }}>
-                {r.dateStart ? new Date(r.dateStart).toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—"}
+                {fd(r.dateStart, { day: "2-digit", month: "short" })}
                 {!r.isPast && <span style={{ color: C.warn, marginLeft: 6 }}>upcoming</span>}
               </div>
               <div style={{

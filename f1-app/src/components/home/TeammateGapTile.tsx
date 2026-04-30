@@ -1,7 +1,3 @@
-// Homepage tile: surfaces the biggest teammate-gap mover. Picks the team
-// whose gap shifted most over the last N races (rookies closing in,
-// veterans pulling away). Sparkline shows the trend.
-
 import { useEffect, useState } from "react";
 import { C } from "../../lib/styles";
 import { loadSeasonTrends } from "../../lib/seasonClient";

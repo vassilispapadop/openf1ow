@@ -1,8 +1,5 @@
-// Worker handler for /api/season-trends/:year — reads the precomputed
-// season-trends/{year}.json artifact from R2 and serves it as JSON.
-//
-// The artifact is built offline by scripts/compute-season-trends.mjs and
-// uploaded to the F1_DATA bucket. This handler does no computation.
+// /api/season-trends/:year — passthrough read of the offline-built
+// season-trends/{year}.json from R2.
 
 const TRENDS_PREFIX = "season-trends/";
 const CACHE_CONTROL = "public, max-age=900, s-maxage=3600, stale-while-revalidate=86400";

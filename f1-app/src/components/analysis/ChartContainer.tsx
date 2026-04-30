@@ -1,10 +1,5 @@
-// Standardised wrapper around a responsive canvas. Owns the wrap div with
-// the ResizeObserver and exposes width to a render callback. Charts opt in
-// by passing a render(args) prop instead of holding their own refs.
-//
-// Why a render-prop and not just children: drawing must run as a useEffect
-// on the *consumer's* state (data, hover, etc.) — passing the canvas ref
-// down via render gives them that hook surface without leaking the wrap.
+// Render-prop pattern (not children): drawing runs as a useEffect on the
+// *consumer's* state, so the canvas ref needs to flow down to the chart.
 
 import type { CSSProperties } from "react";
 import { useResponsiveCanvas, adaptiveMargins, type ChartMargins } from "../../lib/useResponsiveCanvas";

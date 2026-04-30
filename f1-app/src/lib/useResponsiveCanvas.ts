@@ -1,12 +1,8 @@
-// Hook that turns a canvas + wrap pair into a fully-responsive surface:
-// observes the wrap's width with ResizeObserver, re-runs initCanvas() on
-// resize, and gives back the current CSS width so the chart code can
-// recompute layout. Replaces 12+ hand-rolled refs across the analysis
-// components.
+// Hook: ResizeObserver-driven HiDPI canvas. The consumer attaches both
+// refs and reads `width` to drive its draw effect.
 //
-// Usage:
 //   const { wrapRef, canvasRef, width } = useResponsiveCanvas(460);
-//   useEffect(() => { if (!width) return; const { ctx, W, H } = initCanvas(...); /* draw */ }, [width, ...]);
+//   useEffect(() => { /* draw using width */ }, [width, ...]);
 
 import { useEffect, useRef, useState } from "react";
 import { initCanvas } from "./canvas";
@@ -19,14 +15,12 @@ export function useResponsiveCanvas(cssHeight: number) {
   useEffect(() => {
     if (!wrapRef.current) return;
     const wrap = wrapRef.current;
-
-    // Initial measurement — synchronous so first paint has a real width
     setWidth(wrap.clientWidth);
 
     const ro = new ResizeObserver(entries => {
       for (const e of entries) {
         const w = Math.round(e.contentRect.width);
-        // Avoid resize storms triggered by canvas itself changing layout
+        // Same-width guard prevents redraw storms on canvas-induced reflow.
         setWidth(prev => (prev === w ? prev : w));
       }
     });
@@ -34,8 +28,6 @@ export function useResponsiveCanvas(cssHeight: number) {
     return () => ro.disconnect();
   }, []);
 
-  // Re-initialize canvas backing store every time width or css height changes.
-  // Drawing logic stays in the consumer's effect; this hook only owns sizing.
   useEffect(() => {
     if (!canvasRef.current || !wrapRef.current || width === 0) return;
     initCanvas(canvasRef.current, wrapRef.current, cssHeight);
@@ -44,9 +36,6 @@ export function useResponsiveCanvas(cssHeight: number) {
   return { wrapRef, canvasRef, width };
 }
 
-// Adaptive chart margins. Charts call this with their container width and
-// get back margins that scale gracefully at narrow widths. Keeps the math
-// in one place so no chart hardcodes 52/56/66 pixel margins anymore.
 export interface ChartMargins {
   left: number;
   right: number;

@@ -1,8 +1,3 @@
-// Homepage tile: "Who's the second-fastest car right now, and is the gap
-// growing or shrinking?" Reads season-trends artifact, picks the team
-// that's currently P2 in median pace at the most recent race, plots its
-// gap-to-fastest across the last few races.
-
 import { useEffect, useState } from "react";
 import { C } from "../../lib/styles";
 import { loadSeasonTrends } from "../../lib/seasonClient";

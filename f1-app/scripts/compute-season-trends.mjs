@@ -1,25 +1,13 @@
 #!/usr/bin/env node
 /**
- * Builds season-trends/{year}.json artifacts and uploads them to R2.
- *
- *   {
- *     "generatedAt": "...",
- *     "year": 2025,
- *     "raceCount": 24,
- *     "constructorPace": [{ meetingKey, slug, ..., teams: [...] }, ...],
- *     "teammateGap":     [{ meetingKey, slug, ..., teams: [...] }, ...],
- *     "tireDeg":         [{ meetingKey, slug, ..., compounds: [...] }, ...]
- *   }
- *
- * Reads public/race-index.json for race lists. Pulls drivers/laps/stints per
- * race from OpenF1 directly (cached locally in scripts/.cache-trends/), runs
- * the same pure aggregators as src/lib/seasonUtils.ts (math kept in sync —
- * see notes below), and uploads the artifact to the F1_DATA R2 bucket.
+ * Builds season-trends/{year}.json and uploads to R2. Math is duplicated
+ * from src/lib/{raceUtils,seasonUtils}.ts because Node ESM can't import
+ * .ts directly here — keep the two in sync if you change either.
  *
  * Usage:
- *   node scripts/compute-season-trends.mjs                # all years with race data
+ *   node scripts/compute-season-trends.mjs                # all years
  *   node scripts/compute-season-trends.mjs --year 2025
- *   node scripts/compute-season-trends.mjs --dry-run      # compute only, no R2 write
+ *   node scripts/compute-season-trends.mjs --dry-run      # no R2 write
  */
 
 import { execSync } from "node:child_process";
@@ -43,8 +31,7 @@ const targetYear = yearIdx >= 0 ? Number(args[yearIdx + 1]) : null;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// --- Math primitives — kept in sync with src/lib/raceUtils.ts -----------
-// If you change these, mirror in raceUtils.ts (and vice versa).
+// Math primitives — mirror src/lib/raceUtils.ts.
 
 const FUEL_TOTAL_KG = 110;
 const FUEL_SEC_PER_KG = 0.055;
@@ -95,7 +82,7 @@ function stintDegradation(stint, lapLookup, threshold, fc) {
   return Math.max(0, linearSlope(xs, ys));
 }
 
-// --- Aggregators — mirror src/lib/seasonUtils.ts ------------------------
+// Aggregators — mirror src/lib/seasonUtils.ts.
 
 function paceByDriver(laps, drivers) {
   const threshold = computeSlowLapThreshold(laps);
@@ -241,8 +228,6 @@ function aggregateTireDegByCompound(races) {
     .filter(Boolean);
 }
 
-// --- I/O ----------------------------------------------------------------
-
 function localCachePath(endpoint, sk) {
   return join(CACHE_DIR, `${endpoint}_${sk}.json`);
 }
@@ -325,8 +310,6 @@ function uploadToR2(year, payload) {
     console.error(`  upload failed: ${e.message}`);
   }
 }
-
-// --- Main ---------------------------------------------------------------
 
 async function processYear(year, allRaces) {
   console.log(`\n=== ${year} ===`);

@@ -1,7 +1,3 @@
-// /:year/trends — full per-year season trends view. Shows the constructor
-// pace evolution chart at full size; future iterations will add teammate
-// gap and tyre-deg-by-compound charts here.
-
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { F, C, R, sty } from "../lib/styles";
@@ -128,8 +124,8 @@ export default function SeasonTrendsPage() {
   );
 }
 
-// Hidden text version for assistive tech and crawlers — gives them the
-// numeric trend story without needing to interpret the SVG.
+// Hidden text fallback so assistive tech and crawlers still get the trend
+// story without parsing the SVG.
 function ScreenReaderSummary({ trends, year }: { trends: SeasonTrends; year: number }) {
   const last = trends.constructorPace[trends.constructorPace.length - 1];
   if (!last) return null;

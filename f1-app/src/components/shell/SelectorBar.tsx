@@ -31,17 +31,9 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
     }
   }, []);
 
-  // Pointer events handle mouse + touch + pen with one set of handlers, but
-  // we deliberately skip setPointerCapture: it can intercept the synthetic
-  // click that follows a real button click (the captured element receives
-  // pointer events, but the click target on browsers like Chrome can drop
-  // when capture is active). Plain pointer events without capture is enough
-  // for drag-to-scroll inside a scrollable container — the browser ends the
-  // gesture if the cursor leaves the wrap, which is fine.
-  //
-  // suppressClick is only set after MEANINGFUL movement (>= 8px). Most
-  // mouse clicks have 1–3px of drift between mousedown and mouseup; we
-  // don't want that to swallow the click on a flag chip.
+  // No setPointerCapture: it can swallow the click on the inner button.
+  // 8px threshold tolerates 1–3px of normal click drift without flagging
+  // the gesture as a drag.
   const DRAG_THRESHOLD = 8;
   const dragState = useRef({ active: false, startX: 0, scrollLeft: 0, suppressClick: false });
   const onPointerDown = useCallback((e: React.PointerEvent) => {

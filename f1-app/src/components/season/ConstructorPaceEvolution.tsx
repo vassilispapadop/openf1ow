@@ -1,10 +1,5 @@
-// Full-page constructor pace evolution chart. Built mobile-first using a
-// ResizeObserver — each team is a polyline; X is round number; Y is gap to
-// fastest team in seconds (lower is better, so Y axis is inverted-ish).
-//
-// Uses SVG instead of canvas: this chart isn't perf-critical, gets one
-// redraw per resize, and SVG makes touch interactions (legend tap to
-// isolate) trivial.
+// SVG (not canvas): one redraw per resize, free CSS responsiveness, and
+// trivial click-to-isolate on the legend.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { F, M, C } from "../../lib/styles";
@@ -206,8 +201,6 @@ function gridYTicks(yRange: number): number[] {
   return ticks;
 }
 
-// Approximate F1 team brand colours. Falls back to the cycling palette
-// for unknown teams.
 const TEAM_COLORS: Record<string, string> = {
   "Red Bull Racing": "#1E5BC6",
   "McLaren": "#FF8000",

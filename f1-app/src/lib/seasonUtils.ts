@@ -1,9 +1,5 @@
-// Cross-race / season-level aggregators. Pure functions, no DOM, no I/O —
-// callable from both the Cloudflare Worker and the Node-side trends script.
-//
-// All aggregators return raw numeric data (seconds, slope-per-lap) so the
-// frontend can chart it directly. They DON'T format strings — keep that at
-// the render layer.
+// Pure cross-race aggregators. Returns raw numbers (seconds, slope/lap),
+// not strings — formatting belongs to the render layer.
 
 import type { Driver, Lap, Stint } from "./types";
 import {
@@ -13,8 +9,6 @@ import {
   stintDegradation,
   fuelCorrPerLap,
 } from "./raceUtils";
-
-// --- Per-race input shape -------------------------------------------------
 
 export interface RaceMeta {
   meetingKey: number;
@@ -32,8 +26,6 @@ export interface RaceData {
   laps: Lap[];
   stints: Stint[];
 }
-
-// --- Per-race light pace ranker (raw numbers) -----------------------------
 
 interface PaceRow {
   driver: string;          // name_acronym
@@ -70,8 +62,6 @@ function paceByDriver(laps: Lap[], drivers: Driver[]): PaceRow[] {
     })
     .filter((x): x is PaceRow => !!x);
 }
-
-// --- Aggregator: constructor pace evolution ------------------------------
 
 export interface ConstructorPacePoint {
   team: string;
@@ -130,10 +120,8 @@ export function aggregateConstructorPaceByRace(races: RaceData[]): ConstructorPa
     .filter((x): x is ConstructorPaceRace => !!x);
 }
 
-// --- Aggregator: teammate gap trend --------------------------------------
-// Per team, per race: which teammate was faster on common clean laps and by
-// how much. Drives the "is the rookie closing the gap?" / "who's having a
-// rough year?" narratives.
+// Per team, per race: which teammate was faster on common clean laps and
+// by how much (always positive — caller decides the sign convention).
 
 export interface TeammateGapPoint {
   team: string;
@@ -216,9 +204,6 @@ export function aggregateTeammateGapTrend(races: RaceData[]): TeammateGapRace[] 
     .filter((x): x is TeammateGapRace => !!x);
 }
 
-// --- Aggregator: tyre deg by compound ------------------------------------
-// Per-race median deg/lap per compound, fuel-corrected.
-
 export interface CompoundDegPoint {
   compound: string;          // SOFT | MEDIUM | HARD | INTERMEDIATE | WET
   medianDeg: number;         // sec/lap, fuel-corrected
@@ -278,7 +263,7 @@ export function aggregateTireDegByCompound(races: RaceData[]): TireDegRace[] {
     .filter((x): x is TireDegRace => !!x);
 }
 
-// --- Top-level shape written to R2 ---------------------------------------
+// Top-level artifact shape written to R2.
 
 export interface SeasonTrends {
   generatedAt: string;        // ISO timestamp

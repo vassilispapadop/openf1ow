@@ -1,9 +1,6 @@
-// Hero card on the homepage: most recent past race in the chosen season.
-// Headline = race name + winner snippet (if pace data is available);
-// CTA links to the canonical recap page.
-
 import { useEffect, useState } from "react";
 import { F, C, R } from "../../lib/styles";
+import { fd } from "../../lib/format";
 import { loadRaceIndex } from "../../lib/raceIndex";
 import { loadSeasonTrends } from "../../lib/seasonClient";
 import type { ConstructorPaceRace } from "../../lib/seasonUtils";
@@ -78,9 +75,7 @@ export default function LatestRaceCard({ year }: { year: number }) {
     );
   }
 
-  const formatted = new Date(race.dateStart).toLocaleDateString("en-GB", {
-    day: "numeric", month: "long", year: "numeric",
-  });
+  const formatted = fd(race.dateStart);
 
   return (
     <a

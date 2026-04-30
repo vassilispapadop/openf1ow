@@ -135,7 +135,7 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
       });
     }
     drawWatermark(ctx, W, H);
-  }, [boundsKey, bounds, width, xLabel, yLabel, diagonal]);
+  }, [bounds, width, xLabel, yLabel, diagonal]);
 
   const findPoint = useCallback((mx: number, my: number): ScatterPoint | null => {
     if (!bounds || width === 0) return null;

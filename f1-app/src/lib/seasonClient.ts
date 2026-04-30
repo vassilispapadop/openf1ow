@@ -1,6 +1,4 @@
-// Client-side fetcher for the precomputed season-trends artifact.
-// Mirrors the cache pattern in lib/raceIndex.ts: one in-flight promise per
-// year, cached in module scope. Subsequent loads of the same year are free.
+// Module-scoped per-year cache so subsequent loads of the same year are free.
 
 import type { SeasonTrends } from "./seasonUtils";
 

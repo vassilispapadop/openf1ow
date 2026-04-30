@@ -30,6 +30,15 @@ export function fs(s: number | null | undefined): string {
   return s ? s.toFixed(3) : "\u2014";
 }
 
+/** Date formatter: en-GB locale, defaults to "17 May 2024" style. */
+export function fd(
+  dateStr: string | null | undefined,
+  opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "long", year: "numeric" },
+): string {
+  if (!dateStr) return "\u2014";
+  return new Date(dateStr).toLocaleDateString("en-GB", opts);
+}
+
 /** Podium position color */
 export function podiumColor(rank: number): string {
   if (rank === 0) return "#FFD700";

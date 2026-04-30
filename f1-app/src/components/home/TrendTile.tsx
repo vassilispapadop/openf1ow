@@ -1,6 +1,3 @@
-// Shared visual shell for the homepage trend tiles. Keeps the layout
-// identical across tiles so the row reads as a row, not a collage.
-
 import type { ReactNode } from "react";
 import { F, C, R } from "../../lib/styles";
 
