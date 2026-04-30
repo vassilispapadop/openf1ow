@@ -1,6 +1,7 @@
-// Google Analytics 4 wrapper. Active only when VITE_GA_ID is set at build
-// time (typically G-XXXXXXXXXX). When unset, every function is a no-op so
-// dev sessions don't pollute analytics.
+// Google Analytics 4 wrapper. Reads VITE_GA_ID at build time, falls back to
+// the production property's measurement ID so deploys work even without the
+// env var set in CI. GA IDs are public — they ship in every page's gtag URL —
+// so committing the production fallback is fine.
 //
 // We disable GA's automatic page_view because React Router's client-side
 // navigation doesn't trigger a real page load — auto-tracking would only
@@ -13,7 +14,9 @@ declare global {
   }
 }
 
-const GA_ID: string | undefined = import.meta.env.VITE_GA_ID;
+// Fallback: production OpenF1ow GA4 property. Override with VITE_GA_ID for
+// staging or local testing.
+const GA_ID: string = import.meta.env.VITE_GA_ID || "G-W8MHMCEZRQ";
 
 let booted = false;
 
