@@ -1,4 +1,6 @@
 import { handleF1Request } from "./r2-cache";
+import { handleRecapRequest, handleInsightsRequest } from "./recap";
+import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
 
 interface Env {
   GROQ_API_KEY: string;
@@ -64,7 +66,93 @@ function parsePathParams(pathname: string): { year?: string; mk?: string; sk?: s
   return p;
 }
 
-async function buildOgTags(url: URL, r2?: R2Bucket): Promise<{ title: string; description: string; ogUrl: string } | null> {
+// Builds Schema.org JSON-LD for a race or session page.
+// Returned as an object so the caller can JSON.stringify it once.
+function buildSportsEventJsonLd(opts: {
+  meeting: any;
+  session: any | null;
+  driver: any | null;
+  url: string;
+  ogImage: string;
+}): Record<string, any> {
+  const { meeting, session, driver, url, ogImage } = opts;
+  const year = meeting.year || new Date(meeting.date_start || Date.now()).getFullYear();
+  const raceName = meeting.meeting_name || `${meeting.location} Grand Prix`;
+  const fullName = session?.session_name
+    ? `${year} ${raceName} — ${session.session_name}`
+    : `${year} ${raceName}`;
+
+  const jsonLd: Record<string, any> = {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    name: fullName,
+    sport: "Formula 1",
+    url,
+    image: ogImage,
+    description: driver
+      ? `${driver.full_name || driver.name_acronym} telemetry and lap analysis from the ${year} ${raceName}.`
+      : `Formula 1 telemetry and race analysis for the ${year} ${raceName}.`,
+  };
+
+  if (session?.date_start) jsonLd.startDate = session.date_start;
+  else if (meeting.date_start) jsonLd.startDate = meeting.date_start;
+  if (session?.date_end) jsonLd.endDate = session.date_end;
+
+  if (meeting.location || meeting.country_name) {
+    jsonLd.location = {
+      "@type": "Place",
+      name: meeting.circuit_short_name || meeting.location || raceName,
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: meeting.location || undefined,
+        addressCountry: meeting.country_name || meeting.country_code || undefined,
+      },
+    };
+  }
+
+  jsonLd.organizer = {
+    "@type": "Organization",
+    name: "Formula 1",
+    url: "https://www.formula1.com",
+  };
+
+  if (driver) {
+    jsonLd.competitor = [{
+      "@type": "Person",
+      name: driver.full_name || driver.name_acronym,
+      affiliation: driver.team_name ? { "@type": "SportsTeam", name: driver.team_name } : undefined,
+    }];
+  }
+
+  return jsonLd;
+}
+
+function buildBreadcrumbJsonLd(parts: { name: string; url: string }[]): Record<string, any> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: parts.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: p.name,
+      item: p.url,
+    })),
+  };
+}
+
+// Inject one or more <script type="application/ld+json"> blocks before </head>.
+// JSON.stringify is safe here — we control the keys, and values are plain strings/numbers.
+// We still escape `</script` to defend against any future user-derived value sneaking in.
+function injectJsonLd(html: string, blocks: Record<string, any>[]): string {
+  if (!blocks.length) return html;
+  const scripts = blocks.map(b => {
+    const json = JSON.stringify(b).replace(/<\/script/gi, "<\\/script");
+    return `<script type="application/ld+json">${json}</script>`;
+  }).join("\n    ");
+  return html.replace(/<\/head>/i, `    ${scripts}\n  </head>`);
+}
+
+async function buildOgTags(url: URL, r2?: R2Bucket): Promise<{ title: string; description: string; ogUrl: string; jsonLd: Record<string, any>[] } | null> {
   // Support both new path-based URLs and legacy query-param URLs
   let mk: string | null, sk: string | null, dn: string | null, view: string | null, subTab: string | null;
   const pathParams = parsePathParams(url.pathname);
@@ -116,7 +204,31 @@ async function buildOgTags(url: URL, r2?: R2Bucket): Promise<{ title: string; de
   const description = `F1 telemetry and race analysis for the ${year} ${raceName}. Lap times, sector splits, tire strategies, and more on OpenF1ow.`;
   const ogUrl = url.origin + url.pathname + url.search;
 
-  return { title, description, ogUrl };
+  // Build the og:image URL the same way injectOgTags does, so JSON-LD `image` matches.
+  const imgUrl = new URL(ogUrl);
+  imgUrl.pathname = "/og-image";
+  const ogImage = imgUrl.toString();
+
+  const jsonLd: Record<string, any>[] = [
+    buildSportsEventJsonLd({ meeting, session, driver, url: ogUrl, ogImage }),
+  ];
+
+  // Breadcrumbs help Google build rich navigation snippets.
+  const crumbs: { name: string; url: string }[] = [
+    { name: "OpenF1ow", url: url.origin + "/" },
+    { name: String(year), url: `${url.origin}/${year}` },
+    { name: raceName, url: `${url.origin}/${year}/${mk}` },
+  ];
+  if (sk && session) {
+    const sessLabel = session.session_name || "Session";
+    crumbs.push({ name: sessLabel, url: `${url.origin}/${year}/${mk}/${sk}/analysis/overview` });
+  }
+  if (driver) {
+    crumbs.push({ name: driver.full_name || driver.name_acronym, url: ogUrl });
+  }
+  if (crumbs.length > 1) jsonLd.push(buildBreadcrumbJsonLd(crumbs));
+
+  return { title, description, ogUrl, jsonLd };
 }
 
 // Escape for safe injection into HTML attribute values
@@ -330,6 +442,25 @@ export default {
       return handleF1Request(request, env, ctx);
     }
 
+    // Worker-rendered SEO pages: /recap/:year/:slug and /insights[/:year]
+    if (url.pathname.startsWith("/recap/") && env.ASSETS) {
+      const r = await handleRecapRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA });
+      if (r) return r;
+    }
+    if ((url.pathname === "/insights" || url.pathname.startsWith("/insights/")) && env.ASSETS) {
+      const r = await handleInsightsRequest({ url, ASSETS: env.ASSETS });
+      if (r) return r;
+    }
+    // PNG share cards for race recaps (Twitter/Slack/Discord preview)
+    if (url.pathname.startsWith("/share/race/") && env.ASSETS) {
+      const r = await handleShareRaceRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA });
+      if (r) return r;
+    }
+    if (url.pathname.startsWith("/share/driver/") && env.ASSETS) {
+      const r = await handleShareDriverRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA });
+      if (r) return r;
+    }
+
     // Helper: fetch index.html from assets
     async function fetchIndexHtml(): Promise<Response | null> {
       if (!env.ASSETS) return null; // ASSETS binding not available in dev
@@ -350,7 +481,10 @@ export default {
         if (assetRes) {
           let html = await assetRes.text();
           const og = await buildOgTags(url, env.F1_DATA);
-          if (og) html = injectOgTags(html, og);
+          if (og) {
+            html = injectOgTags(html, og);
+            html = injectJsonLd(html, og.jsonLd);
+          }
           return new Response(html, {
             headers: { "Content-Type": "text/html; charset=utf-8" },
           });
@@ -365,20 +499,17 @@ export default {
     }
 
     if (url.pathname !== "/api/analyze") {
-      // SPA fallback — serve index.html for non-API routes
+      // Delegate non-Worker routes (static assets + SPA fallback) to ASSETS.
+      // The asset binding's `not_found_handling: single-page-application` will
+      // serve index.html for any unmatched path.
       if (env.ASSETS) {
-        const assetRes = await fetchIndexHtml();
-        if (assetRes) {
-          return new Response(await assetRes.text(), {
-            headers: { "Content-Type": "text/html; charset=utf-8" },
-          });
-        }
-      } else {
-        // Dev: proxy to Vite dev server root to get index.html
-        try {
-          return await fetch(new Request(url.origin + "/"));
-        } catch { /* fall through */ }
+        return env.ASSETS.fetch(request);
       }
+      // Dev fallback when ASSETS isn't bound (e.g. plain `wrangler dev` without
+      // build): proxy index.html from the Vite dev server.
+      try {
+        return await fetch(new Request(url.origin + "/"));
+      } catch { /* fall through */ }
       return new Response(null, { status: 404 });
     }
 

@@ -7,7 +7,23 @@
     "enabled": true
   },
   "assets": {
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Worker handles these paths directly (slug recaps, insights listing,
+    // OG image, OG injection on race pages, API proxy). Everything else
+    // (static JS/CSS/images and SPA fallback) goes through the asset binding.
+    "run_worker_first": [
+      "/recap/*",
+      "/insights",
+      "/insights/*",
+      "/og-image",
+      "/og-image/*",
+      "/share/*",
+      "/api/*",
+      // Race pages: Worker injects per-page OG tags + JSON-LD into index.html.
+      // Covers /:year, /:year/:mk, /:year/:mk/:sk/...
+      "/2*"
+    ]
   },
   "compatibility_flags": [
     "nodejs_compat"

@@ -1,5 +1,6 @@
 import { F, C } from "../../lib/styles";
 import Pill from "../Pill";
+import ShareLinkButton from "../ShareLinkButton";
 import type { Driver } from "../../lib/types";
 
 interface HeaderProps {
@@ -84,6 +85,7 @@ export default function Header({ meetings, mk, sessions, sk, drivers, dn, onRese
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <ShareLinkButton driverNumber={dn} />
         <Pill
           as="a"
           size="sm"

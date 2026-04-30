@@ -1,0 +1,1723 @@
+{
+  "generatedAt": "2026-04-30T11:36:19.694Z",
+  "byYear": {
+    "2023": [
+      {
+        "slug": "bahrain",
+        "meetingKey": 1141,
+        "meetingName": "Bahrain Grand Prix",
+        "officialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2023",
+        "country": "Bahrain",
+        "countryCode": "BRN",
+        "location": "Sakhir",
+        "circuit": "Sakhir",
+        "dateStart": "2023-03-03",
+        "sessions": {
+          "fp1": 7765,
+          "fp2": 7766,
+          "fp3": 7767,
+          "qualifying": 7768,
+          "race": 7953
+        }
+      },
+      {
+        "slug": "jeddah",
+        "meetingKey": 1142,
+        "meetingName": "Saudi Arabian Grand Prix",
+        "officialName": "FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2023",
+        "country": "Saudi Arabia",
+        "countryCode": "KSA",
+        "location": "Jeddah",
+        "circuit": "Jeddah",
+        "dateStart": "2023-03-17",
+        "sessions": {
+          "fp1": 7772,
+          "fp2": 7773,
+          "fp3": 7774,
+          "qualifying": 7775,
+          "race": 7779
+        }
+      },
+      {
+        "slug": "melbourne",
+        "meetingKey": 1143,
+        "meetingName": "Australian Grand Prix",
+        "officialName": "FORMULA 1 ROLEX AUSTRALIAN GRAND PRIX 2023",
+        "country": "Australia",
+        "countryCode": "AUS",
+        "location": "Melbourne",
+        "circuit": "Melbourne",
+        "dateStart": "2023-03-31",
+        "sessions": {
+          "fp1": 7780,
+          "fp2": 7781,
+          "fp3": 7782,
+          "qualifying": 7783,
+          "race": 7787
+        }
+      },
+      {
+        "slug": "baku",
+        "meetingKey": 1207,
+        "meetingName": "Azerbaijan Grand Prix",
+        "officialName": "FORMULA 1 AZERBAIJAN GRAND PRIX 2023",
+        "country": "Azerbaijan",
+        "countryCode": "AZE",
+        "location": "Baku",
+        "circuit": "Baku",
+        "dateStart": "2023-04-28",
+        "sessions": {
+          "fp1": 9063,
+          "qualifying": 9064,
+          "sprintqualifying": 9278,
+          "sprint": 9069,
+          "race": 9070
+        }
+      },
+      {
+        "slug": "miami",
+        "meetingKey": 1208,
+        "meetingName": "Miami Grand Prix",
+        "officialName": "FORMULA 1 CRYPTO.COM MIAMI GRAND PRIX 2023",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Miami",
+        "circuit": "Miami",
+        "dateStart": "2023-05-05",
+        "sessions": {
+          "fp1": 9071,
+          "fp2": 9072,
+          "fp3": 9073,
+          "qualifying": 9074,
+          "race": 9078
+        }
+      },
+      {
+        "slug": "imola",
+        "meetingKey": 1209,
+        "meetingName": "Emilia Romagna Grand Prix",
+        "officialName": "CALLED OFF: FORMULA 1 QATAR AIRWAYS GRAN PREMIO DEL MADE IN ITALY E DELL'EMILIA-ROMAGNA 2023",
+        "country": "Italy",
+        "countryCode": "ITA",
+        "location": "Imola",
+        "circuit": "Imola",
+        "dateStart": "2023-05-19",
+        "sessions": {
+          "fp1": 9079,
+          "fp2": 9080,
+          "fp3": 9081,
+          "qualifying": 9082,
+          "race": 9086
+        }
+      },
+      {
+        "slug": "monaco",
+        "meetingKey": 1210,
+        "meetingName": "Monaco Grand Prix",
+        "officialName": "FORMULA 1 GRAND PRIX DE MONACO 2023",
+        "country": "Monaco",
+        "countryCode": "MON",
+        "location": "Monaco",
+        "circuit": "Monte Carlo",
+        "dateStart": "2023-05-26",
+        "sessions": {
+          "fp1": 9087,
+          "fp2": 9088,
+          "fp3": 9089,
+          "qualifying": 9090,
+          "race": 9094
+        }
+      },
+      {
+        "slug": "barcelona",
+        "meetingKey": 1211,
+        "meetingName": "Spanish Grand Prix",
+        "officialName": "FORMULA 1 AWS GRAN PREMIO DE ESPAÑA 2023",
+        "country": "Spain",
+        "countryCode": "ESP",
+        "location": "Barcelona",
+        "circuit": "Catalunya",
+        "dateStart": "2023-06-02",
+        "sessions": {
+          "fp1": 9095,
+          "fp2": 9096,
+          "fp3": 9097,
+          "qualifying": 9098,
+          "race": 9102
+        }
+      },
+      {
+        "slug": "montreal",
+        "meetingKey": 1212,
+        "meetingName": "Canadian Grand Prix",
+        "officialName": "FORMULA 1 PIRELLI GRAND PRIX DU CANADA 2023",
+        "country": "Canada",
+        "countryCode": "CAN",
+        "location": "Montréal",
+        "circuit": "Montreal",
+        "dateStart": "2023-06-16",
+        "sessions": {
+          "fp1": 9103,
+          "fp2": 9104,
+          "fp3": 9105,
+          "qualifying": 9106,
+          "race": 9110
+        }
+      },
+      {
+        "slug": "spielberg",
+        "meetingKey": 1213,
+        "meetingName": "Austrian Grand Prix",
+        "officialName": "FORMULA 1 ROLEX GROSSER PREIS VON ÖSTERREICH 2023",
+        "country": "Austria",
+        "countryCode": "AUT",
+        "location": "Spielberg",
+        "circuit": "Spielberg",
+        "dateStart": "2023-06-30",
+        "sessions": {
+          "fp1": 9111,
+          "qualifying": 9112,
+          "sprintqualifying": 9282,
+          "sprint": 9117,
+          "race": 9118
+        }
+      },
+      {
+        "slug": "silverstone",
+        "meetingKey": 1214,
+        "meetingName": "British Grand Prix",
+        "officialName": "FORMULA 1 ARAMCO BRITISH GRAND PRIX 2023",
+        "country": "United Kingdom",
+        "countryCode": "GBR",
+        "location": "Silverstone",
+        "circuit": "Silverstone",
+        "dateStart": "2023-07-07",
+        "sessions": {
+          "fp1": 9119,
+          "fp2": 9120,
+          "fp3": 9121,
+          "qualifying": 9122,
+          "race": 9126
+        }
+      },
+      {
+        "slug": "budapest",
+        "meetingKey": 1215,
+        "meetingName": "Hungarian Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS HUNGARIAN GRAND PRIX 2023",
+        "country": "Hungary",
+        "countryCode": "HUN",
+        "location": "Budapest",
+        "circuit": "Hungaroring",
+        "dateStart": "2023-07-21",
+        "sessions": {
+          "fp1": 9223,
+          "fp2": 9127,
+          "fp3": 9128,
+          "qualifying": 9129,
+          "race": 9133
+        }
+      },
+      {
+        "slug": "spa-francorchamps",
+        "meetingKey": 1216,
+        "meetingName": "Belgian Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES BELGIAN GRAND PRIX 2023",
+        "country": "Belgium",
+        "countryCode": "BEL",
+        "location": "Spa-Francorchamps",
+        "circuit": "Spa-Francorchamps",
+        "dateStart": "2023-07-28",
+        "sessions": {
+          "fp1": 9134,
+          "qualifying": 9135,
+          "sprintqualifying": 9286,
+          "sprint": 9140,
+          "race": 9141
+        }
+      },
+      {
+        "slug": "zandvoort",
+        "meetingKey": 1217,
+        "meetingName": "Dutch Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN DUTCH GRAND PRIX 2023",
+        "country": "Netherlands",
+        "countryCode": "NED",
+        "location": "Zandvoort",
+        "circuit": "Zandvoort",
+        "dateStart": "2023-08-25",
+        "sessions": {
+          "fp1": 9142,
+          "fp2": 9143,
+          "fp3": 9144,
+          "qualifying": 9145,
+          "race": 9149
+        }
+      },
+      {
+        "slug": "monza",
+        "meetingKey": 1218,
+        "meetingName": "Italian Grand Prix",
+        "officialName": "FORMULA 1 PIRELLI GRAN PREMIO D’ITALIA 2023 ",
+        "country": "Italy",
+        "countryCode": "ITA",
+        "location": "Monza",
+        "circuit": "Monza",
+        "dateStart": "2023-09-01",
+        "sessions": {
+          "fp1": 9150,
+          "fp2": 9151,
+          "fp3": 9152,
+          "qualifying": 9153,
+          "race": 9157
+        }
+      },
+      {
+        "slug": "marina-bay",
+        "meetingKey": 1219,
+        "meetingName": "Singapore Grand Prix",
+        "officialName": "FORMULA 1 SINGAPORE AIRLINES SINGAPORE GRAND PRIX 2023 ",
+        "country": "Singapore",
+        "countryCode": "SGP",
+        "location": "Marina Bay",
+        "circuit": "Singapore",
+        "dateStart": "2023-09-15",
+        "sessions": {
+          "fp1": 9158,
+          "fp2": 9159,
+          "fp3": 9160,
+          "qualifying": 9161,
+          "race": 9165
+        }
+      },
+      {
+        "slug": "suzuka",
+        "meetingKey": 1220,
+        "meetingName": "Japanese Grand Prix",
+        "officialName": "FORMULA 1 LENOVO JAPANESE GRAND PRIX 2023 ",
+        "country": "Japan",
+        "countryCode": "JPN",
+        "location": "Suzuka",
+        "circuit": "Suzuka",
+        "dateStart": "2023-09-22",
+        "sessions": {
+          "fp1": 9166,
+          "fp2": 9167,
+          "fp3": 9168,
+          "qualifying": 9169,
+          "race": 9173
+        }
+      },
+      {
+        "slug": "lusail",
+        "meetingKey": 1221,
+        "meetingName": "Qatar Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS QATAR GRAND PRIX 2023",
+        "country": "Qatar",
+        "countryCode": "QAT",
+        "location": "Lusail",
+        "circuit": "Lusail",
+        "dateStart": "2023-10-06",
+        "sessions": {
+          "fp1": 9214,
+          "qualifying": 9215,
+          "sprintqualifying": 9298,
+          "sprint": 9220,
+          "race": 9221
+        }
+      },
+      {
+        "slug": "austin",
+        "meetingKey": 1222,
+        "meetingName": "United States Grand Prix",
+        "officialName": "FORMULA 1 LENOVO UNITED STATES GRAND PRIX 2023",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Austin",
+        "circuit": "Austin",
+        "dateStart": "2023-10-20",
+        "sessions": {
+          "fp1": 9206,
+          "qualifying": 9207,
+          "sprintqualifying": 9294,
+          "sprint": 9212,
+          "race": 9213
+        }
+      },
+      {
+        "slug": "mexico-city",
+        "meetingKey": 1223,
+        "meetingName": "Mexico City Grand Prix",
+        "officialName": "FORMULA 1 GRAN PREMIO DE LA CIUDAD DE MÉXICO 2023",
+        "country": "Mexico",
+        "countryCode": "MEX",
+        "location": "Mexico City",
+        "circuit": "Mexico City",
+        "dateStart": "2023-10-27",
+        "sessions": {
+          "fp1": 9174,
+          "fp2": 9175,
+          "fp3": 9176,
+          "qualifying": 9177,
+          "race": 9181
+        }
+      },
+      {
+        "slug": "sao-paulo",
+        "meetingKey": 1224,
+        "meetingName": "São Paulo Grand Prix",
+        "officialName": "FORMULA 1 ROLEX GRANDE PRÊMIO DE SÃO PAULO 2023",
+        "country": "Brazil",
+        "countryCode": "BRA",
+        "location": "São Paulo",
+        "circuit": "Interlagos",
+        "dateStart": "2023-11-03",
+        "sessions": {
+          "fp1": 9198,
+          "qualifying": 9304,
+          "sprintqualifying": 9308,
+          "sprint": 9204,
+          "race": 9205
+        }
+      },
+      {
+        "slug": "las-vegas",
+        "meetingKey": 1225,
+        "meetingName": "Las Vegas Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN SILVER LAS VEGAS GRAND PRIX 2023",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Las Vegas",
+        "circuit": "Las Vegas",
+        "dateStart": "2023-11-17",
+        "sessions": {
+          "fp1": 9182,
+          "fp2": 9183,
+          "fp3": 9184,
+          "qualifying": 9314,
+          "race": 9189
+        }
+      },
+      {
+        "slug": "yas-island",
+        "meetingKey": 1226,
+        "meetingName": "Abu Dhabi Grand Prix",
+        "officialName": "FORMULA 1 ETIHAD AIRWAYS ABU DHABI GRAND PRIX 2023 ",
+        "country": "United Arab Emirates",
+        "countryCode": "UAE",
+        "location": "Yas Island",
+        "circuit": "Yas Marina Circuit",
+        "dateStart": "2023-11-24",
+        "sessions": {
+          "fp1": 9190,
+          "fp2": 9191,
+          "fp3": 9192,
+          "qualifying": 9193,
+          "race": 9197
+        }
+      }
+    ],
+    "2024": [
+      {
+        "slug": "bahrain",
+        "meetingKey": 1229,
+        "meetingName": "Bahrain Grand Prix",
+        "officialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2024",
+        "country": "Bahrain",
+        "countryCode": "BRN",
+        "location": "Sakhir",
+        "circuit": "Sakhir",
+        "dateStart": "2024-02-29",
+        "sessions": {
+          "fp1": 9465,
+          "fp2": 9466,
+          "fp3": 9467,
+          "qualifying": 9468,
+          "race": 9472
+        }
+      },
+      {
+        "slug": "jeddah",
+        "meetingKey": 1230,
+        "meetingName": "Saudi Arabian Grand Prix",
+        "officialName": "FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2024",
+        "country": "Saudi Arabia",
+        "countryCode": "KSA",
+        "location": "Jeddah",
+        "circuit": "Jeddah",
+        "dateStart": "2024-03-07",
+        "sessions": {
+          "fp1": 9473,
+          "fp2": 9474,
+          "fp3": 9475,
+          "qualifying": 9476,
+          "race": 9480
+        }
+      },
+      {
+        "slug": "melbourne",
+        "meetingKey": 1231,
+        "meetingName": "Australian Grand Prix",
+        "officialName": "FORMULA 1 ROLEX AUSTRALIAN GRAND PRIX 2024",
+        "country": "Australia",
+        "countryCode": "AUS",
+        "location": "Melbourne",
+        "circuit": "Melbourne",
+        "dateStart": "2024-03-22",
+        "sessions": {
+          "fp1": 9481,
+          "fp2": 9482,
+          "fp3": 9483,
+          "qualifying": 9484,
+          "race": 9488
+        }
+      },
+      {
+        "slug": "suzuka",
+        "meetingKey": 1232,
+        "meetingName": "Japanese Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES JAPANESE GRAND PRIX 2024",
+        "country": "Japan",
+        "countryCode": "JPN",
+        "location": "Suzuka",
+        "circuit": "Suzuka",
+        "dateStart": "2024-04-05",
+        "sessions": {
+          "fp1": 9489,
+          "fp2": 9490,
+          "fp3": 9491,
+          "qualifying": 9492,
+          "race": 9496
+        }
+      },
+      {
+        "slug": "shanghai",
+        "meetingKey": 1233,
+        "meetingName": "Chinese Grand Prix",
+        "officialName": "FORMULA 1 LENOVO CHINESE GRAND PRIX 2024",
+        "country": "China",
+        "countryCode": "CHN",
+        "location": "Shanghai",
+        "circuit": "Shanghai",
+        "dateStart": "2024-04-19",
+        "sessions": {
+          "fp1": 9663,
+          "sprintqualifying": 9668,
+          "sprint": 9672,
+          "qualifying": 9664,
+          "race": 9673
+        }
+      },
+      {
+        "slug": "miami",
+        "meetingKey": 1234,
+        "meetingName": "Miami Grand Prix",
+        "officialName": "FORMULA 1 CRYPTO.COM MIAMI GRAND PRIX 2024",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Miami",
+        "circuit": "Miami",
+        "dateStart": "2024-05-03",
+        "sessions": {
+          "fp1": 9497,
+          "sprintqualifying": 9502,
+          "sprint": 9506,
+          "qualifying": 9498,
+          "race": 9507
+        }
+      },
+      {
+        "slug": "imola",
+        "meetingKey": 1235,
+        "meetingName": "Emilia Romagna Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES GRAN PREMIO DEL MADE IN ITALY E DELL'EMILIA-ROMAGNA 2024",
+        "country": "Italy",
+        "countryCode": "ITA",
+        "location": "Imola",
+        "circuit": "Imola",
+        "dateStart": "2024-05-17",
+        "sessions": {
+          "fp1": 9508,
+          "fp2": 9509,
+          "fp3": 9510,
+          "qualifying": 9511,
+          "race": 9515
+        }
+      },
+      {
+        "slug": "monaco",
+        "meetingKey": 1236,
+        "meetingName": "Monaco Grand Prix",
+        "officialName": "FORMULA 1 GRAND PRIX DE MONACO 2024",
+        "country": "Monaco",
+        "countryCode": "MON",
+        "location": "Monaco",
+        "circuit": "Monte Carlo",
+        "dateStart": "2024-05-24",
+        "sessions": {
+          "fp1": 9516,
+          "fp2": 9517,
+          "fp3": 9518,
+          "qualifying": 9519,
+          "race": 9523
+        }
+      },
+      {
+        "slug": "montreal",
+        "meetingKey": 1237,
+        "meetingName": "Canadian Grand Prix",
+        "officialName": "FORMULA 1 AWS GRAND PRIX DU CANADA 2024",
+        "country": "Canada",
+        "countryCode": "CAN",
+        "location": "Montréal",
+        "circuit": "Montreal",
+        "dateStart": "2024-06-07",
+        "sessions": {
+          "fp1": 9524,
+          "fp2": 9525,
+          "fp3": 9526,
+          "qualifying": 9527,
+          "race": 9531
+        }
+      },
+      {
+        "slug": "barcelona",
+        "meetingKey": 1238,
+        "meetingName": "Spanish Grand Prix",
+        "officialName": "FORMULA 1 ARAMCO GRAN PREMIO DE ESPAÑA 2024",
+        "country": "Spain",
+        "countryCode": "ESP",
+        "location": "Barcelona",
+        "circuit": "Catalunya",
+        "dateStart": "2024-06-21",
+        "sessions": {
+          "fp1": 9532,
+          "fp2": 9533,
+          "fp3": 9534,
+          "qualifying": 9535,
+          "race": 9539
+        }
+      },
+      {
+        "slug": "spielberg",
+        "meetingKey": 1239,
+        "meetingName": "Austrian Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS AUSTRIAN GRAND PRIX 2024",
+        "country": "Austria",
+        "countryCode": "AUT",
+        "location": "Spielberg",
+        "circuit": "Spielberg",
+        "dateStart": "2024-06-28",
+        "sessions": {
+          "fp1": 9540,
+          "sprintqualifying": 9545,
+          "sprint": 9549,
+          "qualifying": 9541,
+          "race": 9550
+        }
+      },
+      {
+        "slug": "silverstone",
+        "meetingKey": 1240,
+        "meetingName": "British Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS BRITISH GRAND PRIX 2024",
+        "country": "United Kingdom",
+        "countryCode": "GBR",
+        "location": "Silverstone",
+        "circuit": "Silverstone",
+        "dateStart": "2024-07-05",
+        "sessions": {
+          "fp1": 9551,
+          "fp2": 9552,
+          "fp3": 9553,
+          "qualifying": 9554,
+          "race": 9558
+        }
+      },
+      {
+        "slug": "budapest",
+        "meetingKey": 1241,
+        "meetingName": "Hungarian Grand Prix",
+        "officialName": "FORMULA 1 HUNGARIAN GRAND PRIX 2024",
+        "country": "Hungary",
+        "countryCode": "HUN",
+        "location": "Budapest",
+        "circuit": "Hungaroring",
+        "dateStart": "2024-07-19",
+        "sessions": {
+          "fp1": 9559,
+          "fp2": 9560,
+          "fp3": 9561,
+          "qualifying": 9562,
+          "race": 9566
+        }
+      },
+      {
+        "slug": "spa-francorchamps",
+        "meetingKey": 1242,
+        "meetingName": "Belgian Grand Prix",
+        "officialName": "FORMULA 1 ROLEX BELGIAN GRAND PRIX 2024",
+        "country": "Belgium",
+        "countryCode": "BEL",
+        "location": "Spa-Francorchamps",
+        "circuit": "Spa-Francorchamps",
+        "dateStart": "2024-07-26",
+        "sessions": {
+          "fp1": 9567,
+          "fp2": 9568,
+          "fp3": 9569,
+          "qualifying": 9570,
+          "race": 9574
+        }
+      },
+      {
+        "slug": "zandvoort",
+        "meetingKey": 1243,
+        "meetingName": "Dutch Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN DUTCH GRAND PRIX 2024",
+        "country": "Netherlands",
+        "countryCode": "NED",
+        "location": "Zandvoort",
+        "circuit": "Zandvoort",
+        "dateStart": "2024-08-23",
+        "sessions": {
+          "fp1": 9575,
+          "fp2": 9576,
+          "fp3": 9577,
+          "qualifying": 9578,
+          "race": 9582
+        }
+      },
+      {
+        "slug": "monza",
+        "meetingKey": 1244,
+        "meetingName": "Italian Grand Prix",
+        "officialName": "FORMULA 1 PIRELLI GRAN PREMIO D’ITALIA 2024",
+        "country": "Italy",
+        "countryCode": "ITA",
+        "location": "Monza",
+        "circuit": "Monza",
+        "dateStart": "2024-08-30",
+        "sessions": {
+          "fp1": 9583,
+          "fp2": 9584,
+          "fp3": 9585,
+          "qualifying": 9586,
+          "race": 9590
+        }
+      },
+      {
+        "slug": "baku",
+        "meetingKey": 1245,
+        "meetingName": "Azerbaijan Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS AZERBAIJAN GRAND PRIX 2024",
+        "country": "Azerbaijan",
+        "countryCode": "AZE",
+        "location": "Baku",
+        "circuit": "Baku",
+        "dateStart": "2024-09-13",
+        "sessions": {
+          "fp1": 9591,
+          "fp2": 9592,
+          "fp3": 9593,
+          "qualifying": 9594,
+          "race": 9598
+        }
+      },
+      {
+        "slug": "marina-bay",
+        "meetingKey": 1246,
+        "meetingName": "Singapore Grand Prix",
+        "officialName": "FORMULA 1 SINGAPORE AIRLINES SINGAPORE GRAND PRIX 2024",
+        "country": "Singapore",
+        "countryCode": "SGP",
+        "location": "Marina Bay",
+        "circuit": "Singapore",
+        "dateStart": "2024-09-20",
+        "sessions": {
+          "fp1": 9599,
+          "fp2": 9600,
+          "fp3": 9601,
+          "qualifying": 9602,
+          "race": 9606
+        }
+      },
+      {
+        "slug": "austin",
+        "meetingKey": 1247,
+        "meetingName": "United States Grand Prix",
+        "officialName": "FORMULA 1 PIRELLI UNITED STATES GRAND PRIX 2024",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Austin",
+        "circuit": "Austin",
+        "dateStart": "2024-10-18",
+        "sessions": {
+          "fp1": 9607,
+          "sprintqualifying": 9612,
+          "sprint": 9616,
+          "qualifying": 9608,
+          "race": 9617
+        }
+      },
+      {
+        "slug": "mexico-city",
+        "meetingKey": 1248,
+        "meetingName": "Mexico City Grand Prix",
+        "officialName": "FORMULA 1 GRAN PREMIO DE LA CIUDAD DE MÉXICO 2024",
+        "country": "Mexico",
+        "countryCode": "MEX",
+        "location": "Mexico City",
+        "circuit": "Mexico City",
+        "dateStart": "2024-10-25",
+        "sessions": {
+          "fp1": 9618,
+          "fp2": 9619,
+          "fp3": 9620,
+          "qualifying": 9621,
+          "race": 9625
+        }
+      },
+      {
+        "slug": "sao-paulo",
+        "meetingKey": 1249,
+        "meetingName": "São Paulo Grand Prix",
+        "officialName": "FORMULA 1 LENOVO GRANDE PRÊMIO DE SÃO PAULO 2024",
+        "country": "Brazil",
+        "countryCode": "BRA",
+        "location": "São Paulo",
+        "circuit": "Interlagos",
+        "dateStart": "2024-11-01",
+        "sessions": {
+          "fp1": 9626,
+          "sprintqualifying": 9631,
+          "sprint": 9635,
+          "qualifying": 9627,
+          "race": 9636
+        }
+      },
+      {
+        "slug": "las-vegas",
+        "meetingKey": 1250,
+        "meetingName": "Las Vegas Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN SILVER LAS VEGAS GRAND PRIX 2024",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Las Vegas",
+        "circuit": "Las Vegas",
+        "dateStart": "2024-11-22",
+        "sessions": {
+          "fp1": 9637,
+          "fp2": 9638,
+          "fp3": 9639,
+          "qualifying": 9640,
+          "race": 9644
+        }
+      },
+      {
+        "slug": "lusail",
+        "meetingKey": 1251,
+        "meetingName": "Qatar Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS QATAR GRAND PRIX 2024",
+        "country": "Qatar",
+        "countryCode": "QAT",
+        "location": "Lusail",
+        "circuit": "Lusail",
+        "dateStart": "2024-11-29",
+        "sessions": {
+          "fp1": 9645,
+          "sprintqualifying": 9650,
+          "sprint": 9654,
+          "qualifying": 9646,
+          "race": 9655
+        }
+      },
+      {
+        "slug": "yas-island",
+        "meetingKey": 1252,
+        "meetingName": "Abu Dhabi Grand Prix",
+        "officialName": "FORMULA 1 ETIHAD AIRWAYS ABU DHABI GRAND PRIX 2024",
+        "country": "United Arab Emirates",
+        "countryCode": "UAE",
+        "location": "Yas Island",
+        "circuit": "Yas Marina Circuit",
+        "dateStart": "2024-12-06",
+        "sessions": {
+          "fp1": 9461,
+          "fp2": 9656,
+          "fp3": 9657,
+          "qualifying": 9658,
+          "race": 9662
+        }
+      }
+    ],
+    "2025": [
+      {
+        "slug": "melbourne",
+        "meetingKey": 1254,
+        "meetingName": "Australian Grand Prix",
+        "officialName": "FORMULA 1 LOUIS VUITTON AUSTRALIAN GRAND PRIX 2025",
+        "country": "Australia",
+        "countryCode": "AUS",
+        "location": "Melbourne",
+        "circuit": "Melbourne",
+        "dateStart": "2025-03-14",
+        "sessions": {
+          "fp1": 9686,
+          "fp2": 9687,
+          "fp3": 9688,
+          "qualifying": 9689,
+          "race": 9693
+        }
+      },
+      {
+        "slug": "shanghai",
+        "meetingKey": 1255,
+        "meetingName": "Chinese Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2025",
+        "country": "China",
+        "countryCode": "CHN",
+        "location": "Shanghai",
+        "circuit": "Shanghai",
+        "dateStart": "2025-03-21",
+        "sessions": {
+          "fp1": 9988,
+          "sprintqualifying": 9989,
+          "sprint": 9993,
+          "qualifying": 9994,
+          "race": 9998
+        }
+      },
+      {
+        "slug": "suzuka",
+        "meetingKey": 1256,
+        "meetingName": "Japanese Grand Prix",
+        "officialName": "FORMULA 1 LENOVO JAPANESE GRAND PRIX 2025 ",
+        "country": "Japan",
+        "countryCode": "JPN",
+        "location": "Suzuka",
+        "circuit": "Suzuka",
+        "dateStart": "2025-04-04",
+        "sessions": {
+          "fp1": 9999,
+          "fp2": 10000,
+          "fp3": 10001,
+          "qualifying": 10002,
+          "race": 10006
+        }
+      },
+      {
+        "slug": "bahrain",
+        "meetingKey": 1257,
+        "meetingName": "Bahrain Grand Prix",
+        "officialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2025",
+        "country": "Bahrain",
+        "countryCode": "BRN",
+        "location": "Sakhir",
+        "circuit": "Sakhir",
+        "dateStart": "2025-04-11",
+        "sessions": {
+          "fp1": 10007,
+          "fp2": 10008,
+          "fp3": 10009,
+          "qualifying": 10010,
+          "race": 10014
+        }
+      },
+      {
+        "slug": "jeddah",
+        "meetingKey": 1258,
+        "meetingName": "Saudi Arabian Grand Prix",
+        "officialName": "FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2025",
+        "country": "Saudi Arabia",
+        "countryCode": "KSA",
+        "location": "Jeddah",
+        "circuit": "Jeddah",
+        "dateStart": "2025-04-18",
+        "sessions": {
+          "fp1": 10015,
+          "fp2": 10016,
+          "fp3": 10017,
+          "qualifying": 10018,
+          "race": 10022
+        }
+      },
+      {
+        "slug": "miami-gardens",
+        "meetingKey": 1259,
+        "meetingName": "Miami Grand Prix",
+        "officialName": "FORMULA 1 CRYPTO.COM MIAMI GRAND PRIX 2025",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Miami Gardens",
+        "circuit": "Miami",
+        "dateStart": "2025-05-02",
+        "sessions": {
+          "fp1": 10023,
+          "sprintqualifying": 10024,
+          "sprint": 10028,
+          "qualifying": 10029,
+          "race": 10033
+        }
+      },
+      {
+        "slug": "imola",
+        "meetingKey": 1260,
+        "meetingName": "Emilia Romagna Grand Prix",
+        "officialName": "FORMULA 1 AWS GRAN PREMIO DEL MADE IN ITALY E DELL'EMILIA-ROMAGNA 2025",
+        "country": "Italy",
+        "countryCode": "ITA",
+        "location": "Imola",
+        "circuit": "Imola",
+        "dateStart": "2025-05-16",
+        "sessions": {
+          "fp1": 9980,
+          "fp2": 9981,
+          "fp3": 9982,
+          "qualifying": 9983,
+          "race": 9987
+        }
+      },
+      {
+        "slug": "monaco",
+        "meetingKey": 1261,
+        "meetingName": "Monaco Grand Prix",
+        "officialName": "FORMULA 1 TAG HEUER GRAND PRIX DE MONACO 2025",
+        "country": "Monaco",
+        "countryCode": "MON",
+        "location": "Monaco",
+        "circuit": "Monte Carlo",
+        "dateStart": "2025-05-23",
+        "sessions": {
+          "fp1": 9972,
+          "fp2": 9973,
+          "fp3": 9974,
+          "qualifying": 9975,
+          "race": 9979
+        }
+      },
+      {
+        "slug": "barcelona",
+        "meetingKey": 1262,
+        "meetingName": "Spanish Grand Prix",
+        "officialName": "FORMULA 1 ARAMCO GRAN PREMIO DE ESPAÑA 2025",
+        "country": "Spain",
+        "countryCode": "ESP",
+        "location": "Barcelona",
+        "circuit": "Catalunya",
+        "dateStart": "2025-05-30",
+        "sessions": {
+          "fp1": 9964,
+          "fp2": 9965,
+          "fp3": 9966,
+          "qualifying": 9967,
+          "race": 9971
+        }
+      },
+      {
+        "slug": "montreal",
+        "meetingKey": 1263,
+        "meetingName": "Canadian Grand Prix",
+        "officialName": "FORMULA 1 PIRELLI GRAND PRIX DU CANADA 2025",
+        "country": "Canada",
+        "countryCode": "CAN",
+        "location": "Montréal",
+        "circuit": "Montreal",
+        "dateStart": "2025-06-13",
+        "sessions": {
+          "fp1": 9956,
+          "fp2": 9957,
+          "fp3": 9958,
+          "qualifying": 9959,
+          "race": 9963
+        }
+      },
+      {
+        "slug": "spielberg",
+        "meetingKey": 1264,
+        "meetingName": "Austrian Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES AUSTRIAN GRAND PRIX 2025",
+        "country": "Austria",
+        "countryCode": "AUT",
+        "location": "Spielberg",
+        "circuit": "Spielberg",
+        "dateStart": "2025-06-27",
+        "sessions": {
+          "fp1": 9948,
+          "fp2": 9949,
+          "fp3": 9950,
+          "qualifying": 9951,
+          "race": 9955
+        }
+      },
+      {
+        "slug": "silverstone",
+        "meetingKey": 1277,
+        "meetingName": "British Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS BRITISH GRAND PRIX 2025",
+        "country": "United Kingdom",
+        "countryCode": "GBR",
+        "location": "Silverstone",
+        "circuit": "Silverstone",
+        "dateStart": "2025-07-04",
+        "sessions": {
+          "fp1": 9940,
+          "fp2": 9941,
+          "fp3": 9942,
+          "qualifying": 9943,
+          "race": 9947
+        }
+      },
+      {
+        "slug": "spa-francorchamps",
+        "meetingKey": 1265,
+        "meetingName": "Belgian Grand Prix",
+        "officialName": "FORMULA 1 MOËT & CHANDON BELGIAN GRAND PRIX 2025",
+        "country": "Belgium",
+        "countryCode": "BEL",
+        "location": "Spa-Francorchamps",
+        "circuit": "Spa-Francorchamps",
+        "dateStart": "2025-07-25",
+        "sessions": {
+          "fp1": 9929,
+          "sprintqualifying": 9930,
+          "sprint": 9934,
+          "qualifying": 9935,
+          "race": 9939
+        }
+      },
+      {
+        "slug": "budapest",
+        "meetingKey": 1266,
+        "meetingName": "Hungarian Grand Prix",
+        "officialName": "FORMULA 1 LENOVO HUNGARIAN GRAND PRIX 2025",
+        "country": "Hungary",
+        "countryCode": "HUN",
+        "location": "Budapest",
+        "circuit": "Hungaroring",
+        "dateStart": "2025-08-01",
+        "sessions": {
+          "fp1": 9921,
+          "fp2": 9922,
+          "fp3": 9923,
+          "qualifying": 9924,
+          "race": 9928
+        }
+      },
+      {
+        "slug": "zandvoort",
+        "meetingKey": 1267,
+        "meetingName": "Dutch Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN DUTCH GRAND PRIX 2025",
+        "country": "Netherlands",
+        "countryCode": "NED",
+        "location": "Zandvoort",
+        "circuit": "Zandvoort",
+        "dateStart": "2025-08-29",
+        "sessions": {
+          "fp1": 9913,
+          "fp2": 9914,
+          "fp3": 9915,
+          "qualifying": 9916,
+          "race": 9920
+        }
+      },
+      {
+        "slug": "monza",
+        "meetingKey": 1268,
+        "meetingName": "Italian Grand Prix",
+        "officialName": "FORMULA 1 PIRELLI GRAN PREMIO D’ITALIA 2025",
+        "country": "Italy",
+        "countryCode": "ITA",
+        "location": "Monza",
+        "circuit": "Monza",
+        "dateStart": "2025-09-05",
+        "sessions": {
+          "fp1": 9905,
+          "fp2": 9906,
+          "fp3": 9907,
+          "qualifying": 9908,
+          "race": 9912
+        }
+      },
+      {
+        "slug": "baku",
+        "meetingKey": 1269,
+        "meetingName": "Azerbaijan Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS AZERBAIJAN GRAND PRIX 2025",
+        "country": "Azerbaijan",
+        "countryCode": "AZE",
+        "location": "Baku",
+        "circuit": "Baku",
+        "dateStart": "2025-09-19",
+        "sessions": {
+          "fp1": 9897,
+          "fp2": 9898,
+          "fp3": 9899,
+          "qualifying": 9900,
+          "race": 9904
+        }
+      },
+      {
+        "slug": "marina-bay",
+        "meetingKey": 1270,
+        "meetingName": "Singapore Grand Prix",
+        "officialName": "FORMULA 1 SINGAPORE AIRLINES SINGAPORE GRAND PRIX 2025",
+        "country": "Singapore",
+        "countryCode": "SGP",
+        "location": "Marina Bay",
+        "circuit": "Singapore",
+        "dateStart": "2025-10-03",
+        "sessions": {
+          "fp1": 9889,
+          "fp2": 9890,
+          "fp3": 9891,
+          "qualifying": 9892,
+          "race": 9896
+        }
+      },
+      {
+        "slug": "austin",
+        "meetingKey": 1271,
+        "meetingName": "United States Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES UNITED STATES GRAND PRIX 2025",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Austin",
+        "circuit": "Austin",
+        "dateStart": "2025-10-17",
+        "sessions": {
+          "fp1": 9878,
+          "sprintqualifying": 9879,
+          "sprint": 9883,
+          "qualifying": 9884,
+          "race": 9888
+        }
+      },
+      {
+        "slug": "mexico-city",
+        "meetingKey": 1272,
+        "meetingName": "Mexico City Grand Prix",
+        "officialName": "FORMULA 1 GRAN PREMIO DE LA CIUDAD DE MÉXICO 2025",
+        "country": "Mexico",
+        "countryCode": "MEX",
+        "location": "Mexico City",
+        "circuit": "Mexico City",
+        "dateStart": "2025-10-24",
+        "sessions": {
+          "fp1": 9870,
+          "fp2": 9871,
+          "fp3": 9872,
+          "qualifying": 9873,
+          "race": 9877
+        }
+      },
+      {
+        "slug": "sao-paulo",
+        "meetingKey": 1273,
+        "meetingName": "São Paulo Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2025",
+        "country": "Brazil",
+        "countryCode": "BRA",
+        "location": "São Paulo",
+        "circuit": "Interlagos",
+        "dateStart": "2025-11-07",
+        "sessions": {
+          "fp1": 9859,
+          "sprintqualifying": 9860,
+          "sprint": 9864,
+          "qualifying": 9865,
+          "race": 9869
+        }
+      },
+      {
+        "slug": "las-vegas",
+        "meetingKey": 1274,
+        "meetingName": "Las Vegas Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN LAS VEGAS GRAND PRIX 2025",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Las Vegas",
+        "circuit": "Las Vegas",
+        "dateStart": "2025-11-21",
+        "sessions": {
+          "fp1": 9851,
+          "fp2": 9852,
+          "fp3": 9853,
+          "qualifying": 9854,
+          "race": 9858
+        }
+      },
+      {
+        "slug": "lusail",
+        "meetingKey": 1275,
+        "meetingName": "Qatar Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS QATAR GRAND PRIX 2025",
+        "country": "Qatar",
+        "countryCode": "QAT",
+        "location": "Lusail",
+        "circuit": "Lusail",
+        "dateStart": "2025-11-28",
+        "sessions": {
+          "fp1": 9840,
+          "sprintqualifying": 9841,
+          "sprint": 9845,
+          "qualifying": 9846,
+          "race": 9850
+        }
+      },
+      {
+        "slug": "yas-island",
+        "meetingKey": 1276,
+        "meetingName": "Abu Dhabi Grand Prix",
+        "officialName": "FORMULA 1 ETIHAD AIRWAYS ABU DHABI GRAND PRIX 2025",
+        "country": "United Arab Emirates",
+        "countryCode": "UAE",
+        "location": "Yas Island",
+        "circuit": "Yas Marina Circuit",
+        "dateStart": "2025-12-05",
+        "sessions": {
+          "fp1": 9832,
+          "fp2": 9833,
+          "fp3": 9834,
+          "qualifying": 9835,
+          "race": 9839
+        }
+      }
+    ],
+    "2026": [
+      {
+        "slug": "melbourne",
+        "meetingKey": 1279,
+        "meetingName": "Australian Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS AUSTRALIAN GRAND PRIX 2026",
+        "country": "Australia",
+        "countryCode": "AUS",
+        "location": "Melbourne",
+        "circuit": "Melbourne",
+        "dateStart": "2026-03-06",
+        "sessions": {
+          "fp1": 11227,
+          "fp2": 11228,
+          "fp3": 11229,
+          "qualifying": 11230,
+          "race": 11234
+        }
+      },
+      {
+        "slug": "shanghai",
+        "meetingKey": 1280,
+        "meetingName": "Chinese Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN CHINESE GRAND PRIX 2026",
+        "country": "China",
+        "countryCode": "CHN",
+        "location": "Shanghai",
+        "circuit": "Shanghai",
+        "dateStart": "2026-03-13",
+        "sessions": {
+          "fp1": 11235,
+          "sprintqualifying": 11236,
+          "sprint": 11240,
+          "qualifying": 11241,
+          "race": 11245
+        }
+      },
+      {
+        "slug": "suzuka",
+        "meetingKey": 1281,
+        "meetingName": "Japanese Grand Prix",
+        "officialName": "FORMULA 1 ARAMCO JAPANESE GRAND PRIX 2026",
+        "country": "Japan",
+        "countryCode": "JPN",
+        "location": "Suzuka",
+        "circuit": "Suzuka",
+        "dateStart": "2026-03-27",
+        "sessions": {
+          "fp1": 11246,
+          "fp2": 11247,
+          "fp3": 11248,
+          "qualifying": 11249,
+          "race": 11253
+        }
+      },
+      {
+        "slug": "sakhir",
+        "meetingKey": 1282,
+        "meetingName": "Bahrain Grand Prix",
+        "officialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX 2026",
+        "country": "Bahrain",
+        "countryCode": "BRN",
+        "location": "Sakhir",
+        "circuit": "Sakhir",
+        "dateStart": "2026-04-10",
+        "sessions": {
+          "fp1": 11254,
+          "fp2": 11255,
+          "fp3": 11256,
+          "qualifying": 11257,
+          "race": 11261
+        }
+      },
+      {
+        "slug": "jeddah",
+        "meetingKey": 1283,
+        "meetingName": "Saudi Arabian Grand Prix",
+        "officialName": "FORMULA 1 STC SAUDI ARABIAN GRAND PRIX 2026",
+        "country": "Saudi Arabia",
+        "countryCode": "KSA",
+        "location": "Jeddah",
+        "circuit": "Jeddah",
+        "dateStart": "2026-04-17",
+        "sessions": {
+          "fp1": 11262,
+          "fp2": 11263,
+          "fp3": 11264,
+          "qualifying": 11265,
+          "race": 11269
+        }
+      },
+      {
+        "slug": "miami-gardens",
+        "meetingKey": 1284,
+        "meetingName": "Miami Grand Prix",
+        "officialName": "FORMULA 1 CRYPTO.COM MIAMI GRAND PRIX 2026",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Miami Gardens",
+        "circuit": "Miami",
+        "dateStart": "2026-05-01",
+        "sessions": {
+          "fp1": 11270,
+          "sprintqualifying": 11271,
+          "sprint": 11275,
+          "qualifying": 11276,
+          "race": 11280
+        }
+      },
+      {
+        "slug": "montreal",
+        "meetingKey": 1285,
+        "meetingName": "Canadian Grand Prix",
+        "officialName": "FORMULA 1 LENOVO GRAND PRIX DU CANADA 2026",
+        "country": "Canada",
+        "countryCode": "CAN",
+        "location": "Montréal",
+        "circuit": "Montreal",
+        "dateStart": "2026-05-22",
+        "sessions": {
+          "fp1": 11281,
+          "sprintqualifying": 11282,
+          "sprint": 11286,
+          "qualifying": 11287,
+          "race": 11291
+        }
+      },
+      {
+        "slug": "monte-carlo",
+        "meetingKey": 1286,
+        "meetingName": "Monaco Grand Prix",
+        "officialName": "FORMULA 1 LOUIS VUITTON GRAND PRIX DE MONACO 2026",
+        "country": "Monaco",
+        "countryCode": "MON",
+        "location": "Monte Carlo",
+        "circuit": "Monte Carlo",
+        "dateStart": "2026-06-05",
+        "sessions": {
+          "fp1": 11292,
+          "fp2": 11293,
+          "fp3": 11294,
+          "qualifying": 11295,
+          "race": 11299
+        }
+      },
+      {
+        "slug": "barcelona",
+        "meetingKey": 1287,
+        "meetingName": "Barcelona Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES GRAN PREMIO DE BARCELONA-CATALUNYA 2026",
+        "country": "Spain",
+        "countryCode": "ESP",
+        "location": "Barcelona",
+        "circuit": "Catalunya",
+        "dateStart": "2026-06-12",
+        "sessions": {
+          "fp1": 11300,
+          "fp2": 11301,
+          "fp3": 11302,
+          "qualifying": 11303,
+          "race": 11307
+        }
+      },
+      {
+        "slug": "spielberg",
+        "meetingKey": 1288,
+        "meetingName": "Austrian Grand Prix",
+        "officialName": "FORMULA 1 LENOVO AUSTRIAN GRAND PRIX 2026",
+        "country": "Austria",
+        "countryCode": "AUT",
+        "location": "Spielberg",
+        "circuit": "Spielberg",
+        "dateStart": "2026-06-26",
+        "sessions": {
+          "fp1": 11308,
+          "fp2": 11309,
+          "fp3": 11310,
+          "qualifying": 11311,
+          "race": 11315
+        }
+      },
+      {
+        "slug": "silverstone",
+        "meetingKey": 1289,
+        "meetingName": "British Grand Prix",
+        "officialName": "FORMULA 1 PIRELLI BRITISH GRAND PRIX 2026",
+        "country": "United Kingdom",
+        "countryCode": "GBR",
+        "location": "Silverstone",
+        "circuit": "Silverstone",
+        "dateStart": "2026-07-03",
+        "sessions": {
+          "fp1": 11316,
+          "sprintqualifying": 11317,
+          "sprint": 11321,
+          "qualifying": 11322,
+          "race": 11326
+        }
+      },
+      {
+        "slug": "spa-francorchamps",
+        "meetingKey": 1290,
+        "meetingName": "Belgian Grand Prix",
+        "officialName": "FORMULA 1 MOËT & CHANDON BELGIAN GRAND PRIX 2026",
+        "country": "Belgium",
+        "countryCode": "BEL",
+        "location": "Spa-Francorchamps",
+        "circuit": "Spa-Francorchamps",
+        "dateStart": "2026-07-17",
+        "sessions": {
+          "fp1": 11327,
+          "fp2": 11328,
+          "fp3": 11329,
+          "qualifying": 11330,
+          "race": 11334
+        }
+      },
+      {
+        "slug": "budapest",
+        "meetingKey": 1291,
+        "meetingName": "Hungarian Grand Prix",
+        "officialName": "FORMULA 1 AWS HUNGARIAN GRAND PRIX 2026",
+        "country": "Hungary",
+        "countryCode": "HUN",
+        "location": "Budapest",
+        "circuit": "Hungaroring",
+        "dateStart": "2026-07-24",
+        "sessions": {
+          "fp1": 11335,
+          "fp2": 11336,
+          "fp3": 11337,
+          "qualifying": 11338,
+          "race": 11342
+        }
+      },
+      {
+        "slug": "zandvoort",
+        "meetingKey": 1292,
+        "meetingName": "Dutch Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN DUTCH GRAND PRIX 2026",
+        "country": "Netherlands",
+        "countryCode": "NED",
+        "location": "Zandvoort",
+        "circuit": "Zandvoort",
+        "dateStart": "2026-08-21",
+        "sessions": {
+          "fp1": 11343,
+          "sprintqualifying": 11344,
+          "sprint": 11348,
+          "qualifying": 11349,
+          "race": 11353
+        }
+      },
+      {
+        "slug": "monza",
+        "meetingKey": 1293,
+        "meetingName": "Italian Grand Prix",
+        "officialName": "FORMULA 1 PIRELLI GRAN PREMIO D’ITALIA 2026",
+        "country": "Italy",
+        "countryCode": "ITA",
+        "location": "Monza",
+        "circuit": "Monza",
+        "dateStart": "2026-09-04",
+        "sessions": {
+          "fp1": 11354,
+          "fp2": 11355,
+          "fp3": 11356,
+          "qualifying": 11357,
+          "race": 11361
+        }
+      },
+      {
+        "slug": "madrid",
+        "meetingKey": 1294,
+        "meetingName": "Spanish Grand Prix",
+        "officialName": "FORMULA 1 TAG HEUER GRAN PREMIO DE ESPAÑA 2026",
+        "country": "Spain",
+        "countryCode": "ESP",
+        "location": "Madrid",
+        "circuit": "Madring",
+        "dateStart": "2026-09-11",
+        "sessions": {
+          "fp1": 11362,
+          "fp2": 11363,
+          "fp3": 11364,
+          "qualifying": 11365,
+          "race": 11369
+        }
+      },
+      {
+        "slug": "baku",
+        "meetingKey": 1295,
+        "meetingName": "Azerbaijan Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS AZERBAIJAN GRAND PRIX 2026",
+        "country": "Azerbaijan",
+        "countryCode": "AZE",
+        "location": "Baku",
+        "circuit": "Baku",
+        "dateStart": "2026-09-24",
+        "sessions": {
+          "fp1": 11370,
+          "fp2": 11371,
+          "fp3": 11372,
+          "qualifying": 11373,
+          "race": 11377
+        }
+      },
+      {
+        "slug": "marina-bay",
+        "meetingKey": 1296,
+        "meetingName": "Singapore Grand Prix",
+        "officialName": "FORMULA 1 SINGAPORE AIRLINES SINGAPORE GRAND PRIX 2026",
+        "country": "Singapore",
+        "countryCode": "SGP",
+        "location": "Marina Bay",
+        "circuit": "Singapore",
+        "dateStart": "2026-10-09",
+        "sessions": {
+          "fp1": 11378,
+          "sprintqualifying": 11379,
+          "sprint": 11383,
+          "qualifying": 11384,
+          "race": 11388
+        }
+      },
+      {
+        "slug": "austin",
+        "meetingKey": 1297,
+        "meetingName": "United States Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES UNITED STATES GRAND PRIX 2026",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Austin",
+        "circuit": "Austin",
+        "dateStart": "2026-10-23",
+        "sessions": {
+          "fp1": 11389,
+          "fp2": 11390,
+          "fp3": 11391,
+          "qualifying": 11392,
+          "race": 11396
+        }
+      },
+      {
+        "slug": "mexico-city",
+        "meetingKey": 1298,
+        "meetingName": "Mexico City Grand Prix",
+        "officialName": "FORMULA 1 GRAN PREMIO DE LA CIUDAD DE MÉXICO 2026",
+        "country": "Mexico",
+        "countryCode": "MEX",
+        "location": "Mexico City",
+        "circuit": "Mexico City",
+        "dateStart": "2026-10-30",
+        "sessions": {
+          "fp1": 11397,
+          "fp2": 11398,
+          "fp3": 11399,
+          "qualifying": 11400,
+          "race": 11404
+        }
+      },
+      {
+        "slug": "sao-paulo",
+        "meetingKey": 1299,
+        "meetingName": "São Paulo Grand Prix",
+        "officialName": "FORMULA 1 MSC CRUISES GRANDE PRÊMIO DE SÃO PAULO 2026",
+        "country": "Brazil",
+        "countryCode": "BRA",
+        "location": "São Paulo",
+        "circuit": "Interlagos",
+        "dateStart": "2026-11-06",
+        "sessions": {
+          "fp1": 11405,
+          "fp2": 11406,
+          "fp3": 11407,
+          "qualifying": 11408,
+          "race": 11412
+        }
+      },
+      {
+        "slug": "las-vegas",
+        "meetingKey": 1300,
+        "meetingName": "Las Vegas Grand Prix",
+        "officialName": "FORMULA 1 HEINEKEN LAS VEGAS GRAND PRIX 2026",
+        "country": "United States",
+        "countryCode": "USA",
+        "location": "Las Vegas",
+        "circuit": "Las Vegas",
+        "dateStart": "2026-11-20",
+        "sessions": {
+          "fp1": 11413,
+          "fp2": 11414,
+          "fp3": 11415,
+          "qualifying": 11416,
+          "race": 11420
+        }
+      },
+      {
+        "slug": "lusail",
+        "meetingKey": 1301,
+        "meetingName": "Qatar Grand Prix",
+        "officialName": "FORMULA 1 QATAR AIRWAYS QATAR GRAND PRIX 2026",
+        "country": "Qatar",
+        "countryCode": "QAT",
+        "location": "Lusail",
+        "circuit": "Lusail",
+        "dateStart": "2026-11-27",
+        "sessions": {
+          "fp1": 11421,
+          "fp2": 11422,
+          "fp3": 11423,
+          "qualifying": 11424,
+          "race": 11428
+        }
+      },
+      {
+        "slug": "yas-marina",
+        "meetingKey": 1302,
+        "meetingName": "Abu Dhabi Grand Prix",
+        "officialName": "FORMULA 1 ETIHAD AIRWAYS ABU DHABI GRAND PRIX 2026",
+        "country": "United Arab Emirates",
+        "countryCode": "UAE",
+        "location": "Yas Marina",
+        "circuit": "Yas Marina Circuit",
+        "dateStart": "2026-12-04",
+        "sessions": {
+          "fp1": 11429,
+          "fp2": 11430,
+          "fp3": 11431,
+          "qualifying": 11432,
+          "race": 11436
+        }
+      }
+    ]
+  }
+}
