@@ -10,7 +10,8 @@
     "preview": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy",
     "scrape": "node scripts/scrape.mjs",
-    "race-index": "node scripts/gen-race-index.mjs"
+    "race-index": "node scripts/gen-race-index.mjs",
+    "trends": "node scripts/compute-season-trends.mjs"
   },
   "dependencies": {
     "html-to-image": "^1.11.13",

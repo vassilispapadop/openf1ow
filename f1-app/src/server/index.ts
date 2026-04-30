@@ -1,6 +1,7 @@
 import { handleF1Request } from "./r2-cache";
 import { handleRecapRequest, handleInsightsRequest } from "./recap";
 import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
+import { handleSeasonTrendsRequest } from "./season-trends";
 
 interface Env {
   GROQ_API_KEY: string;
@@ -443,6 +444,12 @@ export default {
     // OpenF1 API proxy — serve from R2 cache (must be before OG/SPA handlers)
     if (url.pathname.startsWith("/api/f1/")) {
       return handleF1Request(request, env, ctx);
+    }
+
+    // Season trends artifact — precomputed by scripts/compute-season-trends.mjs
+    if (url.pathname.startsWith("/api/season-trends/")) {
+      const r = await handleSeasonTrendsRequest({ url, F1_DATA: env.F1_DATA });
+      if (r) return r;
     }
 
     // Worker-rendered SEO pages: /recap/:year/:slug and /insights[/:year]

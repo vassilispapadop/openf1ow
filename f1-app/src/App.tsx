@@ -4,6 +4,7 @@ import SessionLayout from "./layouts/SessionLayout";
 import HomePage from "./pages/HomePage";
 import AnalysisPage from "./pages/AnalysisPage";
 import DriverPage from "./pages/DriverPage";
+import SeasonTrendsPage from "./pages/SeasonTrendsPage";
 import LegacyRedirect from "./components/LegacyRedirect";
 import { DEFAULT_ANALYSIS_TAB, DEFAULT_DRIVER_TAB } from "./lib/constants";
 import { trackPageview } from "./lib/analytics";
@@ -28,6 +29,10 @@ export default function App() {
         <Route element={<SessionLayout />}>
           <Route index element={<HomePage />} />
           <Route path=":year" element={<HomePage />} />
+          {/* Static "trends" segment must come before :meetingKey or it
+              would be matched as a meeting key. React Router 7's ranker
+              prefers static over dynamic, but listing it first is clearer. */}
+          <Route path=":year/trends" element={<SeasonTrendsPage />} />
           <Route path=":year/:meetingKey" element={<HomePage />} />
           <Route path=":year/:meetingKey/:sessionKey" element={<Navigate to={`analysis/${DEFAULT_ANALYSIS_TAB}`} replace />} />
           <Route path=":year/:meetingKey/:sessionKey/analysis" element={<Navigate to={DEFAULT_ANALYSIS_TAB} replace />} />

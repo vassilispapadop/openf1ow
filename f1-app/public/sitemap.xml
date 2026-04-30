@@ -16,7 +16,17 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.openf1ow.com/2026/trends</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.openf1ow.com/insights/2025</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/trends</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -26,7 +36,17 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.openf1ow.com/2024/trends</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.openf1ow.com/insights/2023</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/trends</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>

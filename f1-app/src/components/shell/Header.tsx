@@ -1,6 +1,7 @@
 import { F, C } from "../../lib/styles";
 import Pill from "../Pill";
 import ShareLinkButton from "../ShareLinkButton";
+import { useSession } from "../../contexts/SessionContext";
 import type { Driver } from "../../lib/types";
 
 interface HeaderProps {
@@ -14,6 +15,7 @@ interface HeaderProps {
 }
 
 export default function Header({ meetings, mk, sessions, sk, drivers, dn, onReset }: HeaderProps) {
+  const { year } = useSession();
   const meeting = meetings.find(m => String(m.meeting_key) === mk);
   const session = sessions.find(s => String(s.session_key) === sk);
   const driver = dn && drivers ? drivers.find(d => String(d.driver_number) === dn) : undefined;
@@ -85,6 +87,15 @@ export default function Header({ meetings, mk, sessions, sk, drivers, dn, onRese
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <Pill
+          as="a"
+          size="sm"
+          href={`/${year}/trends`}
+          className="hide-mobile"
+          aria-label={`${year} season trends`}
+        >
+          trends
+        </Pill>
         <ShareLinkButton driverNumber={dn} />
         <Pill
           as="a"

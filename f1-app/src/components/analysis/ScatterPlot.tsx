@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useCallback, useMemo } from "react";
 import { F, M } from "../../lib/styles";
-import { initCanvas, drawWatermark } from "../../lib/canvas";
+import { drawWatermark, getCtx } from "../../lib/canvas";
+import { useResponsiveCanvas, adaptiveMargins } from "../../lib/useResponsiveCanvas";
 import useTooltip from "./useTooltip";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
@@ -17,17 +18,14 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
   yFmt?: (v: number) => string;
   diagonal?: boolean;
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const cvRef = useRef<HTMLCanvasElement>(null);
-  const { show, hide, el } = useTooltip(wrapRef);
   const CSS_H = 280;
-  // Store formatters in refs to avoid re-rendering canvas on every parent render
-  const xFRef = useRef(xFmt || defaultFmt);
-  const yFRef = useRef(yFmt || defaultFmt);
+  const { wrapRef, canvasRef, width } = useResponsiveCanvas(CSS_H);
+  const { show, hide, el } = useTooltip(wrapRef);
+  const xFRef = React.useRef(xFmt || defaultFmt);
+  const yFRef = React.useRef(yFmt || defaultFmt);
   xFRef.current = xFmt || defaultFmt;
   yFRef.current = yFmt || defaultFmt;
 
-  // Compute bounds from data values (stable if data values don't change)
   const boundsKey = useMemo(() => data.map(d => d.x + "," + d.y).join("|"), [data]);
   const bounds = useMemo(() => {
     if (!data.length) return null;
@@ -40,30 +38,32 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
     return { xMin: xMin - xPad, xMax: xMax + xPad, yMin: yMin - yPad, yMax: yMax + yPad };
   }, [boundsKey]);
 
+  // Redraw whenever data, width, or layout changes. The hook handles canvas
+  // backing-store resize; we only own pixel painting.
   useEffect(() => {
-    const cv = cvRef.current;
-    const wrap = wrapRef.current;
-    if (!cv || !wrap || !bounds) return;
+    const cv = canvasRef.current;
+    if (!cv || !bounds || width === 0) return;
     const xF = xFRef.current, yF = yFRef.current;
-    const { ctx, W, H } = initCanvas(cv, wrap, CSS_H);
-    const L = 56, R = 16, T = 12, B = 38;
+    const { ctx, W, H } = getCtx(cv);
+    const m = adaptiveMargins(width);
+    const L = m.left, R = m.right, T = m.top, B = m.bottom + 8; // extra bottom for axis title
     const pW = W - L - R, pH = H - T - B;
-    const { xMin, xMax, yMin, yMax } = bounds;
+    if (pW < 20 || pH < 20) return;
 
+    const { xMin, xMax, yMin, yMax } = bounds;
     const toX = (v: number) => L + ((v - xMin) / (xMax - xMin)) * pW;
     const toY = (v: number) => T + pH - ((v - yMin) / (yMax - yMin)) * pH;
 
-    // Background
     ctx.fillStyle = "#0a0e14";
     ctx.fillRect(0, 0, W, H);
     ctx.fillStyle = "#0d1119";
     ctx.fillRect(L, T, pW, pH);
 
-    // Grid
     ctx.strokeStyle = "rgba(99,130,191,.07)";
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 3]);
-    const xSteps = 5, ySteps = 5;
+    const xSteps = width < 480 ? 3 : 5;
+    const ySteps = 5;
     for (let i = 0; i <= xSteps; i++) {
       const v = xMin + ((xMax - xMin) * i) / xSteps;
       const x = toX(v);
@@ -76,12 +76,12 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
     }
     ctx.setLineDash([]);
 
-    // Axes
     ctx.strokeStyle = "#2a3a5c";
     ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, T + pH); ctx.lineTo(L + pW, T + pH); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(L, T); ctx.lineTo(L, T + pH); ctx.lineTo(L + pW, T + pH);
+    ctx.stroke();
 
-    // Diagonal reference line (for best vs median etc.)
     if (diagonal) {
       const dMin = Math.max(xMin, yMin), dMax = Math.min(xMax, yMax);
       ctx.strokeStyle = "rgba(255,255,255,0.08)";
@@ -91,37 +91,33 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
       ctx.setLineDash([]);
     }
 
-    // X labels
-    ctx.font = "9px " + M;
+    ctx.font = `${m.axisFont}px ${M}`;
     ctx.fillStyle = "#3d4f6f";
     ctx.textAlign = "center";
     for (let i = 0; i <= xSteps; i++) {
       const v = xMin + ((xMax - xMin) * i) / xSteps;
-      ctx.fillText(xF(v), toX(v), T + pH + 16);
+      ctx.fillText(xF(v), toX(v), T + pH + 14);
     }
-    // Y labels
     ctx.textAlign = "right";
     for (let i = 0; i <= ySteps; i++) {
       const v = yMin + ((yMax - yMin) * i) / ySteps;
-      ctx.fillText(yF(v), L - 5, toY(v) + 3);
+      ctx.fillText(yF(v), L - 4, toY(v) + 3);
     }
 
-    // Axis titles
-    ctx.font = "600 10px " + F;
+    ctx.font = `600 ${m.labelFont}px ${F}`;
     ctx.fillStyle = "#6b7d9e";
     ctx.textAlign = "center";
     ctx.fillText(xLabel, L + pW / 2, H - 4);
     ctx.save();
-    ctx.translate(12, T + pH / 2);
+    ctx.translate(width < 380 ? 8 : 12, T + pH / 2);
     ctx.rotate(-Math.PI / 2);
     ctx.fillText(yLabel, 0, 0);
     ctx.restore();
 
-    // Points
     data.forEach(d => {
       const x = toX(d.x), y = toY(d.y);
       ctx.beginPath();
-      ctx.arc(x, y, 5, 0, Math.PI * 2);
+      ctx.arc(x, y, width < 480 ? 4 : 5, 0, Math.PI * 2);
       ctx.fillStyle = "#" + d.color;
       ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,0.15)";
@@ -129,35 +125,49 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
       ctx.stroke();
     });
 
-    // Labels
-    ctx.font = "bold 8px " + F;
-    ctx.textAlign = "left";
-    data.forEach(d => {
-      const x = toX(d.x), y = toY(d.y);
-      ctx.fillStyle = "#" + d.color;
-      ctx.fillText(d.label, x + 7, y + 3);
-    });
+    if (width >= 480) {
+      ctx.font = "bold 8px " + F;
+      ctx.textAlign = "left";
+      data.forEach(d => {
+        const x = toX(d.x), y = toY(d.y);
+        ctx.fillStyle = "#" + d.color;
+        ctx.fillText(d.label, x + 7, y + 3);
+      });
+    }
     drawWatermark(ctx, W, H);
-  }, [boundsKey, bounds, xLabel, yLabel, diagonal]);
+  }, [boundsKey, bounds, width, xLabel, yLabel, diagonal]);
 
-  const onHover = useCallback((e: React.MouseEvent) => {
-    const wrap = wrapRef.current;
-    if (!wrap || !bounds) return;
-    const rect = wrap.getBoundingClientRect();
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    const L = 56, R = 16, T = 12, B = 38;
-    const pW = wrap.clientWidth - L - R, pH = CSS_H - T - B;
+  const findPoint = useCallback((mx: number, my: number): ScatterPoint | null => {
+    if (!bounds || width === 0) return null;
+    const m = adaptiveMargins(width);
+    const L = m.left, R = m.right, T = m.top, B = m.bottom + 8;
+    const pW = width - L - R, pH = CSS_H - T - B;
     const { xMin, xMax, yMin, yMax } = bounds;
 
     let closest: ScatterPoint | null = null;
     let minDist = Infinity;
-    data.forEach(d => {
+    const hitRadius = width < 480 ? 36 : 30;
+    for (const d of data) {
       const px = L + ((d.x - xMin) / (xMax - xMin)) * pW;
       const py = T + pH - ((d.y - yMin) / (yMax - yMin)) * pH;
       const dist = Math.sqrt((mx - px) ** 2 + (my - py) ** 2);
-      if (dist < minDist && dist < 30) { minDist = dist; closest = d; }
-    });
-    if (!closest) { hide(); return; }
+      if (dist < minDist && dist < hitRadius) { minDist = dist; closest = d; }
+    }
+    return closest;
+  }, [data, bounds, width]);
+
+  const onPointerEvent = useCallback((e: React.PointerEvent) => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const closest = findPoint(mx, my);
+    if (!closest) {
+      // On touch, keep tooltip pinned briefly so users can tap precisely;
+      // on mouse, hide immediately.
+      if (e.pointerType !== "touch") hide();
+      return;
+    }
     show(e, (
       <div>
         <div style={{ fontWeight: 700, color: "#" + closest.color, marginBottom: 4, fontFamily: F }}>{closest.label}</div>
@@ -167,17 +177,24 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
         </div>
       </div>
     ));
-  }, [data, bounds, xLabel, yLabel, show, hide]);
+  }, [findPoint, xLabel, yLabel, show, hide, wrapRef]);
 
   if (!data.length) return null;
 
   return (
-    <div ref={wrapRef} style={{ position: "relative" }}>
+    <div ref={wrapRef} style={{ position: "relative", touchAction: "manipulation" }}>
       {el}
       <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
-        <ShareButton canvasRef={cvRef} filename="openf1ow-scatter" />
+        <ShareButton canvasRef={canvasRef} filename="openf1ow-scatter" />
       </div>
-      <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }} onMouseMove={onHover} onMouseLeave={hide} />
+      <canvas
+        ref={canvasRef}
+        style={{ display: "block", borderRadius: 8 }}
+        onPointerMove={onPointerEvent}
+        onPointerDown={onPointerEvent}
+        onPointerLeave={hide}
+        onPointerCancel={hide}
+      />
     </div>
   );
 }

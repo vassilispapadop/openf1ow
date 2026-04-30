@@ -29,10 +29,11 @@ const urls = [];
 // Home
 urls.push({ loc: ORIGIN + "/", changefreq: "daily", priority: "1.0" });
 
-// Insights index + per-season listings
+// Insights index + per-season listings + season trends
 urls.push({ loc: ORIGIN + "/insights", changefreq: "daily", priority: "0.9" });
 for (const year of Object.keys(idx.byYear).sort().reverse()) {
   urls.push({ loc: `${ORIGIN}/insights/${year}`, changefreq: "weekly", priority: "0.7" });
+  urls.push({ loc: `${ORIGIN}/${year}/trends`, changefreq: "weekly", priority: "0.7" });
 }
 
 const now = Date.now();

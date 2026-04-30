@@ -31,20 +31,39 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
     }
   }, []);
 
-  const dragState = useRef({ active: false, startX: 0, scrollLeft: 0 });
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
+  // Pointer events handle mouse + touch + pen with one set of handlers.
+  // Touch users get the same drag-to-scroll as desktop without a separate
+  // touch path. dragSuppress flag swallows the click-after-drag so a small
+  // accidental drag doesn't unintentionally select a meeting.
+  const dragState = useRef({ active: false, startX: 0, scrollLeft: 0, suppressClick: false });
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (!scrollRef.current) return;
-    dragState.current = { active: true, startX: e.clientX, scrollLeft: scrollRef.current.scrollLeft };
+    // Native horizontal scroll on touch is more responsive than JS-driven —
+    // skip the JS drag for touch and let the browser handle it.
+    if (e.pointerType === "touch") return;
+    dragState.current = { active: true, startX: e.clientX, scrollLeft: scrollRef.current.scrollLeft, suppressClick: false };
     scrollRef.current.style.cursor = "grabbing";
+    scrollRef.current.setPointerCapture(e.pointerId);
   }, []);
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragState.current.active || !scrollRef.current) return;
     const dx = e.clientX - dragState.current.startX;
+    if (Math.abs(dx) > 4) dragState.current.suppressClick = true;
     scrollRef.current.scrollLeft = dragState.current.scrollLeft - dx;
   }, []);
-  const onMouseUp = useCallback(() => {
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
     dragState.current.active = false;
-    if (scrollRef.current) scrollRef.current.style.cursor = "grab";
+    if (scrollRef.current) {
+      scrollRef.current.style.cursor = "grab";
+      try { scrollRef.current.releasePointerCapture(e.pointerId); } catch { /* not captured */ }
+    }
+  }, []);
+  const onClickCapture = useCallback((e: React.MouseEvent) => {
+    if (dragState.current.suppressClick) {
+      e.preventDefault();
+      e.stopPropagation();
+      dragState.current.suppressClick = false;
+    }
   }, []);
 
   if (!races.length) return null;
@@ -55,10 +74,11 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
       <div
         ref={scrollRef}
         onWheel={onWheel}
-        onMouseDown={onMouseDown}
-        onMouseMove={onMouseMove}
-        onMouseUp={onMouseUp}
-        onMouseLeave={onMouseUp}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onClickCapture={onClickCapture}
         style={{
           display: "flex",
           gap: 6,
@@ -67,6 +87,9 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
           scrollbarWidth: "none",
           cursor: "grab",
           userSelect: "none",
+          // Native horizontal touch scroll without page-level vertical interference
+          touchAction: "pan-x",
+          WebkitOverflowScrolling: "touch",
         }}
       >
         {races.map(m => {

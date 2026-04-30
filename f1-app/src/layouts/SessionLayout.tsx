@@ -35,7 +35,11 @@ function LayoutInner() {
         onReset={onReset}
       />
 
-      <main style={{ padding: "24px 28px", maxWidth: 1400, margin: "0 auto" }}>
+      <main style={{
+        padding: "clamp(12px, 3vw, 24px) clamp(12px, 4vw, 28px)",
+        maxWidth: 1400,
+        margin: "0 auto",
+      }}>
         {error && (
           <div style={sty.err}>
             <span style={{ flex: 1 }}>{error}</span>

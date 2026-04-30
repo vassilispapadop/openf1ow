@@ -3,19 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { useSession } from "../contexts/SessionContext";
 import { F, C } from "../lib/styles";
 import { paths } from "../lib/constants";
+import LatestRaceCard from "../components/home/LatestRaceCard";
+import ConstructorPaceTile from "../components/home/ConstructorPaceTile";
+import TeammateGapTile from "../components/home/TeammateGapTile";
+import SeasonGrid from "../components/home/SeasonGrid";
 
 export default function HomePage() {
   const { year, sessions, mk, sk, loading } = useSession();
   const navigate = useNavigate();
 
-  // Auto-pick the last available session once a meeting is selected (user
-  // clicked a race in SelectorBar). Prefers the latest session that has
-  // already started; falls back to Race by name, then the last listed.
-  //
-  // Filter by meeting_key first — after switching meetings, `sessions` is
-  // briefly the PREVIOUS meeting's list until SessionContext refetches. Picking
-  // blindly from that stale list would navigate to /newmk/OLDsk, leaving the
-  // analysis page stuck on the previous race's data.
+  // Preserve the existing UX: when a meeting is selected via SelectorBar
+  // (sets `mk`), auto-pick the most recent started session (typically Race)
+  // and jump straight to analysis. Filters by mk to avoid using the
+  // PREVIOUS meeting's stale session list during the in-flight refetch.
   useEffect(() => {
     if (loading || sk || !mk) return;
     const own = sessions.filter(s => String(s.meeting_key) === mk);
@@ -30,20 +30,19 @@ export default function HomePage() {
     navigate(paths.analysis(year, mk, String(pick.session_key)), { replace: true });
   }, [sessions, sk, mk, loading, year, navigate]);
 
-  // Only show the landing hero when no meeting has been picked. Once mk is set
-  // we're one navigate() away from the analysis page — the spinner in
-  // SessionLayout covers that window, no need to flash the hero.
+  // While a meeting is mid-resolve, the SessionLayout spinner covers the
+  // window — don't flash dashboard content underneath.
   if (mk) return null;
 
   return (
     <div className="fade-in-up" style={{
-      maxWidth: 720,
-      margin: "48px auto 0",
+      maxWidth: 980,
+      margin: "12px auto 0",
       padding: "0 4px",
+      fontFamily: F,
     }}>
       <div style={{
-        fontFamily: F,
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: 600,
         color: C.textMute,
         marginBottom: 14,
@@ -55,56 +54,19 @@ export default function HomePage() {
         <span>F1 · {year} season</span>
       </div>
 
-      <h1 style={{
-        fontFamily: F,
-        fontSize: "clamp(40px, 6vw, 64px)",
-        fontWeight: 700,
-        lineHeight: 1.02,
-        letterSpacing: "-0.03em",
-        color: C.text,
-        margin: "0 0 18px",
-      }}>
-        The race, <span style={{ color: C.textMute }}>explained</span>.
-      </h1>
-
-      <p style={{
-        fontFamily: F,
-        fontSize: 17,
-        lineHeight: 1.5,
-        color: C.textDim,
-        fontWeight: 400,
-        margin: "0 0 28px",
-        maxWidth: 580,
-      }}>
-        Post-race analysis for people with opinions. Who was actually fastest? Did the tire strategy work? Was the teammate gap on merit? Pick a Grand&nbsp;Prix above to dig in.
-      </p>
+      <LatestRaceCard year={year} />
 
       <div style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
         gap: 10,
-        marginTop: 24,
+        marginTop: 12,
       }}>
-        {[
-          ["Pace", "Median pace, sector deltas, lap evolution"],
-          ["Strategy", "Tire deg, fuel model, pit efficiency"],
-          ["Battles", "Teammate duels, constructor gaps, dirty air"],
-          ["AI verdict", "LLM-written race breakdown"],
-        ].map(([title, sub]) => (
-          <div
-            key={title}
-            style={{
-              padding: "14px 16px",
-              border: "1px solid " + C.border,
-              borderRadius: 12,
-              background: C.surface,
-            }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: C.text, marginBottom: 4 }}>{title}</div>
-            <div style={{ fontSize: 12, color: C.textMute, lineHeight: 1.45 }}>{sub}</div>
-          </div>
-        ))}
+        <ConstructorPaceTile year={year} />
+        <TeammateGapTile year={year} />
       </div>
 
+      <SeasonGrid year={year} />
     </div>
   );
 }
