@@ -28,6 +28,12 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
+  // Public Worker variables (safe to commit — these aren't secrets).
+  // GA_ID is the Google Analytics 4 measurement ID; the recap/insights
+  // renderers inject the gtag snippet when this is set.
+  "vars": {
+    "GA_ID": "G-W8MHMCEZRQ"
+  },
   "r2_buckets": [
     {
       "binding": "F1_DATA",
