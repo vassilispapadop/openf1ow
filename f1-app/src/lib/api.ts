@@ -2,6 +2,27 @@ const API = "/api/f1";
 
 const apiCache: Record<string, unknown> = {};
 
+// Tiny pub-sub for the OpenF1 live-session paywall. api() flips the flag
+// on the first 401 with a paywall detail; any successful response flips
+// it off. The LiveSessionBanner subscribes.
+let liveGate = false;
+const liveListeners = new Set<() => void>();
+
+export function isLiveSessionGated(): boolean {
+  return liveGate;
+}
+
+export function onLiveSessionChange(fn: () => void): () => void {
+  liveListeners.add(fn);
+  return () => { liveListeners.delete(fn); };
+}
+
+function setLiveGate(next: boolean) {
+  if (liveGate === next) return;
+  liveGate = next;
+  liveListeners.forEach(fn => fn());
+}
+
 export async function api(path: string, retries = 2) {
   if (apiCache[path]) return apiCache[path];
   let lastError: Error | null = null;
@@ -10,6 +31,7 @@ export async function api(path: string, retries = 2) {
     try {
       const r = await fetch(API + path);
       if (r.ok) {
+        setLiveGate(false);
         const data = await r.json();
         apiCache[path] = data;
         return data;
@@ -20,6 +42,7 @@ export async function api(path: string, retries = 2) {
         const body = await r.json().catch(() => null);
         const detail = typeof body?.detail === "string" ? body.detail : "";
         if (detail.includes("Live F1 session")) {
+          setLiveGate(true);
           throw new Error("Live session in progress — OpenF1 has restricted public data access until it ends. Try again after the chequered flag.");
         }
         throw new Error("Unauthorized: " + path);

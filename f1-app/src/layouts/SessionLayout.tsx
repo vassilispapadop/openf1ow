@@ -5,6 +5,7 @@ import Header from "../components/shell/Header";
 import SelectorBar from "../components/shell/SelectorBar";
 import DriverGrid from "../components/shell/DriverGrid";
 import Footer from "../components/shell/Footer";
+import LiveSessionBanner from "../components/LiveSessionBanner";
 import Spinner from "../components/Spinner";
 import { F, C, sty } from "../lib/styles";
 import { paths } from "../lib/constants";
@@ -40,6 +41,8 @@ function LayoutInner() {
         maxWidth: 1400,
         margin: "0 auto",
       }}>
+        <LiveSessionBanner />
+
         {error && (
           <div style={sty.err}>
             <span style={{ flex: 1 }}>{error}</span>
