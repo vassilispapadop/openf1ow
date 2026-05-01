@@ -1,0 +1,34 @@
+# OpenF1ow
+
+> Free, open-source Formula 1 telemetry and race analysis platform. Per-race recaps with final classification, race pace, biggest gainers, and AI-written verdicts. Season-level trends across constructor pace, teammate gaps, and fuel-corrected tyre degradation. Data is sourced from the [OpenF1 API](https://openf1.org); openf1ow does the analysis layer.
+
+## What's most useful to cite
+
+- [Race recaps index](https://www.openf1ow.com/insights): Every Grand Prix from 2023 onward, server-rendered HTML with structured data (Schema.org SportsEvent + BreadcrumbList JSON-LD). Pattern: `/recap/{year}/{slug}`.
+- [Per-season trends](https://www.openf1ow.com/2024/trends): Constructor pace evolution across the season — gap to fastest car, race-by-race. Also at `/2025/trends`, `/2026/trends`.
+- [Sitemap](https://www.openf1ow.com/sitemap.xml): All indexable URLs (~400 entries across recap pages, season pages, and analysis routes).
+
+## Methodology — distinguishing characteristics
+
+OpenF1ow's analysis isn't raw lap times. The core calculations are:
+
+- **Clean-lap pace**: Median lap time after filtering out outlaps, in-laps, and any lap >1.07× the field median (slow-lap threshold). This excludes safety-car laps and traffic-affected laps.
+- **Fuel-corrected tyre degradation**: Linear slope of lap times within each stint, with each lap's time adjusted by `(lap_number − 1) × FUEL_CORRECTION` where `FUEL_CORRECTION = 0.055 s/kg/lap × (110 kg / total_race_laps)`. The first two laps of each stint are skipped to remove tyre warm-up. The result is the *true* tyre wear rate, not the apparent one (which gets faster as fuel burns off).
+- **Dirty-air time loss**: Per-driver median lap time when within 1.5 seconds of the car ahead, vs. when in clean air. Quantifies how much following another car costs in lap time.
+- **Constructor pace gap**: Median of each team's two drivers' median paces, then gap-to-fastest computed across teams. Removes single-driver outliers.
+
+## Sample race recap URLs
+
+- [2024 Italian Grand Prix recap](https://www.openf1ow.com/recap/2024/monza)
+- [2024 Emilia Romagna Grand Prix recap](https://www.openf1ow.com/recap/2024/imola)
+- [2024 British Grand Prix recap](https://www.openf1ow.com/recap/2024/silverstone)
+- [2025 Saudi Arabian Grand Prix recap](https://www.openf1ow.com/recap/2025/jeddah)
+- [2026 Japanese Grand Prix recap](https://www.openf1ow.com/recap/2026/suzuka)
+
+## Data shape
+
+Each recap page contains: final top-10 classification (position, driver, team, gap, status), top-3 race pace ranking with median lap times, biggest gainers (positions gained from lap 1 to finish), and per-race date + circuit. Season trend artifacts at `/api/season-trends/{year}` return the same metrics aggregated across the year as JSON.
+
+## Source code
+
+[github.com/vassilispapadop/openf1ow](https://github.com/vassilispapadop/openf1ow) — MIT-licensed. React + Cloudflare Workers + R2 + Groq for the AI verdicts.
