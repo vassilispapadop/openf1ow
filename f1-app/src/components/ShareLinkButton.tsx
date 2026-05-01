@@ -33,9 +33,9 @@ export default function ShareLinkButton({ driverNumber }: Props) {
     const origin = window.location.origin;
     let url: string;
     if (driverNumber && mk && sk) {
-      // Per-driver: deep-link the SPA driver page. Worker injects driver-aware
-      // OG tags here; the og:image is the SVG /og-image fallback for now.
-      url = origin + paths.driver(Number(year), mk, sk, driverNumber);
+      // Driver page: preserve current search params (e.g. ?cmp=14-26,11-22)
+      // so a shared link reproduces the exact comparison overlay set.
+      url = origin + window.location.pathname + window.location.search;
     } else if (slug) {
       // Race: canonical recap URL with PNG card preview.
       url = `${origin}/recap/${year}/${slug}`;

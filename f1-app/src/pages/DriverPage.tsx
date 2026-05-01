@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSession } from "../contexts/SessionContext";
 import { api } from "../lib/api";
 import { F, sty } from "../lib/styles";
@@ -22,6 +22,7 @@ import ResultsTab from "../components/driver/ResultsTab";
 export default function DriverPage() {
   const { driverNumber: dnParam, tab } = useParams<{ driverNumber: string; tab: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { sk, drivers, weather, rc, results, year, mk, setError } = useSession();
 
   const dn = dnParam || "";
@@ -110,6 +111,51 @@ export default function DriverPage() {
   const removeComparison = useCallback((id: string) => {
     setComparisons(prev => prev.filter((c: any) => c.id !== id));
   }, []);
+
+  // Restore comparisons from ?cmp=dn-lap,dn-lap on first ready render. Runs
+  // sequentially so the rendered order — and thus the colour assignment in
+  // addComparison — matches the URL exactly.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    if (!sk || drivers.length === 0) return;
+    restoredRef.current = true;
+
+    const cmp = new URLSearchParams(location.search).get("cmp");
+    if (!cmp) return;
+
+    const pairs = cmp.split(",")
+      .map(s => s.split("-"))
+      .filter(p => p.length === 2 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1]));
+
+    (async () => {
+      for (const [drvNum, lapNumStr] of pairs) {
+        const driver = drivers.find(d => String(d.driver_number) === drvNum);
+        if (!driver) continue;
+        try {
+          const rs = await api(`/laps?session_key=${sk}&driver_number=${drvNum}`);
+          const lap = (rs as any[]).find(l => l.lap_number === Number(lapNumStr));
+          if (lap) addComparison(drvNum, lap, driver);
+        } catch { /* skip missing */ }
+      }
+    })();
+    // location.search intentionally omitted — we restore once per mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sk, drivers, addComparison]);
+
+  // Sync comparisons → URL. Only after the initial restore so we don't
+  // immediately overwrite a freshly-pasted shareable URL.
+  useEffect(() => {
+    if (!restoredRef.current) return;
+    const params = new URLSearchParams(location.search);
+    const cmpStr = comparisons.map(c => `${c.driverNumber}-${c.lapNumber}`).join(",");
+    if (cmpStr) params.set("cmp", cmpStr); else params.delete("cmp");
+    const next = params.toString();
+    const target = next ? `${location.pathname}?${next}` : location.pathname;
+    if (`${location.pathname}${location.search}` !== target) {
+      navigate(target, { replace: true });
+    }
+  }, [comparisons, navigate, location.pathname, location.search]);
 
   const drv = useMemo(() => drivers.find(d => String(d.driver_number) === String(dn)), [drivers, dn]);
   const best = useMemo(() => laps.reduce((b: any, l: any) => (l.lap_duration && (!b || l.lap_duration < b.lap_duration) ? l : b), null), [laps]);
