@@ -219,6 +219,66 @@ interface RecapData {
   hasRaceData: boolean;
 }
 
+// Build a short prose paragraph distilling the race. Plain HTML so Google
+// can pull it as a snippet and LLMs can quote it without parsing tables.
+function buildSummaryProse(d: RecapData): string {
+  const drvByNum: Record<number, Driver> = {};
+  d.drivers.forEach(dr => { drvByNum[dr.driver_number] = dr; });
+
+  const winner = d.results.find(r => r.position === 1);
+  const winnerDrv = winner?.driver_number ? drvByNum[winner.driver_number] : null;
+  const second = d.results.find(r => r.position === 2);
+  const secondDrv = second?.driver_number ? drvByNum[second.driver_number] : null;
+
+  const sentences: string[] = [];
+
+  // Sentence 1 — winner + margin
+  if (winnerDrv) {
+    const winnerName = winnerDrv.full_name || winnerDrv.name_acronym;
+    const team = winnerDrv.team_name ? ` (${winnerDrv.team_name})` : "";
+    if (secondDrv && second?.gap_to_leader != null && second.gap_to_leader !== "") {
+      const secondName = secondDrv.full_name || secondDrv.name_acronym;
+      const gap = typeof second.gap_to_leader === "number"
+        ? `+${second.gap_to_leader.toFixed(3)}s`
+        : String(second.gap_to_leader);
+      sentences.push(`<strong>${escHtml(winnerName)}</strong>${escHtml(team)} won the ${escHtml(d.year)} ${escHtml(d.race.meetingName)} ahead of ${escHtml(secondName)} by ${escHtml(gap)}.`);
+    } else {
+      sentences.push(`<strong>${escHtml(winnerName)}</strong>${escHtml(team)} won the ${escHtml(d.year)} ${escHtml(d.race.meetingName)}.`);
+    }
+  }
+
+  // Sentence 2 — fastest race pace if it differs from the winner's name
+  if (d.pace.length > 0) {
+    const top = d.pace[0];
+    if (winnerDrv && top.driver !== winnerDrv.name_acronym) {
+      sentences.push(`Fastest median race pace went to <strong>${escHtml(top.driver)}</strong> (${escHtml(top.team)}) at ${escHtml(top.medianPace)} per lap on clean laps — track position and strategy decided the result.`);
+    } else if (top) {
+      sentences.push(`The winning car also had the fastest median race pace on clean laps at ${escHtml(top.medianPace)} per lap.`);
+    }
+  }
+
+  // Sentence 3 — biggest gainer
+  if (d.gainers.length > 0) {
+    const g = d.gainers[0];
+    if (g.gained >= 3) {
+      sentences.push(`Biggest gainer of the day: <strong>${escHtml(g.driver)}</strong> (${escHtml(g.team)}), up ${g.gained} places from P${g.from} on lap one to P${g.to} at the flag.`);
+    }
+  }
+
+  // Sentence 4 — DNFs / retirements
+  const retirements = d.results.filter(r => r.status && r.status !== "Finished" && r.status !== "Lapped" && r.status !== "+1 Lap");
+  if (retirements.length >= 2) {
+    const names = retirements.slice(0, 4).map(r => {
+      const drv = r.driver_number ? drvByNum[r.driver_number] : null;
+      return drv?.name_acronym || drv?.full_name || "Unknown";
+    });
+    sentences.push(`${retirements.length} drivers failed to finish — ${escHtml(names.join(", "))}${retirements.length > 4 ? " and others" : ""}.`);
+  }
+
+  if (sentences.length === 0) return "";
+  return sentences.join(" ");
+}
+
 export function renderRecapHtml(d: RecapData, origin: string, gaId?: string): string {
   const { race, year } = d;
   const slug = race.slug;
@@ -405,11 +465,20 @@ footer.site a { color: rgba(255,255,255,0.5); }
   <a class="cta" href="${escHtml(sessionLink)}">Open full race analysis →</a>
   ${otherSessionLinks ? `<div class="muted">Also: ${otherSessionLinks}</div>` : ""}
 
-  ${d.hasRaceData ? `
+  ${d.hasRaceData ? (() => {
+    const prose = buildSummaryProse(d);
+    return `${prose ? `
+  <section class="summary">
+    <h2>The story in three sentences</h2>
+    <p>${prose}</p>
+  </section>
+  ` : ""}
   <section>
     <h2>Final classification (top 10)</h2>
     ${classificationRows ? `<table><thead><tr><th>Pos</th><th>Driver</th><th>Team</th><th>Gap</th><th>Status</th></tr></thead><tbody>${classificationRows}</tbody></table>` : `<div class="empty">Results not yet available.</div>`}
-  </section>
+  </section>`;
+  })() : ""}
+  ${d.hasRaceData ? `
 
   <section>
     <h2>Top pace (median lap time, clean laps)</h2>
