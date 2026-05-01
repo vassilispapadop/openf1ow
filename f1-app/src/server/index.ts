@@ -1,6 +1,7 @@
 import { handleF1Request } from "./r2-cache";
 import { handleRecapRequest, handleInsightsRequest } from "./recap";
 import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
+import { handleShareImageUpload, handleShareImageRead } from "./share-image";
 import { handleSeasonTrendsRequest } from "./season-trends";
 
 interface Env {
@@ -469,6 +470,14 @@ export default {
     if (url.pathname.startsWith("/share/driver/") && env.ASSETS) {
       const r = await handleShareDriverRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA });
       if (r) return r;
+    }
+    // User-uploaded chart screenshots: read by hash, upload via POST.
+    if (url.pathname.startsWith("/share/img/")) {
+      const r = await handleShareImageRead({ url, F1_DATA: env.F1_DATA });
+      if (r) return r;
+    }
+    if (url.pathname === "/api/share/upload") {
+      return handleShareImageUpload({ request, F1_DATA: env.F1_DATA });
     }
 
     // Helper: fetch index.html from assets

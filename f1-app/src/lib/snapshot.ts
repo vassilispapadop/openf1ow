@@ -160,3 +160,23 @@ export function downloadPng(blob: Blob, filename: string) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Upload a PNG blob to the worker's content-addressed share endpoint and
+ * return the public URL. Worker dedupes by SHA-256 — re-uploading an
+ * identical chart is free and returns the same URL.
+ */
+export async function uploadShareImage(blob: Blob): Promise<string | null> {
+  try {
+    const res = await fetch("/api/share/upload", {
+      method: "POST",
+      headers: { "Content-Type": "image/png" },
+      body: blob,
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { url?: string };
+    return data.url || null;
+  } catch {
+    return null;
+  }
+}
