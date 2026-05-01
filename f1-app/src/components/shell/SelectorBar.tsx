@@ -13,7 +13,9 @@ interface SelectorBarProps {
 export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onSession }: SelectorBarProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const races = useMemo(
-    () => meetings.filter(m => !m.meeting_name?.toLowerCase().includes("testing")),
+    () => meetings.filter(m =>
+      !m.meeting_name?.toLowerCase().includes("testing") && !m.is_cancelled,
+    ),
     [meetings],
   );
 
