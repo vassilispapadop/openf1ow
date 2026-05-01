@@ -9,6 +9,7 @@ import { detectClipping, buildDrsZones } from "../lib/clipping";
 import { DRIVER_COLORS, DEFAULT_DRIVER_TAB, paths } from "../lib/constants";
 import Tab from "../components/Tab";
 import Spinner from "../components/Spinner";
+import ShareButton from "../components/ShareButton";
 import { Chart, DeltaChart } from "../components/TelemetryChart";
 import DriverInfoCard from "../components/shell/DriverInfoCard";
 import LapsTab from "../components/driver/LapsTab";
@@ -37,6 +38,11 @@ export default function DriverPage() {
   const [comparisons, setComparisons] = useState<any[]>([]);
   const [driverLoading, setDriverLoading] = useState("");
   const syncRef = useRef({});
+  // Refs to the comparison panel's chart canvases — used so the unified
+  // SHARE button at the panel header can capture both Chart and DeltaChart
+  // stacked into one PNG.
+  const cmpChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const cmpDeltaCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // Load driver data when driver or session changes
   const loadedRef = useRef("");
@@ -228,8 +234,24 @@ export default function DriverPage() {
           </div>
           {cmpTraces.length > 0 && (
             <div>
-              <Chart traces={cmpTraces} syncRef={syncRef} clippingEvents={cmpClipEvents} />
-              <DeltaChart traces={cmpTraces} syncRef={syncRef} />
+              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+                <ShareButton
+                  canvasRefs={[cmpChartCanvasRef, cmpDeltaCanvasRef]}
+                  filename="openf1ow-comparison"
+                />
+              </div>
+              <Chart
+                traces={cmpTraces}
+                syncRef={syncRef}
+                clippingEvents={cmpClipEvents}
+                canvasRef={cmpChartCanvasRef}
+                hideShareButton
+              />
+              <DeltaChart
+                traces={cmpTraces}
+                syncRef={syncRef}
+                canvasRef={cmpDeltaCanvasRef}
+              />
             </div>
           )}
         </div>

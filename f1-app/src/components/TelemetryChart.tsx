@@ -239,9 +239,12 @@ const PANELS = [
 // CHART COMPONENT
 // ============================================================================
 
-export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRef: any; clippingEvents?: ClipEvent[] }) {
+export function Chart({ traces, syncRef, clippingEvents, canvasRef, hideShareButton }: { traces: any; syncRef: any; clippingEvents?: ClipEvent[]; canvasRef?: React.RefObject<HTMLCanvasElement | null>; hideShareButton?: boolean }) {
   const wrapRef = useRef(null);
-  const bgRef = useRef(null);
+  const internalBgRef = useRef<HTMLCanvasElement | null>(null);
+  // Parent can pass its own ref to read the canvas after mount (used by the
+  // comparison panel to combine Chart + DeltaChart in one share PNG).
+  const bgRef = canvasRef ?? internalBgRef;
   const olRef = useRef(null);
   const scalesRef = useRef({ maxDist: 1, panels: [], L: LEFT_MARGIN, plotW: 1, plotH: 1 });
   const CSS_H = 460;
@@ -587,9 +590,11 @@ export function Chart({ traces, syncRef, clippingEvents }: { traces: any; syncRe
 
   return (
     <div ref={wrapRef}>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
-        <ShareButton canvasRef={bgRef} filename="openf1ow-telemetry" />
-      </div>
+      {!hideShareButton && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+          <ShareButton canvasRef={bgRef} filename="openf1ow-telemetry" />
+        </div>
+      )}
       <div style={{ position: "relative" }}>
         <canvas ref={bgRef} style={{ display: "block", borderRadius: "8px 8px 0 0" }} />
         <canvas ref={olRef} style={{ position: "absolute", top: 0, left: 0, cursor: "crosshair", borderRadius: "8px 8px 0 0" }} />
@@ -638,9 +643,10 @@ function computeDeltas(traces) {
   };
 }
 
-export function DeltaChart({ traces, syncRef }) {
+export function DeltaChart({ traces, syncRef, canvasRef }: { traces: any; syncRef: any; canvasRef?: React.RefObject<HTMLCanvasElement | null> }) {
   const wrapRef = useRef(null);
-  const bgRef = useRef(null);
+  const internalBgRef = useRef<HTMLCanvasElement | null>(null);
+  const bgRef = canvasRef ?? internalBgRef;
   const olRef = useRef(null);
   const deltaRef = useRef(null);
   const scalesRef = useRef({ maxDist: 1, deltaCeil: 1, L: LEFT_MARGIN, plotW: 1, plotH: 1, T: 8 });
