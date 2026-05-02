@@ -1,5 +1,5 @@
 import type { Driver, Lap, Stint, Pit, Weather } from "./types";
-import { median, linearSlope, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "./raceUtils";
+import { median, linearSlope, computeSlowLapThreshold, isCleanLap, fuelCorrPerLap, DIRTY_AIR_THRESHOLD } from "./raceUtils";
 import { ft3 as ft } from "./format";
 
 // --- Summary builders ---
@@ -70,8 +70,9 @@ function buildTireDegradation(allLaps: Lap[], drivers: Driver[], stints: Stint[]
   allLaps.forEach(l => { lapMap[l.driver_number + "-" + l.lap_number] = l; });
 
   const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
-  const fuelPerLap = FUEL_TOTAL_KG / totalRaceLaps;
-  const fuelCorrectionPerLap = fuelPerLap * FUEL_SEC_PER_KG;
+  // Auto-detects sprint vs GP fuel load. Without this, sprint deg numbers
+  // are over-corrected by ~2.7× and reported as much higher than reality.
+  const fuelCorrectionPerLap = fuelCorrPerLap(totalRaceLaps);
 
   const stintRows = stints.map(st => {
     const drv = drivers.find(d => d.driver_number === st.driver_number);

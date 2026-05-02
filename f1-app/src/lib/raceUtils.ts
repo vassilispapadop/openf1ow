@@ -1,9 +1,25 @@
 import type { Lap, Stint } from "./types";
 
+// Maximum allowed Grand Prix start fuel under FIA regulations.
 export const FUEL_TOTAL_KG = 110;
+// Sprint races (~24 laps) are fuelled for the shorter distance — typically
+// ~40 kg. Without distinguishing, fuel-corrected tyre deg is ~2.7× over-
+// corrected on sprints, inflating reported deg by 50-150 %.
+export const FUEL_SPRINT_KG = 40;
+// Lap-count threshold for "this is a sprint, not a GP". F1 sprints run
+// 17-25 laps; regular GPs are 44-78 laps. 30 leaves comfortable margin.
+export const SPRINT_LAP_THRESHOLD = 30;
+
 export const FUEL_SEC_PER_KG = 0.055;
 export const SLOW_LAP_FACTOR = 1.07;
 export const DIRTY_AIR_THRESHOLD = 1.5;
+
+/** Pick the right start-fuel constant for a session given its total laps. */
+export function inferStartFuelKg(totalRaceLaps: number): number {
+  return totalRaceLaps > 0 && totalRaceLaps <= SPRINT_LAP_THRESHOLD
+    ? FUEL_SPRINT_KG
+    : FUEL_TOTAL_KG;
+}
 
 export function median(arr: number[]): number {
   if (!arr.length) return 0;
@@ -35,7 +51,7 @@ export function isCleanLap(l: Lap, threshold: number): boolean {
 }
 
 export function fuelCorrPerLap(totalRaceLaps: number): number {
-  return (FUEL_TOTAL_KG / Math.max(1, totalRaceLaps)) * FUEL_SEC_PER_KG;
+  return (inferStartFuelKg(totalRaceLaps) / Math.max(1, totalRaceLaps)) * FUEL_SEC_PER_KG;
 }
 
 // Fuel-corrected degradation slope for one stint. Skips the first 2 laps of

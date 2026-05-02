@@ -34,8 +34,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 // Math primitives — mirror src/lib/raceUtils.ts.
 
 const FUEL_TOTAL_KG = 110;
+// Sprint races (~24 laps) are fuelled for ~40 kg, not 110. Without this,
+// fuel-corrected tyre deg on sprints is over-corrected ~2.7× and reported
+// 50-150% higher than reality. Mirror src/lib/raceUtils.ts.
+const FUEL_SPRINT_KG = 40;
+const SPRINT_LAP_THRESHOLD = 30;
 const FUEL_SEC_PER_KG = 0.055;
 const SLOW_LAP_FACTOR = 1.07;
+
+function inferStartFuelKg(totalLaps) {
+  return totalLaps > 0 && totalLaps <= SPRINT_LAP_THRESHOLD ? FUEL_SPRINT_KG : FUEL_TOTAL_KG;
+}
 
 function median(arr) {
   if (!arr.length) return 0;
@@ -67,7 +76,7 @@ function isCleanLap(l, threshold) {
 }
 
 function fuelCorrPerLap(totalLaps) {
-  return (FUEL_TOTAL_KG / Math.max(1, totalLaps)) * FUEL_SEC_PER_KG;
+  return (inferStartFuelKg(totalLaps) / Math.max(1, totalLaps)) * FUEL_SEC_PER_KG;
 }
 
 function stintDegradation(stint, lapLookup, threshold, fc) {
