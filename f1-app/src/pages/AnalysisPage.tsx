@@ -2,7 +2,10 @@ import { useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSession } from "../contexts/SessionContext";
 import { ANALYSIS_VIEWS, DEFAULT_ANALYSIS_TAB, TAB_REDIRECT, type ViewKey } from "../lib/constants";
+import { classifySession } from "../lib/sessionAnalysis";
 import RaceAnalysis from "../RaceAnalysis";
+import QualifyingAnalysis from "../components/session/QualifyingAnalysis";
+import PracticeAnalysis from "../components/session/PracticeAnalysis";
 
 const VIEW_KEYS = new Set<string>(ANALYSIS_VIEWS.map(v => v.key));
 const isViewKey = (s: string | undefined): s is ViewKey => !!s && VIEW_KEYS.has(s);
@@ -37,6 +40,27 @@ export default function AnalysisPage() {
     sessionName: session?.session_name,
   };
 
+  // Race-shaped analysis (median pace, fuel-corrected deg, dirty air, pit
+  // stops) only makes sense for actual races. Qualifying and Practice get
+  // session-appropriate views instead.
+  const kind = classifySession(session?.session_type, session?.session_name);
+
+  if (kind === "qualifying") {
+    return (
+      <div className="fade-in-up">
+        <QualifyingAnalysis sessionKey={sk} drivers={drivers} sessionName={session?.session_name} />
+      </div>
+    );
+  }
+  if (kind === "practice") {
+    return (
+      <div className="fade-in-up">
+        <PracticeAnalysis sessionKey={sk} drivers={drivers} sessionName={session?.session_name} />
+      </div>
+    );
+  }
+
+  // Race / Sprint — full analysis stack.
   return (
     <div className="fade-in-up">
       <RaceAnalysis
