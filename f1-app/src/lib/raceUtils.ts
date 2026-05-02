@@ -1,4 +1,4 @@
-import type { Lap, Stint } from "./types";
+import type { Driver, Lap, Stint } from "./types";
 
 // Maximum allowed Grand Prix start fuel under FIA regulations.
 export const FUEL_TOTAL_KG = 110;
@@ -52,6 +52,40 @@ export function isCleanLap(l: Lap, threshold: number): boolean {
 
 export function fuelCorrPerLap(totalRaceLaps: number): number {
   return (inferStartFuelKg(totalRaceLaps) / Math.max(1, totalRaceLaps)) * FUEL_SEC_PER_KG;
+}
+
+// Single source of truth for "median race pace per driver". Returns RAW
+// numbers — formatting belongs to the render layer. Consumers who need
+// formatted strings (gap-to-leader, M:SS.sss) wrap this and add their
+// own decoration.
+export interface DriverPace {
+  driver: Driver;
+  medianPace: number;       // sec
+  bestLap: number;           // sec
+  cleanLapCount: number;     // for the minimum-data sanity gate
+}
+
+export function paceByDriver(allLaps: Lap[], drivers: Driver[]): DriverPace[] {
+  const threshold = computeSlowLapThreshold(allLaps);
+  if (!isFinite(threshold)) return [];
+  const byDriver: Record<number, number[]> = {};
+  for (const l of allLaps) {
+    if (!isCleanLap(l, threshold)) continue;
+    (byDriver[l.driver_number] ||= []).push(l.lap_duration!);
+  }
+  return drivers
+    .map(d => {
+      const t = byDriver[d.driver_number];
+      if (!t || t.length < 3) return null;
+      t.sort((a, b) => a - b);
+      return {
+        driver: d,
+        medianPace: median(t),
+        bestLap: t[0],
+        cleanLapCount: t.length,
+      };
+    })
+    .filter((x): x is DriverPace => x !== null);
 }
 
 // Fuel-corrected degradation slope for one stint. Skips the first 2 laps of

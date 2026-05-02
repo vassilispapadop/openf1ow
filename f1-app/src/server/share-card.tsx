@@ -11,6 +11,9 @@
 
 import { ImageResponse, loadGoogleFont } from "workers-og";
 import { loadRaceIndex, findRace } from "./recap";
+import type { Driver, Lap } from "../lib/types";
+import { paceByDriver } from "../lib/raceUtils";
+import { ft3 } from "../lib/format";
 
 interface PaceRow { driver: string; team: string; teamColour?: string; medianPace: string; gap: string; }
 
@@ -72,19 +75,6 @@ async function fetchSession<T>(F1_DATA: R2Bucket, endpoint: string, sk: number):
   } catch { return null; }
 }
 
-function median(arr: number[]): number {
-  if (!arr.length) return 0;
-  const s = [...arr].sort((a, b) => a - b);
-  const m = Math.floor(s.length / 2);
-  return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m];
-}
-
-function fmtTime(sec: number): string {
-  if (!sec) return "—";
-  const m = Math.floor(sec / 60);
-  return m + ":" + (sec - m * 60).toFixed(3).padStart(6, "0");
-}
-
 async function loadRaceData(opts: {
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   F1_DATA: R2Bucket;
@@ -103,40 +93,21 @@ async function loadRaceData(opts: {
 
   if (raceSk) {
     const [drivers, laps, results] = await Promise.all([
-      fetchSession<{ driver_number: number; name_acronym: string; team_name?: string; team_colour?: string; full_name?: string }[]>(opts.F1_DATA, "drivers", raceSk),
-      fetchSession<{ driver_number: number; lap_number: number; lap_duration?: number | null; is_pit_out_lap?: boolean }[]>(opts.F1_DATA, "laps", raceSk),
+      fetchSession<Driver[]>(opts.F1_DATA, "drivers", raceSk),
+      fetchSession<Lap[]>(opts.F1_DATA, "laps", raceSk),
       fetchSession<{ position?: number; driver_number?: number }[]>(opts.F1_DATA, "session_result", raceSk),
     ]);
 
     if (drivers && laps) {
-      const validTimes = laps
-        .filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1)
-        .map(l => l.lap_duration!);
-      if (validTimes.length >= 5) {
-        const threshold = median(validTimes) * 1.07;
-        const byDriver: Record<number, number[]> = {};
-        for (const l of laps) {
-          if (!l.lap_duration || l.lap_duration <= 0 || l.is_pit_out_lap || l.lap_number <= 1) continue;
-          if (l.lap_duration >= threshold) continue;
-          (byDriver[l.driver_number] ||= []).push(l.lap_duration);
-        }
-        const rows = drivers
-          .map(d => {
-            const t = byDriver[d.driver_number];
-            if (!t || t.length < 3) return null;
-            return { driver: d.name_acronym, team: d.team_name || "", teamColour: d.team_colour, _med: median(t) };
-          })
-          .filter((x): x is { driver: string; team: string; teamColour?: string; _med: number } => !!x)
-          .sort((a, b) => a._med - b._med);
-        const fastest = rows[0]?._med ?? 0;
-        topPace = rows.slice(0, 3).map(r => ({
-          driver: r.driver,
-          team: r.team,
-          teamColour: r.teamColour,
-          medianPace: fmtTime(r._med),
-          gap: r._med === fastest ? "—" : "+" + (r._med - fastest).toFixed(3),
-        }));
-      }
+      const rows = paceByDriver(laps, drivers).sort((a, b) => a.medianPace - b.medianPace);
+      const fastest = rows[0]?.medianPace ?? 0;
+      topPace = rows.slice(0, 3).map(r => ({
+        driver: r.driver.name_acronym,
+        team: r.driver.team_name || "",
+        teamColour: r.driver.team_colour,
+        medianPace: ft3(r.medianPace),
+        gap: r.medianPace === fastest ? "—" : "+" + (r.medianPace - fastest).toFixed(3),
+      }));
     }
 
     if (results && drivers) {
@@ -454,7 +425,7 @@ async function loadDriverData(opts: {
     const driverLaps = laps.filter(l => l.driver_number === opts.driverNumber && l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap);
     if (driverLaps.length) {
       const best = driverLaps.reduce((a, b) => (a.lap_duration! <= b.lap_duration! ? a : b));
-      fastestLap = fmtTime(best.lap_duration!);
+      fastestLap = ft3(best.lap_duration!);
       fastestLapNumber = best.lap_number;
     }
   }

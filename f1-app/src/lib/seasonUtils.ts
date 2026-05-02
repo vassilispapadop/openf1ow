@@ -8,6 +8,7 @@ import {
   isCleanLap,
   stintDegradation,
   fuelCorrPerLap,
+  paceByDriver,
 } from "./raceUtils";
 
 export interface RaceMeta {
@@ -25,42 +26,6 @@ export interface RaceData {
   drivers: Driver[];
   laps: Lap[];
   stints: Stint[];
-}
-
-interface PaceRow {
-  driver: string;          // name_acronym
-  team: string;            // team_name
-  teamColour?: string;
-  medianPace: number;      // seconds
-  bestLap: number;         // seconds
-  cleanLaps: number;
-}
-
-function paceByDriver(laps: Lap[], drivers: Driver[]): PaceRow[] {
-  const threshold = computeSlowLapThreshold(laps);
-  if (!isFinite(threshold)) return [];
-
-  const byDriver: Record<number, number[]> = {};
-  for (const l of laps) {
-    if (!isCleanLap(l, threshold)) continue;
-    (byDriver[l.driver_number] ||= []).push(l.lap_duration!);
-  }
-
-  return drivers
-    .map(d => {
-      const times = byDriver[d.driver_number];
-      if (!times || times.length < 3) return null;
-      times.sort((a, b) => a - b);
-      return {
-        driver: d.name_acronym,
-        team: d.team_name,
-        teamColour: d.team_colour,
-        medianPace: median(times),
-        bestLap: times[0],
-        cleanLaps: times.length,
-      };
-    })
-    .filter((x): x is PaceRow => !!x);
 }
 
 export interface ConstructorPacePoint {
@@ -89,7 +54,7 @@ export function aggregateConstructorPaceByRace(races: RaceData[]): ConstructorPa
       // Group driver paces by team
       const byTeam: Record<string, number[]> = {};
       for (const row of rows) {
-        const t = row.team || "Unknown";
+        const t = row.driver.team_name || "Unknown";
         (byTeam[t] ||= []).push(row.medianPace);
       }
 

@@ -1,30 +1,19 @@
 import type { Driver, Lap, Stint, Pit, Weather } from "./types";
-import { median, linearSlope, computeSlowLapThreshold, isCleanLap, fuelCorrPerLap, DIRTY_AIR_THRESHOLD } from "./raceUtils";
+import { median, linearSlope, computeSlowLapThreshold, isCleanLap, fuelCorrPerLap, paceByDriver, DIRTY_AIR_THRESHOLD } from "./raceUtils";
 import { ft3 as ft } from "./format";
 
 // --- Summary builders ---
 
-function buildPaceRanking(allLaps: Lap[], drivers: Driver[], threshold: number) {
-  const lapMap: Record<number, Lap[]> = {};
-  allLaps.forEach(l => {
-    if (!lapMap[l.driver_number]) lapMap[l.driver_number] = [];
-    lapMap[l.driver_number].push(l);
-  });
-
-  const rankings = drivers.map(d => {
-    const clean = (lapMap[d.driver_number] || []).filter(l => isCleanLap(l, threshold));
-    if (clean.length < 3) return null;
-    const times = clean.map(l => l.lap_duration!).sort((a, b) => a - b);
-    const med = median(times);
-    return { driver: d.name_acronym, team: d.team_name, medianPace: ft(med), bestLap: ft(times[0]), cleanLaps: clean.length, _med: med };
-  }).filter(Boolean) as { driver: string; team: string; medianPace: string; bestLap: string; cleanLaps: number; _med: number }[];
-
-  rankings.sort((a, b) => a._med - b._med);
-  const fastest = rankings[0]?._med || 0;
-
-  return rankings.map(({ _med, ...r }) => ({
-    ...r,
-    gapToLeader: _med === fastest ? "0.000s" : "+" + (_med - fastest).toFixed(3) + "s",
+function buildPaceRanking(allLaps: Lap[], drivers: Driver[]) {
+  const rows = paceByDriver(allLaps, drivers).sort((a, b) => a.medianPace - b.medianPace);
+  const fastest = rows[0]?.medianPace ?? 0;
+  return rows.map(r => ({
+    driver: r.driver.name_acronym,
+    team: r.driver.team_name,
+    medianPace: ft(r.medianPace),
+    bestLap: ft(r.bestLap),
+    cleanLaps: r.cleanLapCount,
+    gapToLeader: r.medianPace === fastest ? "0.000s" : "+" + (r.medianPace - fastest).toFixed(3) + "s",
   }));
 }
 
@@ -400,7 +389,7 @@ export function buildFullSummary(input: RaceSummaryInput) {
       driverCount: new Set(allLaps.map(l => l.driver_number)).size,
       totalLapRecords: allLaps.length,
     },
-    paceRanking: buildPaceRanking(allLaps, drivers, threshold),
+    paceRanking: buildPaceRanking(allLaps, drivers),
     constructorPace: buildConstructorPace(allLaps, drivers, threshold),
     tireDegradation: buildTireDegradation(allLaps, drivers, stints, threshold),
     teammateGaps: buildTeammateGaps(allLaps, drivers, threshold),
