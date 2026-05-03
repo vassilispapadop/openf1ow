@@ -6,6 +6,8 @@ import { ft3, podiumColor, rowBg } from "../../lib/format";
 import { TC } from "../../lib/constants";
 import { bestLapsByDriver } from "../../lib/sessionAnalysis";
 import Spinner from "../Spinner";
+import TrackMap from "./TrackMap";
+import CornerAnalysis from "./CornerAnalysis";
 
 export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }: {
   sessionKey: string;
@@ -99,6 +101,51 @@ export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }:
               )}
             </div>
           </div>
+        </section>
+      )}
+
+      {/* Track map — pole sitter's fastest lap, coloured by speed */}
+      {pole && pole.bestLapDateStart && (
+        <section style={sty.card}>
+          <header style={{ marginBottom: 14 }}>
+            <h3 style={sty.sectionHead}>Pole lap — speed trace</h3>
+            <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
+              {pole.driver.full_name}'s fastest lap, drawn around the circuit. Blue = slow corners, red = top-end straights.
+            </p>
+          </header>
+          <TrackMap
+            sessionKey={sessionKey}
+            driverNumber={pole.driver.driver_number}
+            driverColor={pole.driver.team_colour}
+            lap={{
+              date_start: pole.bestLapDateStart,
+              lap_duration: pole.bestLap,
+              lap_number: pole.bestLapNumber,
+            }}
+            label={`${pole.driver.name_acronym} · L${pole.bestLapNumber}`}
+            height={420}
+          />
+        </section>
+      )}
+
+      {/* Corner-by-corner profile of the pole lap */}
+      {pole && pole.bestLapDateStart && (
+        <section style={sty.card}>
+          <header style={{ marginBottom: 14 }}>
+            <h3 style={sty.sectionHead}>Corner-by-corner — pole lap</h3>
+            <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
+              Apex speed, braking duration, and time-to-full-throttle for each corner of {pole.driver.full_name}'s pole lap.
+            </p>
+          </header>
+          <CornerAnalysis
+            sessionKey={sessionKey}
+            driverNumber={pole.driver.driver_number}
+            lap={{
+              date_start: pole.bestLapDateStart,
+              lap_duration: pole.bestLap,
+              lap_number: pole.bestLapNumber,
+            }}
+          />
         </section>
       )}
 

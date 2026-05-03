@@ -28,6 +28,18 @@ export function median(arr: number[]): number {
   return sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
 }
 
+/**
+ * Sample standard deviation. Used as a "consistency" metric on race pace —
+ * lower is better (driver glued to one lap time), higher means swings.
+ * Sample (n-1) divisor since lap times are a sample of an underlying ability.
+ */
+export function stdDev(arr: number[]): number {
+  if (arr.length < 2) return 0;
+  const mean = arr.reduce((s, x) => s + x, 0) / arr.length;
+  const variance = arr.reduce((s, x) => s + (x - mean) ** 2, 0) / (arr.length - 1);
+  return Math.sqrt(variance);
+}
+
 export function linearSlope(xs: number[], ys: number[]): number {
   if (xs.length < 2) return 0;
   const n = xs.length;
@@ -63,6 +75,7 @@ export interface DriverPace {
   medianPace: number;       // sec
   bestLap: number;           // sec
   cleanLapCount: number;     // for the minimum-data sanity gate
+  consistency: number;       // sample std-dev of clean lap times, sec — lower = more consistent
 }
 
 export function paceByDriver(allLaps: Lap[], drivers: Driver[]): DriverPace[] {
@@ -77,12 +90,15 @@ export function paceByDriver(allLaps: Lap[], drivers: Driver[]): DriverPace[] {
     .map(d => {
       const t = byDriver[d.driver_number];
       if (!t || t.length < 3) return null;
+      // stdDev needs the unsorted array; sort copy for median + best.
+      const sigma = stdDev(t);
       t.sort((a, b) => a - b);
       return {
         driver: d,
         medianPace: median(t),
         bestLap: t[0],
         cleanLapCount: t.length,
+        consistency: sigma,
       };
     })
     .filter((x): x is DriverPace => x !== null);

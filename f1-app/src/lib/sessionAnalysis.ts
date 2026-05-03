@@ -42,6 +42,7 @@ export interface BestLapRow {
   driver: Driver;
   bestLap: number;             // sec
   bestLapNumber: number;
+  bestLapDateStart: string | null;   // ISO timestamp — needed to fetch telemetry for this lap
   s1: number | null;
   s2: number | null;
   s3: number | null;
@@ -68,6 +69,7 @@ export function bestLapsByDriver(laps: Lap[], drivers: Driver[], stints: Stint[]
         driver: d,
         bestLap: best.lap_duration!,
         bestLapNumber: best.lap_number,
+        bestLapDateStart: best.date_start ?? null,
         s1: best.duration_sector_1 ?? null,
         s2: best.duration_sector_2 ?? null,
         s3: best.duration_sector_3 ?? null,

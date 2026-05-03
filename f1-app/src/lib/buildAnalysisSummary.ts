@@ -13,6 +13,7 @@ function buildPaceRanking(allLaps: Lap[], drivers: Driver[]) {
     medianPace: ft(r.medianPace),
     bestLap: ft(r.bestLap),
     cleanLaps: r.cleanLapCount,
+    consistency: r.consistency.toFixed(3) + "s",
     gapToLeader: r.medianPace === fastest ? "0.000s" : "+" + (r.medianPace - fastest).toFixed(3) + "s",
   }));
 }
