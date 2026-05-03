@@ -145,10 +145,21 @@ function aggregateConstructorPaceByRace(races) {
     .filter(Boolean);
 }
 
+// Teammate gap measured from QUALIFYING best laps, not race medians.
+// Race-pace teammate gaps are dominated by traffic/pit-stop variance —
+// qualifying is the clean head-to-head (same car, same track, push lap).
+//
+// For each team: take each driver's best clean qualifying lap, compare.
+// "commonLaps" here is repurposed as min(quali laps completed) so users
+// can sense the data quality (e.g. 3 quali laps = Q1 elimination).
 function aggregateTeammateGapTrend(races) {
   return races
     .map(r => {
-      const threshold = computeSlowLapThreshold(r.laps);
+      // Use qualiLaps when present; fall back to race laps if a session
+      // genuinely has no qualifying data (e.g. cancelled qualifying).
+      const lapsForGap = r.qualiLaps?.length ? r.qualiLaps : r.laps;
+      if (!lapsForGap?.length) return null;
+      const threshold = computeSlowLapThreshold(lapsForGap);
       if (!isFinite(threshold)) return null;
 
       const teamDrivers = {};
@@ -157,32 +168,30 @@ function aggregateTeammateGapTrend(races) {
         (teamDrivers[t] ||= []).push(d);
       }
       const byDriver = {};
-      for (const l of r.laps) (byDriver[l.driver_number] ||= []).push(l);
+      for (const l of lapsForGap) {
+        if (!isCleanLap(l, threshold)) continue;
+        (byDriver[l.driver_number] ||= []).push(l.lap_duration);
+      }
 
       const teamRows = [];
       for (const [team, ds] of Object.entries(teamDrivers)) {
         if (ds.length < 2) continue;
         const [d1, d2] = ds.slice(0, 2);
-        const laps1 = (byDriver[d1.driver_number] || []).filter(l => isCleanLap(l, threshold));
-        const laps2 = (byDriver[d2.driver_number] || []).filter(l => isCleanLap(l, threshold));
-        const l1Map = {};
-        laps1.forEach(l => { l1Map[l.lap_number] = l.lap_duration; });
-        const t1 = [], t2 = [];
-        for (const l of laps2) {
-          if (l1Map[l.lap_number]) {
-            t1.push(l1Map[l.lap_number]);
-            t2.push(l.lap_duration);
-          }
-        }
-        if (t1.length < 3) continue;
-        const m1 = median(t1), m2 = median(t2);
-        const d1Faster = m1 <= m2;
+        const t1 = byDriver[d1.driver_number] || [];
+        const t2 = byDriver[d2.driver_number] || [];
+        // Require 2+ clean push laps from each teammate. With only 1
+        // clean lap the "best" might be an aborted lap rather than
+        // a true representative of pace.
+        if (t1.length < 2 || t2.length < 2) continue;
+        const best1 = Math.min(...t1);
+        const best2 = Math.min(...t2);
+        const d1Faster = best1 <= best2;
         teamRows.push({
           team,
           faster: d1Faster ? d1.name_acronym : d2.name_acronym,
           slower: d1Faster ? d2.name_acronym : d1.name_acronym,
-          gap: +Math.abs(m1 - m2).toFixed(3),
-          commonLaps: t1.length,
+          gap: +Math.abs(best1 - best2).toFixed(3),
+          commonLaps: Math.min(t1.length, t2.length),
         });
       }
       if (!teamRows.length) return null;
@@ -278,10 +287,15 @@ async function fetchEndpoint(endpoint, sk) {
 async function loadRaceData(year, race, round) {
   const sk = race.sessions?.race;
   if (!sk) return null;
-  const [drivers, laps, stints] = await Promise.all([
+  const qualiSk = race.sessions?.qualifying;
+  // Sprint weekends — qualifying happens for the Sunday race, sprintqualifying
+  // sets the sprint grid. We use the main qualifying for teammate-gap
+  // analysis; sprintqualifying could be a future per-session breakdown.
+  const [drivers, laps, stints, qualiLaps] = await Promise.all([
     fetchEndpoint("drivers", sk),
     fetchEndpoint("laps", sk),
     fetchEndpoint("stints", sk),
+    qualiSk ? fetchEndpoint("laps", qualiSk) : Promise.resolve(null),
   ]);
   if (!drivers?.length || !laps?.length) return null;
   return {
@@ -296,6 +310,7 @@ async function loadRaceData(year, race, round) {
     },
     drivers,
     laps,
+    qualiLaps: qualiLaps || [],
     stints: stints || [],
   };
 }
@@ -342,7 +357,7 @@ async function processYear(year, allRaces) {
     const data = await loadRaceData(year, r, round);
     if (data) {
       racesData.push(data);
-      console.log(`drivers=${data.drivers.length} laps=${data.laps.length} stints=${data.stints.length}`);
+      console.log(`drivers=${data.drivers.length} laps=${data.laps.length} stints=${data.stints.length} quali=${data.qualiLaps.length}`);
     } else {
       console.log("(skipped — incomplete data)");
     }
