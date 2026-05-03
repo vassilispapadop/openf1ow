@@ -83,20 +83,39 @@ export default function HotStats({ year }: { year: number }) {
 
 function buildStats(t: SeasonTrends): Stat[] {
   const out: Stat[] = [];
-  const latestPace = t.constructorPace[t.constructorPace.length - 1];
   const latestTeammate = t.teammateGap[t.teammateGap.length - 1];
   const latestDeg = t.tireDeg[t.tireDeg.length - 1];
 
-  // 1) Constructor pace gap, latest race
-  if (latestPace && latestPace.teams.length >= 2) {
-    const fastest = latestPace.teams[0];
-    const second = latestPace.teams[1];
-    out.push({
-      label: "FASTEST CAR · " + latestPace.slug.toUpperCase(),
-      headline: `${fastest.team} +${second.gapToFastest.toFixed(3)}s`,
-      detail: `vs. ${second.team} on median pace`,
-      accent: "#ff5a4a",
-    });
+  // 1) Fastest car of the SEASON — average gap-to-leader across all races
+  //    where each team appeared. Latest-race-only would crown the team that
+  //    happened to have a fast Sunday, missing the through-line story.
+  if (t.constructorPace.length > 0) {
+    const teamGaps: Record<string, number[]> = {};
+    for (const race of t.constructorPace) {
+      for (const tm of race.teams) {
+        (teamGaps[tm.team] ||= []).push(tm.gapToFastest);
+      }
+    }
+    const minRaces = Math.max(2, Math.ceil(t.constructorPace.length / 2));
+    const ranking = Object.entries(teamGaps)
+      .map(([team, gaps]) => ({
+        team,
+        avg: gaps.reduce((s, g) => s + g, 0) / gaps.length,
+        races: gaps.length,
+      }))
+      .filter(r => r.races >= minRaces)
+      .sort((a, b) => a.avg - b.avg);
+    if (ranking.length >= 2) {
+      const top = ranking[0];
+      const second = ranking[1];
+      const lead = +(second.avg - top.avg).toFixed(3);
+      out.push({
+        label: "FASTEST CAR · " + t.year + " SEASON",
+        headline: `${top.team}`,
+        detail: `+${lead.toFixed(3)}s clear of ${second.team} · ${top.races} races`,
+        accent: "#ff5a4a",
+      });
+    }
   }
 
   // 2) Tightest teammate gap, latest race — F1 fans love a peer head-to-head

@@ -4,6 +4,8 @@ import { F, C, R, sty } from "../lib/styles";
 import { loadSeasonTrends } from "../lib/seasonClient";
 import type { SeasonTrends } from "../lib/seasonUtils";
 import ConstructorPaceEvolution from "../components/season/ConstructorPaceEvolution";
+import TeammateGapEvolution from "../components/season/TeammateGapEvolution";
+import TireDegByCompound from "../components/season/TireDegByCompound";
 import Spinner from "../components/Spinner";
 
 export default function SeasonTrendsPage() {
@@ -83,20 +85,30 @@ export default function SeasonTrendsPage() {
         <ConstructorPaceEvolution races={trends.constructorPace} />
       </section>
 
-      <section style={{
-        ...sty.card,
-        padding: "clamp(16px, 3vw, 24px)",
-        marginTop: 12,
-      }}>
+      <section style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
         <header style={{ marginBottom: 12 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
-            More views coming
+            Teammate gap trend
           </h2>
           <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
-            Teammate gap trend and tyre deg by compound are next. The data is already in the
-            artifact — only the chart components are pending.
+            Per-team gap between teammates over the season. The dashed line is the flip boundary —
+            crossing it means the slower driver became the faster one.
           </p>
         </header>
+        <TeammateGapEvolution races={trends.teammateGap} />
+      </section>
+
+      <section style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
+        <header style={{ marginBottom: 12 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
+            Tyre deg by compound
+          </h2>
+          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
+            Median fuel-corrected degradation per compound, race by race. Lower = the compound
+            held up better that weekend.
+          </p>
+        </header>
+        <TireDegByCompound races={trends.tireDeg} />
       </section>
 
       <footer style={{
