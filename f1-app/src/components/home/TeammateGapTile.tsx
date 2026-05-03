@@ -36,13 +36,18 @@ export default function TeammateGapTile({ year }: { year: number }) {
         }
       }
 
-      // Find the team with the biggest absolute swing whose series spans
-      // at least 2 races. Falls back to the team with the largest single-
-      // race gap when the season is too young for a real trend.
+      // Pick the team with the biggest absolute swing — but restrict to
+      // teams that appeared in the LATEST race, so the "currently X.XXs
+      // ahead" headline reflects live state. Without this gate, a team
+      // with a huge swing in earlier races but missing from the latest
+      // race wins and `latestRace` ends up undefined.
+      const latestTeams = window[window.length - 1].teams;
+      const latestSet = new Set(latestTeams.map(t => t.team));
       let bestTeam: string | null = null;
       let bestDelta = 0;
       for (const [team, vals] of Object.entries(teamSeries)) {
         if (vals.length < 2) continue;
+        if (!latestSet.has(team)) continue;
         const d = vals[vals.length - 1] - vals[0];
         if (Math.abs(d) > Math.abs(bestDelta)) {
           bestDelta = d;
@@ -50,16 +55,16 @@ export default function TeammateGapTile({ year }: { year: number }) {
         }
       }
       if (!bestTeam) {
-        // Single-race fallback: surface whichever team had the biggest
-        // outright gap so the tile still has signal.
-        const single = window[window.length - 1].teams[0];
+        // Fallback: latest race's biggest-gap team (always present in
+        // the latest race by definition).
+        const single = latestTeams[0];
         if (!single) { setState("empty"); return; }
         bestTeam = single.team;
         bestDelta = 0;
       }
 
       const values = teamSeries[bestTeam];
-      const latestRace = window[window.length - 1].teams.find(t => t.team === bestTeam);
+      const latestRace = latestTeams.find(t => t.team === bestTeam);
       if (!latestRace || !values?.length) { setState("empty"); return; }
 
       setState({
