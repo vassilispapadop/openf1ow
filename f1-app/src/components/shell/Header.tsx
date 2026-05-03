@@ -45,14 +45,27 @@ export default function Header({ meetings, mk, sessions, sk, drivers, dn, onRese
             padding: 0,
             cursor: onReset ? "pointer" : "default",
             display: "flex",
-            alignItems: "baseline",
-            gap: 0,
+            flexDirection: "column",
+            alignItems: "flex-start",
+            gap: 1,
             color: "inherit",
             fontFamily: F,
           }}>
-          <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>open</span>
-          <span style={{ fontSize: 18, fontWeight: 700, color: C.accent, letterSpacing: "-0.02em" }}>f1</span>
-          <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>ow</span>
+          <span style={{ display: "flex", alignItems: "baseline" }}>
+            <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>open</span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: C.accent, letterSpacing: "-0.02em" }}>f1</span>
+            <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>ow</span>
+          </span>
+          <span className="hide-mobile" style={{
+            fontSize: 9,
+            fontWeight: 600,
+            color: C.textFaint,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            marginTop: -2,
+          }}>
+            F1 telemetry · open source · free
+          </span>
         </button>
 
         {meeting && (

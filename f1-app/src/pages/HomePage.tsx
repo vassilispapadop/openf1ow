@@ -4,6 +4,7 @@ import { useSession } from "../contexts/SessionContext";
 import { F, C } from "../lib/styles";
 import { paths } from "../lib/constants";
 import LatestRaceCard from "../components/home/LatestRaceCard";
+import HotStats from "../components/home/HotStats";
 import ConstructorPaceTile from "../components/home/ConstructorPaceTile";
 import TeammateGapTile from "../components/home/TeammateGapTile";
 import SeasonGrid from "../components/home/SeasonGrid";
@@ -56,11 +57,13 @@ export default function HomePage() {
 
       <LatestRaceCard year={year} />
 
+      <HotStats year={year} />
+
       <div style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
         gap: 10,
-        marginTop: 12,
+        marginTop: 14,
       }}>
         <ConstructorPaceTile year={year} />
         <TeammateGapTile year={year} />

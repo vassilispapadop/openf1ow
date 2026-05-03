@@ -3,17 +3,21 @@ import { F, C, R } from "../../lib/styles";
 import { fd } from "../../lib/format";
 import { loadRaceIndex } from "../../lib/raceIndex";
 import { loadSeasonTrends } from "../../lib/seasonClient";
+import { paths } from "../../lib/constants";
 import type { ConstructorPaceRace } from "../../lib/seasonUtils";
 
 interface LatestRace {
   year: number;
   slug: string;
+  meetingKey: number;
+  raceSk: number | null;
   meetingName: string;
   location: string;
   country: string;
   dateStart: string;
   fastestTeam?: string;
   fastestTeamGap?: string;
+  poleTeam?: string;          // P1 in the constructor-pace ranking, if available
 }
 
 export default function LatestRaceCard({ year }: { year: number }) {
@@ -43,6 +47,8 @@ export default function LatestRaceCard({ year }: { year: number }) {
       setRace({
         year,
         slug: latest.slug,
+        meetingKey: latest.meetingKey,
+        raceSk: latest.sessions?.race ?? null,
         meetingName: latest.meetingName,
         location: latest.location,
         country: latest.country,
@@ -51,6 +57,7 @@ export default function LatestRaceCard({ year }: { year: number }) {
         fastestTeamGap: trendRow?.teams[1]
           ? `+${trendRow.teams[1].gapToFastest.toFixed(3)}s`
           : undefined,
+        poleTeam: trendRow?.teams[0]?.team,
       });
       setLoading(false);
     })();
@@ -59,7 +66,7 @@ export default function LatestRaceCard({ year }: { year: number }) {
 
   if (loading) {
     return (
-      <div style={{ ...wrapperStyle, height: 168 }} aria-busy="true" />
+      <div style={{ ...wrapperStyle, height: 220 }} aria-busy="true" />
     );
   }
   if (!race) {
@@ -76,54 +83,86 @@ export default function LatestRaceCard({ year }: { year: number }) {
   }
 
   const formatted = fd(race.dateStart);
+  const recapHref = `/recap/${race.year}/${race.slug}`;
+  const analysisHref = race.raceSk
+    ? paths.analysis(race.year, String(race.meetingKey), String(race.raceSk))
+    : `/${race.year}/${race.meetingKey}`;
+  const trendsHref = `/${race.year}/trends`;
 
   return (
-    <a
-      href={`/recap/${race.year}/${race.slug}`}
-      className="card-glow"
-      style={{
-        ...wrapperStyle,
-        textDecoration: "none",
-        color: "inherit",
-        display: "block",
-      }}
-    >
+    <div style={{ ...wrapperStyle }}>
       <div style={{ fontSize: 11, color: C.textMute, fontWeight: 600, letterSpacing: "0.12em", marginBottom: 10 }}>
         LATEST · {formatted.toUpperCase()}
       </div>
       <h2 style={{
-        fontSize: "clamp(28px, 5vw, 44px)",
+        fontSize: "clamp(32px, 5.5vw, 52px)",
         fontWeight: 800,
-        margin: "0 0 10px",
-        lineHeight: 1.05,
-        letterSpacing: "-0.025em",
+        margin: "0 0 12px",
+        lineHeight: 1.02,
+        letterSpacing: "-0.03em",
         color: C.text,
       }}>
         {race.meetingName}
       </h2>
-      <div style={{ fontSize: 14, color: C.textDim, marginBottom: 18 }}>
+      <div style={{ fontSize: 14, color: C.textDim, marginBottom: 22, lineHeight: 1.5 }}>
         {race.location}, {race.country}
         {race.fastestTeam && (
           <>
             {" · "}
             <span style={{ color: C.text, fontWeight: 600 }}>{race.fastestTeam}</span>
             {race.fastestTeamGap && (
-              <span style={{ color: C.textMute }}> {race.fastestTeamGap} ahead</span>
+              <span style={{ color: C.textMute }}> {race.fastestTeamGap} ahead of P2</span>
             )}
           </>
         )}
       </div>
       <div style={{
+        display: "flex",
+        gap: 8,
+        flexWrap: "wrap",
+      }}>
+        <CtaPill href={recapHref} accent="primary">
+          Race recap
+        </CtaPill>
+        <CtaPill href={analysisHref}>
+          Full analysis & AI verdict
+        </CtaPill>
+        <CtaPill href={trendsHref}>
+          {race.year} season trends
+        </CtaPill>
+      </div>
+    </div>
+  );
+}
+
+function CtaPill({ href, accent, children }: { href: string; accent?: "primary" | "default"; children: React.ReactNode }) {
+  const isPrimary = accent === "primary";
+  return (
+    <a
+      href={href}
+      style={{
         display: "inline-flex",
         alignItems: "center",
         gap: 6,
-        fontSize: 12,
+        padding: "9px 16px",
+        background: isPrimary ? C.accent : "transparent",
+        color: isPrimary ? "#fff" : C.text,
+        border: isPrimary ? "none" : "1px solid " + C.border,
+        borderRadius: 999,
+        fontSize: 13,
         fontWeight: 600,
-        color: C.accent,
-        letterSpacing: "0.02em",
-      }}>
-        Read the recap →
-      </div>
+        textDecoration: "none",
+        fontFamily: F,
+        transition: "background 0.15s ease, border-color 0.15s ease",
+      }}
+      onMouseEnter={e => {
+        if (!isPrimary) e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
+      }}
+      onMouseLeave={e => {
+        if (!isPrimary) e.currentTarget.style.borderColor = C.border;
+      }}
+    >
+      {children} →
     </a>
   );
 }

@@ -29,6 +29,9 @@ const urls = [];
 // Home
 urls.push({ loc: ORIGIN + "/", changefreq: "daily", priority: "1.0" });
 
+// About / methodology page
+urls.push({ loc: ORIGIN + "/about", changefreq: "monthly", priority: "0.6" });
+
 // Insights index + per-season listings + season trends
 urls.push({ loc: ORIGIN + "/insights", changefreq: "daily", priority: "0.9" });
 for (const year of Object.keys(idx.byYear).sort().reverse()) {
@@ -51,21 +54,13 @@ for (const [year, races] of Object.entries(idx.byYear)) {
       priority: isPast ? "0.8" : "0.7",
     });
 
-    // Meeting landing (numeric — kept for back-compat)
-    urls.push({
-      loc: `${ORIGIN}/${year}/${r.meetingKey}`,
-      lastmod: r.dateStart || undefined,
-      changefreq: isPast ? "yearly" : "weekly",
-      priority: isPast ? "0.5" : "0.7",
-    });
-
-    // Per-session analysis pages — only for sessions worth indexing
+    // Slug analysis URLs — canonical, redirect to numeric via Worker.
     const indexable = ["race", "qualifying", "sprint"];
     for (const key of indexable) {
       const sk = r.sessions[key];
       if (!sk) continue;
       urls.push({
-        loc: `${ORIGIN}/${year}/${r.meetingKey}/${sk}/analysis/overview`,
+        loc: `${ORIGIN}/${year}/${r.slug}/${key}`,
         lastmod: r.dateStart || undefined,
         changefreq: isPast ? "yearly" : "weekly",
         priority: key === "race" ? "0.8" : "0.6",

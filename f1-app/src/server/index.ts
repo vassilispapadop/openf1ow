@@ -3,6 +3,8 @@ import { handleRecapRequest, handleInsightsRequest } from "./recap";
 import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
 import { handleShareImageUpload, handleShareImageRead } from "./share-image";
 import { handleSeasonTrendsRequest } from "./season-trends";
+import { handleAboutRequest } from "./about";
+import { handleSlugRedirect } from "./slug-redirect";
 
 interface Env {
   GROQ_API_KEY: string;
@@ -460,6 +462,18 @@ export default {
     }
     if ((url.pathname === "/insights" || url.pathname.startsWith("/insights/")) && env.ASSETS) {
       const r = await handleInsightsRequest({ url, ASSETS: env.ASSETS, gaId: env.GA_ID });
+      if (r) return r;
+    }
+    // Static methodology / about page — Worker-rendered for SEO.
+    if (url.pathname === "/about" || url.pathname === "/about/") {
+      const r = handleAboutRequest({ url });
+      if (r) return r;
+    }
+
+    // Slug-URL → numeric-URL 301 redirects. Catches /:year/:slug/...
+    // patterns (must run before the SPA fallback for /2* paths).
+    if (env.ASSETS && /^\/\d{4}\//.test(url.pathname)) {
+      const r = await handleSlugRedirect({ url, ASSETS: env.ASSETS });
       if (r) return r;
     }
     // PNG share cards for race recaps (Twitter/Slack/Discord preview)

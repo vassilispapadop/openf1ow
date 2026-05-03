@@ -21,8 +21,9 @@ export default function Footer() {
         <span style={{ color: C.accent }}>ow</span>
         <span style={{ marginLeft: 10, color: C.textFaint }}>not affiliated with Formula 1</span>
       </span>
-      <span style={{ color: C.textFaint, display: "inline-flex", gap: 14, alignItems: "center" }}>
+      <span style={{ color: C.textFaint, display: "inline-flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
         <a href="/insights" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>recaps</a>
+        <a href="/about" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>about · methodology</a>
         <span>data · <a href="https://openf1.org" target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>openf1.org</a></span>
       </span>
     </footer>

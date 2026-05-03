@@ -1,25 +1,23 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M } from "../../lib/styles";
-import { initCanvas, drawWatermark } from "../../lib/canvas";
+import { drawWatermark, getCtx } from "../../lib/canvas";
+import { useResponsiveCanvas, adaptiveMargins } from "../../lib/useResponsiveCanvas";
 import { ft1 } from "../../lib/format";
 import { computeSlowLapThreshold, isCleanLap } from "../../lib/raceUtils";
 import { DRIVER_COLORS } from "../../lib/constants";
 import ShareButton from "../ShareButton";
 
-// Chart helpers
-const LEFT_MARGIN = 56;
-const RIGHT_PAD = 16;
 const X_AXIS_H = 32;
 
 function LapEvolutionChart({ allLaps, drivers }: {
   allLaps: Lap[];
   drivers: Driver[];
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const cvRef = useRef<HTMLCanvasElement>(null);
-  const olRef = useRef<HTMLCanvasElement>(null);
   const CSS_H = 380;
+  const { wrapRef, canvasRef: cvRef, width } = useResponsiveCanvas(CSS_H);
+  const overlay = useResponsiveCanvas(CSS_H);
+  const olRef = overlay.canvasRef;
   const [hidden, setHidden] = useState<Set<number>>(new Set());
 
   const toggle = (num: number) => {
@@ -67,14 +65,11 @@ function LapEvolutionChart({ allLaps, drivers }: {
 
   useEffect(() => {
     const cv = cvRef.current;
-    const wrap = wrapRef.current;
-    if (!cv || !wrap) return;
-
-    const { ctx, W, H } = initCanvas(cv, wrap, CSS_H);
-    initCanvas(olRef.current!, wrap, CSS_H);
-
-    const L = LEFT_MARGIN;
-    const R = RIGHT_PAD;
+    if (!cv || width === 0) return;
+    const { ctx, W, H } = getCtx(cv);
+    const m = adaptiveMargins(width);
+    const L = m.left;
+    const R = m.right;
     const T = 10;
     const plotW = W - L - R;
     const plotH = H - T - X_AXIS_H;
@@ -228,7 +223,7 @@ function LapEvolutionChart({ allLaps, drivers }: {
     ol.addEventListener("mousemove", onMove);
     ol.addEventListener("mouseleave", onLeave);
     return () => { ol.removeEventListener("mousemove", onMove); ol.removeEventListener("mouseleave", onLeave); };
-  }, [allDriverData, visibleData]);
+  }, [allDriverData, visibleData, width]);
 
   if (!allDriverData.length) return <div style={{ color: "#5a5a6e", fontSize: 13, padding: 20 }}>No lap data available</div>;
 

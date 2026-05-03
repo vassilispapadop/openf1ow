@@ -84,6 +84,17 @@ button:focus-visible {
 @media (max-width: 768px) {
   .hide-mobile { display: none !important; }
 }
+@media (max-width: 600px) {
+  /* Use .hide-narrow on non-essential table cells to drop them on phones —
+     keeps the table from forcing horizontal scroll inside its card. */
+  .hide-narrow { display: none !important; }
+  /* Compact tables overall on phones — tighter padding, smaller font. */
+  table.compact-narrow th,
+  table.compact-narrow td {
+    padding: 6px 6px !important;
+    font-size: 11px !important;
+  }
+}
 
 /* ====== UTILITY ====== */
 .num { font-family: 'JetBrains Mono','SF Mono',monospace; font-variant-numeric: tabular-nums; }

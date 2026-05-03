@@ -1,11 +1,10 @@
-import { useEffect, useRef, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Driver, Lap } from "../../lib/types";
 import { F, M } from "../../lib/styles";
-import { initCanvas, drawWatermark } from "../../lib/canvas";
+import { drawWatermark, getCtx } from "../../lib/canvas";
+import { useResponsiveCanvas, adaptiveMargins } from "../../lib/useResponsiveCanvas";
 import { DRIVER_COLORS } from "../../lib/constants";
 
-const LEFT_MARGIN = 56;
-const RIGHT_PAD = 16;
 const TOP_PAD = 12;
 const X_AXIS_H = 32;
 const CSS_H = 380;
@@ -15,8 +14,7 @@ function GapChart({ allLaps, drivers, focusDriver }: {
   drivers: Driver[];
   focusDriver?: string;
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const cvRef = useRef<HTMLCanvasElement>(null);
+  const { wrapRef, canvasRef: cvRef, width } = useResponsiveCanvas(CSS_H);
   const [hidden, setHidden] = useState<Set<number>>(new Set());
 
   const toggle = (num: number) => {
@@ -89,10 +87,11 @@ function GapChart({ allLaps, drivers, focusDriver }: {
   // Draw
   useEffect(() => {
     const cv = cvRef.current;
-    const wrap = wrapRef.current;
-    if (!cv || !wrap || driverGaps.length === 0) return;
-
-    const { ctx, W, H } = initCanvas(cv, wrap, CSS_H);
+    if (!cv || width === 0 || driverGaps.length === 0) return;
+    const { ctx, W, H } = getCtx(cv);
+    const m = adaptiveMargins(width);
+    const LEFT_MARGIN = m.left;
+    const RIGHT_PAD = m.right;
     const plotW = W - LEFT_MARGIN - RIGHT_PAD;
     const plotH = H - TOP_PAD - X_AXIS_H;
 
@@ -164,7 +163,7 @@ function GapChart({ allLaps, drivers, focusDriver }: {
     ctx.globalAlpha = 1;
 
     drawWatermark(ctx, W, H);
-  }, [driverGaps, maxLap, maxGap, hidden, focusDriver]);
+  }, [driverGaps, maxLap, maxGap, hidden, focusDriver, width]);
 
   return (
     <div>

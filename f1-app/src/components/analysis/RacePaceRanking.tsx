@@ -72,11 +72,20 @@ function RacePaceRanking({ allLaps, drivers, viewMode }: {
       </div>
       <div ref={contentRef}>
       <div style={{ overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <table className="compact-narrow" style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
           <thead>
             <tr>
-              {["#", "Driver", "Team", "Median Pace", "Best", "Gap", "Cons. σ", "Laps"].map((h, i) => (
-                <th key={i} style={{ ...sty.th, textAlign: i <= 2 ? "left" : "right" }}>{h}</th>
+              {[
+                { label: "#", narrow: true },
+                { label: "Driver", narrow: true },
+                { label: "Team", narrow: false },
+                { label: "Median Pace", narrow: true },
+                { label: "Best", narrow: false },
+                { label: "Gap", narrow: true },
+                { label: "Cons. σ", narrow: true },
+                { label: "Laps", narrow: false },
+              ].map((h, i) => (
+                <th key={i} className={h.narrow ? "" : "hide-narrow"} style={{ ...sty.th, textAlign: i <= 2 ? "left" : "right" }}>{h.label}</th>
               ))}
             </tr>
           </thead>
@@ -96,9 +105,9 @@ function RacePaceRanking({ allLaps, drivers, viewMode }: {
                   <span style={{ color: "#5a5a6e", marginRight: 6, fontSize: 11 }}>#{r.driver.driver_number}</span>
                   {r.driver.full_name}
                 </td>
-                <td style={{ ...sty.td, color: "#" + r.color, fontSize: 11, fontWeight: 600 }}>{r.driver.team_name}</td>
+                <td className="hide-narrow" style={{ ...sty.td, color: "#" + r.color, fontSize: 11, fontWeight: 600 }}>{r.driver.team_name}</td>
                 <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700 }}>{ft3(r.med)}</td>
-                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#a855f7" }}>{ft3(r.best)}</td>
+                <td className="hide-narrow" style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#a855f7" }}>{ft3(r.best)}</td>
                 <td style={{
                   ...sty.td, ...sty.mono, textAlign: "right",
                   color: i === 0 ? "#22c55e" : "#ef4444",
@@ -113,7 +122,7 @@ function RacePaceRanking({ allLaps, drivers, viewMode }: {
                 }} title={`Standard deviation of ${r.totalLaps} clean laps — lower is more consistent`}>
                   {r.consistency.toFixed(3)}s
                 </td>
-                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#5a5a6e" }}>{r.totalLaps}</td>
+                <td className="hide-narrow" style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#5a5a6e" }}>{r.totalLaps}</td>
               </tr>
             ))}
           </tbody>

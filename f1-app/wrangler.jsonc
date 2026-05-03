@@ -16,6 +16,8 @@
       "/recap/*",
       "/insights",
       "/insights/*",
+      "/about",
+      "/about/",
       "/og-image",
       "/og-image/*",
       "/share/*",
