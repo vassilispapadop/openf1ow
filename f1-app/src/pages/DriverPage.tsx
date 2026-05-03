@@ -11,6 +11,7 @@ import Tab from "../components/Tab";
 import Spinner from "../components/Spinner";
 import ShareButton from "../components/ShareButton";
 import { Chart, DeltaChart } from "../components/TelemetryChart";
+import DominanceMap from "../components/session/DominanceMap";
 import DriverInfoCard from "../components/shell/DriverInfoCard";
 import LapsTab from "../components/driver/LapsTab";
 import TelemetryTab from "../components/driver/TelemetryTab";
@@ -252,6 +253,22 @@ export default function DriverPage() {
                 syncRef={syncRef}
                 canvasRef={cmpDeltaCanvasRef}
               />
+              {cmpTraces.length >= 2 && (
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 10,
+                    marginBottom: 10,
+                  }}>
+                    <span style={sty.sectionHead}>DOMINANCE MAP</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                      who was faster <em>through</em> each segment
+                    </span>
+                  </div>
+                  <DominanceMap traces={cmpTraces} height={420} />
+                </div>
+              )}
             </div>
           )}
         </div>
