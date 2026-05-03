@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { F, C, R, sty } from "../lib/styles";
 import { loadSeasonTrends } from "../lib/seasonClient";
@@ -6,12 +6,16 @@ import type { SeasonTrends } from "../lib/seasonUtils";
 import ConstructorPaceEvolution from "../components/season/ConstructorPaceEvolution";
 import TeammateGapEvolution from "../components/season/TeammateGapEvolution";
 import TireDegByCompound from "../components/season/TireDegByCompound";
+import ShareButton from "../components/ShareButton";
 import Spinner from "../components/Spinner";
 
 export default function SeasonTrendsPage() {
   const params = useParams<{ year?: string }>();
   const year = Number(params.year) || new Date().getFullYear();
   const [trends, setTrends] = useState<SeasonTrends | null | "missing">(null);
+  const constructorPaceRef = useRef<HTMLElement>(null);
+  const teammateGapRef = useRef<HTMLElement>(null);
+  const tireDegRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -73,40 +77,50 @@ export default function SeasonTrendsPage() {
         </p>
       </header>
 
-      <section style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)" }}>
-        <header style={{ marginBottom: 12 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
-            Constructor pace evolution
-          </h2>
-          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
-            Median lap time gap to the fastest car, per race. Tap a team in the legend to hide it.
-          </p>
+      <section ref={constructorPaceRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)" }}>
+        <header style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
+              Constructor pace evolution
+            </h2>
+            <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
+              Median lap-time gap to the fastest car, per race. Top 3 highlighted; hover the chart for
+              the full ranking at any round.
+            </p>
+          </div>
+          <ShareButton domRef={constructorPaceRef} meta={`${year} constructor pace`} filename={`openf1ow-constructor-pace-${year}`} />
         </header>
         <ConstructorPaceEvolution races={trends.constructorPace} />
       </section>
 
-      <section style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
-        <header style={{ marginBottom: 12 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
-            Teammate gap trend
-          </h2>
-          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
-            Per-team gap between teammates over the season. The dashed line is the flip boundary —
-            crossing it means the slower driver became the faster one.
-          </p>
+      <section ref={teammateGapRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
+        <header style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
+              Teammate gap trend
+            </h2>
+            <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
+              Per-team gap between teammates over the season. The dashed line is the flip boundary —
+              crossing it means the slower driver became the faster one.
+            </p>
+          </div>
+          <ShareButton domRef={teammateGapRef} meta={`${year} teammate gaps`} filename={`openf1ow-teammate-gap-${year}`} />
         </header>
         <TeammateGapEvolution races={trends.teammateGap} />
       </section>
 
-      <section style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
-        <header style={{ marginBottom: 12 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
-            Tyre deg by compound
-          </h2>
-          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
-            Median fuel-corrected degradation per compound, race by race. Lower = the compound
-            held up better that weekend.
-          </p>
+      <section ref={tireDegRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
+        <header style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
+              Tyre deg by compound
+            </h2>
+            <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
+              Median fuel-corrected degradation per compound, race by race. Lower = the compound
+              held up better that weekend.
+            </p>
+          </div>
+          <ShareButton domRef={tireDegRef} meta={`${year} tyre degradation`} filename={`openf1ow-tyre-deg-${year}`} />
         </header>
         <TireDegByCompound races={trends.tireDeg} />
       </section>
