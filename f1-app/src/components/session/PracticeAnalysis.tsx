@@ -71,7 +71,7 @@ export default function PracticeAnalysis({ sessionKey, drivers, sessionName }: {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr>
-                {["#", "Driver", "Team", "Best Lap", "Gap", "Tyre", "Top Speed", "Laps"].map((h, i) => (
+                {["#", "Driver", "Team", "Best Lap", "Gap", "Gap %", "Tyre", "Top Speed", "Laps"].map((h, i) => (
                   <th key={i} style={{ ...sty.th, textAlign: i <= 2 ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
@@ -90,6 +90,9 @@ export default function PracticeAnalysis({ sessionKey, drivers, sessionName }: {
                     <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700 }}>{ft3(r.bestLap)}</td>
                     <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: i === 0 ? C.pos : C.textMute }}>
                       {fastest && i > 0 ? "+" + (r.bestLap - fastest.bestLap).toFixed(3) : "—"}
+                    </td>
+                    <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: i === 0 ? C.pos : C.textMute }}>
+                      {fastest && i > 0 ? "+" + (((r.bestLap - fastest.bestLap) / fastest.bestLap) * 100).toFixed(2) + "%" : "—"}
                     </td>
                     <td style={{ ...sty.td, textAlign: "right", color: r.compound ? (TC[r.compound] || C.textDim) : C.textFaint, fontWeight: 700, fontSize: 10, letterSpacing: "0.08em" }}>
                       {r.compound || "—"}

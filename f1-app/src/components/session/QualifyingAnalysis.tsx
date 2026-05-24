@@ -162,7 +162,7 @@ export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }:
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
               <tr>
-                {["#", "Driver", "Team", "Best Lap", "Gap", "S1", "S2", "S3", "Tyre", "Top Speed", "Laps"].map((h, i) => (
+                {["#", "Driver", "Team", "Best Lap", "Gap", "Gap %", "S1", "S2", "S3", "Tyre", "Top Speed", "Laps"].map((h, i) => (
                   <th key={i} style={{ ...sty.th, textAlign: i <= 2 ? "left" : "right" }}>{h}</th>
                 ))}
               </tr>
@@ -184,6 +184,9 @@ export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }:
                     <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700 }}>{ft3(r.bestLap)}</td>
                     <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: i === 0 ? C.pos : C.textMute }}>
                       {pole && i > 0 ? "+" + (r.bestLap - pole.bestLap).toFixed(3) : "—"}
+                    </td>
+                    <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: i === 0 ? C.pos : C.textMute }}>
+                      {pole && i > 0 ? "+" + (((r.bestLap - pole.bestLap) / pole.bestLap) * 100).toFixed(2) + "%" : "—"}
                     </td>
                     <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: isPurpleS1 ? "#a855f7" : C.textDim, fontWeight: isPurpleS1 ? 700 : 400 }}>
                       {r.s1 != null ? r.s1.toFixed(3) : "—"}

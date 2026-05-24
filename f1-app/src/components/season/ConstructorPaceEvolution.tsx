@@ -284,6 +284,9 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
           </div>
           {hoveredRace.teams.map((tp, i) => {
             const idx = teams.findIndex(x => x.team === tp.team);
+            const pct = hoveredRace.fastestTeamMedian > 0
+              ? (tp.gapToFastest / hoveredRace.fastestTeamMedian) * 100
+              : 0;
             return (
               <div key={tp.team} style={{
                 display: "flex",
@@ -305,8 +308,15 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
                 <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {tp.team}
                 </span>
-                <span style={{ fontFamily: M, fontVariantNumeric: "tabular-nums", color: tp.gapToFastest === 0 ? "#22c55e" : C.textDim }}>
-                  {tp.gapToFastest === 0 ? "fastest" : "+" + tp.gapToFastest.toFixed(3)}
+                <span style={{ fontFamily: M, fontVariantNumeric: "tabular-nums", color: tp.gapToFastest === 0 ? "#22c55e" : C.textDim, textAlign: "right" }}>
+                  {tp.gapToFastest === 0 ? "fastest" : (
+                    <>
+                      +{tp.gapToFastest.toFixed(3)}
+                      <span style={{ color: C.textFaint, fontSize: 10, marginLeft: 4 }}>
+                        +{pct.toFixed(2)}%
+                      </span>
+                    </>
+                  )}
                 </span>
               </div>
             );
@@ -326,6 +336,12 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
         {teams.map((t, idx) => {
           const isHidden = hidden.has(t.team);
           const focused = isFocusedTeam(t.team);
+          const lastPoint = t.points[t.points.length - 1];
+          const lastRace = lastPoint ? racesByRound[lastPoint.round] : undefined;
+          const lastGap = lastPoint?.gap ?? 0;
+          const lastPct = lastRace && lastRace.fastestTeamMedian > 0
+            ? (lastGap / lastRace.fastestTeamMedian) * 100
+            : 0;
           return (
             <li key={t.team}>
               <button
@@ -370,8 +386,9 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {t.team}
                 </span>
-                <span style={{ marginLeft: "auto", color: C.textMute, fontFamily: M, fontSize: 11 }}>
-                  +{(t.points[t.points.length - 1]?.gap ?? 0).toFixed(2)}
+                <span style={{ marginLeft: "auto", color: C.textMute, fontFamily: M, fontSize: 11, display: "flex", gap: 4, alignItems: "baseline" }}>
+                  <span>+{lastGap.toFixed(2)}</span>
+                  <span style={{ color: C.textFaint, fontSize: 10 }}>+{lastPct.toFixed(2)}%</span>
                 </span>
               </button>
             </li>
