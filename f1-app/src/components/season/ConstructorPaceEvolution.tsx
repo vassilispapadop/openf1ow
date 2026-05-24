@@ -14,8 +14,16 @@ interface Props {
   height?: number;
 }
 
-const MARGIN = { top: 14, right: 16, bottom: 36, left: 52 };
+const MARGIN = { top: 18, right: 18, bottom: 36, left: 56 };
 const TOP_N_DEFAULT = 3;
+
+type Unit = "s" | "%";
+
+interface Point {
+  round: number;
+  gapSec: number;
+  gapPct: number;
+}
 
 export default function ConstructorPaceEvolution({ races, height = 380 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -24,6 +32,7 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(false);
   const [hoverRound, setHoverRound] = useState<number | null>(null);
+  const [unit, setUnit] = useState<Unit>("s");
 
   useEffect(() => {
     if (!wrapRef.current) return;
@@ -34,10 +43,10 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
     return () => ro.disconnect();
   }, []);
 
-  // Build per-team series, sorted by latest gap (leader first).
-  const { teams, maxGap, minRound, maxRound, racesByRound } = useMemo(() => {
-    const series: Record<string, { round: number; gap: number }[]> = {};
-    let maxGap = 0;
+  const { teams, minRound, maxRound, racesByRound, allMaxSec, allMaxPct } = useMemo(() => {
+    const series: Record<string, Point[]> = {};
+    let maxSec = 0;
+    let maxPct = 0;
     let minRound = Infinity;
     let maxRound = -Infinity;
     const racesByRound: Record<number, ConstructorPaceRace> = {};
@@ -46,21 +55,47 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
       minRound = Math.min(minRound, r.round);
       maxRound = Math.max(maxRound, r.round);
       for (const t of r.teams) {
-        (series[t.team] ||= []).push({ round: r.round, gap: t.gapToFastest });
-        if (t.gapToFastest > maxGap) maxGap = t.gapToFastest;
+        const gapPct = r.fastestTeamMedian > 0 ? (t.gapToFastest / r.fastestTeamMedian) * 100 : 0;
+        (series[t.team] ||= []).push({ round: r.round, gapSec: t.gapToFastest, gapPct });
+        if (t.gapToFastest > maxSec) maxSec = t.gapToFastest;
+        if (gapPct > maxPct) maxPct = gapPct;
       }
     }
     const teams = Object.entries(series)
       .map(([team, points]) => ({ team, points: points.sort((a, b) => a.round - b.round) }))
       .sort((a, b) => {
-        const al = a.points[a.points.length - 1]?.gap ?? Infinity;
-        const bl = b.points[b.points.length - 1]?.gap ?? Infinity;
+        const al = a.points[a.points.length - 1]?.gapSec ?? Infinity;
+        const bl = b.points[b.points.length - 1]?.gapSec ?? Infinity;
         return al - bl;
       });
-    return { teams, maxGap: maxGap || 1, minRound, maxRound, racesByRound };
+    return {
+      teams,
+      minRound,
+      maxRound,
+      racesByRound,
+      allMaxSec: maxSec || 1,
+      allMaxPct: maxPct || 1,
+    };
   }, [races]);
 
   const topTeams = useMemo(() => new Set(teams.slice(0, TOP_N_DEFAULT).map(t => t.team)), [teams]);
+
+  const isFocusedTeam = (team: string) =>
+    !hidden.has(team) && (showAll || topTeams.has(team));
+
+  // Y scales to the focused teams' max so the visible story fills the chart.
+  const focusedMaxValue = useMemo(() => {
+    let max = 0;
+    for (const t of teams) {
+      if (!isFocusedTeam(t.team)) continue;
+      for (const p of t.points) {
+        const v = unit === "s" ? p.gapSec : p.gapPct;
+        if (v > max) max = v;
+      }
+    }
+    if (max === 0) max = unit === "s" ? allMaxSec : allMaxPct;
+    return max;
+  }, [teams, hidden, showAll, unit, allMaxSec, allMaxPct]);
 
   if (width === 0) {
     return <div ref={wrapRef} style={{ height, fontFamily: F }} />;
@@ -69,14 +104,17 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
   const innerW = Math.max(20, width - MARGIN.left - MARGIN.right);
   const innerH = height - MARGIN.top - MARGIN.bottom;
   const xRange = Math.max(1, maxRound - minRound);
-  const yRange = maxGap * 1.05;
+  const yRange = focusedMaxValue * 1.08;
 
   const xFor = (round: number) => MARGIN.left + ((round - minRound) / xRange) * innerW;
-  const yFor = (gap: number) => MARGIN.top + (gap / yRange) * innerH;
+  const yFor = (v: number) => MARGIN.top + (v / yRange) * innerH;
+  const valueOf = (p: Point) => unit === "s" ? p.gapSec : p.gapPct;
   const teamColor = (team: string, idx: number) => TEAM_COLORS[team] ?? FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
 
-  const isFocusedTeam = (team: string) =>
-    !hidden.has(team) && (showAll || topTeams.has(team));
+  const formatValue = (v: number) =>
+    unit === "s" ? "+" + v.toFixed(v < 1 ? 3 : 2) : "+" + v.toFixed(2) + "%";
+  const formatTick = (v: number) =>
+    unit === "s" ? "+" + v.toFixed(2) + "s" : "+" + v.toFixed(1) + "%";
 
   const handleSvgMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -98,14 +136,52 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
   const hoveredRace = hoverRound != null ? racesByRound[hoverRound] : null;
   const tooltipX = hoverRound != null ? xFor(hoverRound) : 0;
   const tooltipOnRight = tooltipX < width / 2;
+  const clipId = "ccp-clip";
 
   return (
     <div ref={wrapRef} style={{ position: "relative", width: "100%", fontFamily: F }}>
       <div style={{
         display: "flex",
         justifyContent: "flex-end",
-        marginBottom: 6,
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 8,
       }}>
+        <div role="tablist" aria-label="Gap unit" style={{
+          display: "inline-flex",
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 6,
+          padding: 2,
+        }}>
+          {(["s", "%"] as Unit[]).map(u => {
+            const active = unit === u;
+            return (
+              <button
+                key={u}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setUnit(u)}
+                style={{
+                  background: active ? "rgba(255,255,255,0.12)" : "transparent",
+                  color: active ? C.text : C.textMute,
+                  border: "none",
+                  padding: "3px 10px",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  fontFamily: F,
+                  cursor: "pointer",
+                  borderRadius: 4,
+                  textTransform: "uppercase",
+                  minWidth: 32,
+                }}
+              >
+                {u === "s" ? "Sec" : "%"}
+              </button>
+            );
+          })}
+        </div>
         <button
           onClick={() => setShowAll(v => !v)}
           style={{
@@ -135,14 +211,54 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
         onMouseMove={handleSvgMove}
         onMouseLeave={() => setHoverRound(null)}
       >
+        <defs>
+          <clipPath id={clipId}>
+            <rect
+              x={MARGIN.left}
+              y={MARGIN.top - 2}
+              width={innerW}
+              height={innerH + 4}
+            />
+          </clipPath>
+          <linearGradient id="ccp-plot-bg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.025)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </linearGradient>
+        </defs>
+
+        {/* Plot area subtle background */}
+        <rect
+          x={MARGIN.left}
+          y={MARGIN.top}
+          width={innerW}
+          height={innerH}
+          fill="url(#ccp-plot-bg)"
+        />
+
         {/* Y gridlines */}
         {gridYTicks(yRange).map(g => {
           const y = yFor(g);
+          const isZero = g < 1e-6;
           return (
             <g key={g}>
-              <line x1={MARGIN.left} x2={width - MARGIN.right} y1={y} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
-              <text x={MARGIN.left - 6} y={y + 3} fontSize={10} fontFamily={M} fill={C.textFaint} textAnchor="end">
-                +{g.toFixed(2)}s
+              <line
+                x1={MARGIN.left}
+                x2={width - MARGIN.right}
+                y1={y}
+                y2={y}
+                stroke={isZero ? "rgba(34,197,94,0.28)" : "rgba(255,255,255,0.05)"}
+                strokeWidth={isZero ? 1.2 : 1}
+              />
+              <text
+                x={MARGIN.left - 8}
+                y={y + 3}
+                fontSize={10}
+                fontFamily={M}
+                fill={isZero ? "rgba(34,197,94,0.85)" : C.textFaint}
+                textAnchor="end"
+                fontWeight={isZero ? 700 : 400}
+              >
+                {isZero ? "leader" : formatTick(g)}
               </text>
             </g>
           );
@@ -168,51 +284,72 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
             x2={tooltipX}
             y1={MARGIN.top}
             y2={height - MARGIN.bottom}
-            stroke="rgba(255,255,255,0.25)"
+            stroke="rgba(255,255,255,0.22)"
             strokeWidth={1}
-            strokeDasharray="3 3"
+            strokeDasharray="3 4"
             pointerEvents="none"
           />
         )}
 
-        {/* Background lines (dimmed teams) drawn first so highlights sit on top */}
-        {teams.map((t, idx) => {
-          if (hidden.has(t.team) || isFocusedTeam(t.team)) return null;
-          const path = "M " + t.points.map(p => `${xFor(p.round).toFixed(1)},${yFor(p.gap).toFixed(1)}`).join(" L ");
-          return (
-            <path
-              key={t.team + "-bg"}
-              d={path}
-              fill="none"
-              stroke={teamColor(t.team, idx)}
-              strokeWidth={1}
-              strokeOpacity={hovered === t.team ? 0.7 : 0.18}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          );
-        })}
+        <g clipPath={`url(#${clipId})`}>
+          {/* Background lines (dimmed teams) drawn first so highlights sit on top */}
+          {teams.map((t, idx) => {
+            if (hidden.has(t.team) || isFocusedTeam(t.team)) return null;
+            const pts = t.points.map(p => ({ x: xFor(p.round), y: yFor(valueOf(p)) }));
+            return (
+              <path
+                key={t.team + "-bg"}
+                d={smoothPath(pts)}
+                fill="none"
+                stroke={teamColor(t.team, idx)}
+                strokeWidth={1}
+                strokeOpacity={hovered === t.team ? 0.7 : 0.18}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            );
+          })}
 
-        {/* Foreground (focused) team lines */}
-        {teams.map((t, idx) => {
-          if (hidden.has(t.team) || !isFocusedTeam(t.team)) return null;
-          const path = "M " + t.points.map(p => `${xFor(p.round).toFixed(1)},${yFor(p.gap).toFixed(1)}`).join(" L ");
-          const isActive = hovered === null || hovered === t.team;
-          return (
-            <path
-              key={t.team}
-              d={path}
-              fill="none"
-              stroke={teamColor(t.team, idx)}
-              strokeWidth={hovered === t.team ? 3 : 2}
-              strokeOpacity={isActive ? 0.95 : 0.35}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-          );
-        })}
+          {/* Foreground (focused) team lines */}
+          {teams.map((t, idx) => {
+            if (hidden.has(t.team) || !isFocusedTeam(t.team)) return null;
+            const pts = t.points.map(p => ({ x: xFor(p.round), y: yFor(valueOf(p)) }));
+            const isActive = hovered === null || hovered === t.team;
+            return (
+              <path
+                key={t.team}
+                d={smoothPath(pts)}
+                fill="none"
+                stroke={teamColor(t.team, idx)}
+                strokeWidth={hovered === t.team ? 3 : 2.25}
+                strokeOpacity={isActive ? 0.95 : 0.3}
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            );
+          })}
 
-        {/* Endpoint dots for focused teams */}
+          {/* Race-round dots on focused lines so smoothing doesn't hide data points */}
+          {teams.map((t, idx) => {
+            if (hidden.has(t.team) || !isFocusedTeam(t.team)) return null;
+            const isActive = hovered === null || hovered === t.team;
+            return (
+              <g key={t.team + "-pts"} opacity={isActive ? 0.85 : 0.25}>
+                {t.points.map(p => (
+                  <circle
+                    key={p.round}
+                    cx={xFor(p.round)}
+                    cy={yFor(valueOf(p))}
+                    r={1.6}
+                    fill={teamColor(t.team, idx)}
+                  />
+                ))}
+              </g>
+            );
+          })}
+        </g>
+
+        {/* Endpoint dots for focused teams (outside clip so a bit of the edge can pop) */}
         {teams.map((t, idx) => {
           if (hidden.has(t.team) || !isFocusedTeam(t.team)) return null;
           const last = t.points[t.points.length - 1];
@@ -221,7 +358,7 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
             <circle
               key={t.team + "-dot"}
               cx={xFor(last.round)}
-              cy={yFor(last.gap)}
+              cy={yFor(valueOf(last))}
               r={hovered === t.team ? 4.5 : 3}
               fill={teamColor(t.team, idx)}
               stroke="#0a0a14"
@@ -232,14 +369,16 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
         })}
 
         {/* Per-team hover dots at the hovered round */}
-        {hoveredRace && hoveredRace.teams.map((tp, i) => {
+        {hoveredRace && hoveredRace.teams.map(tp => {
           if (hidden.has(tp.team)) return null;
           const isFocused = isFocusedTeam(tp.team);
+          const pct = hoveredRace.fastestTeamMedian > 0 ? (tp.gapToFastest / hoveredRace.fastestTeamMedian) * 100 : 0;
+          const v = unit === "s" ? tp.gapToFastest : pct;
           return (
             <circle
               key={"hover-" + tp.team}
               cx={tooltipX}
-              cy={yFor(tp.gapToFastest)}
+              cy={yFor(v)}
               r={isFocused ? 3.5 : 2}
               fill={teamColor(tp.team, teams.findIndex(x => x.team === tp.team))}
               stroke="#0a0a14"
@@ -287,6 +426,7 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
             const pct = hoveredRace.fastestTeamMedian > 0
               ? (tp.gapToFastest / hoveredRace.fastestTeamMedian) * 100
               : 0;
+            const primary = unit === "s" ? tp.gapToFastest : pct;
             return (
               <div key={tp.team} style={{
                 display: "flex",
@@ -309,14 +449,7 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
                   {tp.team}
                 </span>
                 <span style={{ fontFamily: M, fontVariantNumeric: "tabular-nums", color: tp.gapToFastest === 0 ? "#22c55e" : C.textDim, textAlign: "right" }}>
-                  {tp.gapToFastest === 0 ? "fastest" : (
-                    <>
-                      +{tp.gapToFastest.toFixed(3)}
-                      <span style={{ color: C.textFaint, fontSize: 10, marginLeft: 4 }}>
-                        +{pct.toFixed(2)}%
-                      </span>
-                    </>
-                  )}
+                  {tp.gapToFastest === 0 ? "fastest" : formatValue(primary)}
                 </span>
               </div>
             );
@@ -337,11 +470,7 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
           const isHidden = hidden.has(t.team);
           const focused = isFocusedTeam(t.team);
           const lastPoint = t.points[t.points.length - 1];
-          const lastRace = lastPoint ? racesByRound[lastPoint.round] : undefined;
-          const lastGap = lastPoint?.gap ?? 0;
-          const lastPct = lastRace && lastRace.fastestTeamMedian > 0
-            ? (lastGap / lastRace.fastestTeamMedian) * 100
-            : 0;
+          const lastValue = lastPoint ? (unit === "s" ? lastPoint.gapSec : lastPoint.gapPct) : 0;
           return (
             <li key={t.team}>
               <button
@@ -386,9 +515,8 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
                 <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {t.team}
                 </span>
-                <span style={{ marginLeft: "auto", color: C.textMute, fontFamily: M, fontSize: 11, display: "flex", gap: 4, alignItems: "baseline" }}>
-                  <span>+{lastGap.toFixed(2)}</span>
-                  <span style={{ color: C.textFaint, fontSize: 10 }}>+{lastPct.toFixed(2)}%</span>
+                <span style={{ marginLeft: "auto", color: C.textMute, fontFamily: M, fontSize: 11 }}>
+                  {formatValue(lastValue)}
                 </span>
               </button>
             </li>
@@ -410,10 +538,40 @@ function labelFor(r: ConstructorPaceRace): string {
 }
 
 function gridYTicks(yRange: number): number[] {
-  const step = yRange < 0.5 ? 0.1 : yRange < 1 ? 0.2 : yRange < 2 ? 0.5 : 1;
+  // Pick a step that produces 4–7 ticks across the range.
+  const targetTicks = 5;
+  const rawStep = yRange / targetTicks;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+  const norm = rawStep / mag;
+  const niceNorm = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
+  const step = niceNorm * mag;
   const ticks: number[] = [];
-  for (let g = 0; g <= yRange; g += step) ticks.push(+g.toFixed(2));
+  for (let g = 0; g <= yRange + step * 0.0001; g += step) ticks.push(+g.toFixed(4));
   return ticks;
+}
+
+// Catmull-Rom-derived cubic Bezier with low tension so the curve hugs the data
+// (small visual softening, not enough to invent shape).
+function smoothPath(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return "";
+  if (points.length === 1) return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+  if (points.length === 2) {
+    return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)} L ${points[1].x.toFixed(1)} ${points[1].y.toFixed(1)}`;
+  }
+  const t = 0.18;
+  let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] || points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] || p2;
+    const cp1x = p1.x + (p2.x - p0.x) * t;
+    const cp1y = p1.y + (p2.y - p0.y) * t;
+    const cp2x = p2.x - (p3.x - p1.x) * t;
+    const cp2y = p2.y - (p3.y - p1.y) * t;
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
 }
 
 const TEAM_COLORS: Record<string, string> = {
