@@ -353,13 +353,21 @@ async function loadRaceData(year, race, round) {
   // Sprint weekends — qualifying happens for the Sunday race, sprintqualifying
   // sets the sprint grid. We use the main qualifying for teammate-gap
   // analysis; sprintqualifying could be a future per-session breakdown.
-  const [drivers, laps, stints, qualiLaps] = await Promise.all([
+  const [raceDrivers, qualiDrivers, laps, stints, qualiLaps] = await Promise.all([
     fetchEndpoint("drivers", sk),
+    qualiSk ? fetchEndpoint("drivers", qualiSk) : Promise.resolve(null),
     fetchEndpoint("laps", sk),
     fetchEndpoint("stints", sk),
     qualiSk ? fetchEndpoint("laps", qualiSk) : Promise.resolve(null),
   ]);
-  if (!drivers?.length || !laps?.length) return null;
+  // Prefer the race-session lineup; fall back to qualifying when the race
+  // hasn't been run yet (mid-weekend builds, qualifying done but no race).
+  const drivers = raceDrivers?.length ? raceDrivers : qualiDrivers;
+  if (!drivers?.length) return null;
+  // Accept partial weekends: constructor-pace/tire-deg need race laps;
+  // constructor-quali/teammate-gap need quali laps. Each aggregator skips
+  // its own missing cases — we just need at least one source.
+  if (!laps?.length && !qualiLaps?.length) return null;
   return {
     meta: {
       meetingKey: race.meetingKey,
@@ -371,7 +379,7 @@ async function loadRaceData(year, race, round) {
       round,
     },
     drivers,
-    laps,
+    laps: laps || [],
     qualiLaps: qualiLaps || [],
     stints: stints || [],
   };
