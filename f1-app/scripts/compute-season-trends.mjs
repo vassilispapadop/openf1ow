@@ -189,6 +189,12 @@ function aggregateConstructorQualifyingByRace(races) {
       teamRows.sort((a, b) => a.bestLap - b.bestLap);
       const fastest = teamRows[0].bestLap;
 
+      // Q-cutoffs from the all-drivers ranking: 15th-best ≈ Q1 boundary,
+      // 10th-best ≈ Q2 boundary.
+      const allBestLaps = Object.values(bestByDriver).sort((a, b) => a - b);
+      const q1Cutoff = allBestLaps[14];
+      const q2Cutoff = allBestLaps[9];
+
       return {
         meetingKey: r.meta.meetingKey,
         slug: r.meta.slug,
@@ -202,6 +208,14 @@ function aggregateConstructorQualifyingByRace(races) {
           bestDriver: t.bestDriver,
           gapToFastest: +(t.bestLap - fastest).toFixed(3),
         })),
+        ...(q1Cutoff != null ? {
+          q1Cutoff: +q1Cutoff.toFixed(3),
+          q1CutoffGap: +(q1Cutoff - fastest).toFixed(3),
+        } : {}),
+        ...(q2Cutoff != null ? {
+          q2Cutoff: +q2Cutoff.toFixed(3),
+          q2CutoffGap: +(q2Cutoff - fastest).toFixed(3),
+        } : {}),
       };
     })
     .filter(Boolean);

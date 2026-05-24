@@ -89,6 +89,33 @@ export default function ConstructorQualifyingEvolution({ races, height = 380 }: 
   const isFocusedTeam = (team: string) =>
     !hidden.has(team) && (showAll || topTeams.has(team));
 
+  // Q1/Q2 elimination boundary curves: 15th-best and 10th-best driver's
+  // best lap, expressed as gap to the fastest constructor of that race.
+  const cutoffSeries = useMemo(() => {
+    const q1: { round: number; gap: number; pct: number }[] = [];
+    const q2: { round: number; gap: number; pct: number }[] = [];
+    for (const r of races) {
+      if (r.fastestTeamBest > 0 && r.q1CutoffGap != null) {
+        q1.push({
+          round: r.round,
+          gap: r.q1CutoffGap,
+          pct: (r.q1CutoffGap / r.fastestTeamBest) * 100,
+        });
+      }
+      if (r.fastestTeamBest > 0 && r.q2CutoffGap != null) {
+        q2.push({
+          round: r.round,
+          gap: r.q2CutoffGap,
+          pct: (r.q2CutoffGap / r.fastestTeamBest) * 100,
+        });
+      }
+    }
+    return {
+      q1: q1.sort((a, b) => a.round - b.round),
+      q2: q2.sort((a, b) => a.round - b.round),
+    };
+  }, [races]);
+
   const focusedMaxValue = useMemo(() => {
     let max = 0;
     for (const t of teams) {
@@ -98,9 +125,19 @@ export default function ConstructorQualifyingEvolution({ races, height = 380 }: 
         if (v > max) max = v;
       }
     }
+    // Always include the cutoff lines in the Y range so they're visible
+    // reference lines regardless of which teams are focused.
+    for (const p of cutoffSeries.q1) {
+      const v = unit === "s" ? p.gap : p.pct;
+      if (v > max) max = v;
+    }
+    for (const p of cutoffSeries.q2) {
+      const v = unit === "s" ? p.gap : p.pct;
+      if (v > max) max = v;
+    }
     if (max === 0) max = unit === "s" ? allMaxSec : allMaxPct;
     return max;
-  }, [teams, hidden, showAll, unit, allMaxSec, allMaxPct]);
+  }, [teams, hidden, showAll, unit, allMaxSec, allMaxPct, cutoffSeries]);
 
   if (width === 0) {
     return <div ref={wrapRef} style={{ height, fontFamily: F }} />;
@@ -293,6 +330,29 @@ export default function ConstructorQualifyingEvolution({ races, height = 380 }: 
         )}
 
         <g clipPath={`url(#${clipId})`}>
+          {/* Q1/Q2 elimination boundary reference curves */}
+          {(["q1", "q2"] as const).map(key => {
+            const series = cutoffSeries[key];
+            if (series.length === 0) return null;
+            const color = key === "q1" ? "#EF4444" : "#F59E0B";
+            const pts = series.map(p => ({
+              x: xFor(p.round),
+              y: yFor(unit === "s" ? p.gap : p.pct),
+            }));
+            return (
+              <path
+                key={key + "-cutoff"}
+                d={smoothPath(pts)}
+                fill="none"
+                stroke={color}
+                strokeWidth={1.4}
+                strokeOpacity={0.55}
+                strokeDasharray="5 4"
+                strokeLinejoin="round"
+                strokeLinecap="round"
+              />
+            );
+          })}
           {teams.map((t, idx) => {
             if (hidden.has(t.team) || isFocusedTeam(t.team)) return null;
             const pts = t.points.map(p => ({ x: xFor(p.round), y: yFor(valueOf(p)) }));
@@ -362,6 +422,31 @@ export default function ConstructorQualifyingEvolution({ races, height = 380 }: 
               strokeWidth={1.5}
               opacity={hovered === null || hovered === t.team ? 1 : 0.4}
             />
+          );
+        })}
+
+        {/* Q1/Q2 endpoint labels */}
+        {(["q1", "q2"] as const).map(key => {
+          const series = cutoffSeries[key];
+          if (series.length === 0) return null;
+          const last = series[series.length - 1];
+          const color = key === "q1" ? "#EF4444" : "#F59E0B";
+          const v = unit === "s" ? last.gap : last.pct;
+          return (
+            <g key={key + "-label"}>
+              <text
+                x={xFor(last.round) - 6}
+                y={yFor(v) - 5}
+                fontSize={9}
+                fontFamily={M}
+                fill={color}
+                textAnchor="end"
+                fontWeight={700}
+                opacity={0.9}
+              >
+                {key.toUpperCase()} cut
+              </text>
+            </g>
           );
         })}
 
@@ -452,6 +537,37 @@ export default function ConstructorQualifyingEvolution({ races, height = 380 }: 
               </div>
             );
           })}
+
+          {(hoveredRace.q1CutoffGap != null || hoveredRace.q2CutoffGap != null) && (
+            <div style={{
+              marginTop: 6,
+              paddingTop: 6,
+              borderTop: "1px solid rgba(255,255,255,0.08)",
+              fontFamily: M,
+              fontSize: 10,
+              color: C.textMute,
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}>
+              {hoveredRace.q2CutoffGap != null && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#F59E0B" }}>Q2 cut (10th)</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {formatValue(unit === "s" ? hoveredRace.q2CutoffGap : (hoveredRace.q2CutoffGap / hoveredRace.fastestTeamBest) * 100)}
+                  </span>
+                </div>
+              )}
+              {hoveredRace.q1CutoffGap != null && (
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "#EF4444" }}>Q1 cut (15th)</span>
+                  <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                    {formatValue(unit === "s" ? hoveredRace.q1CutoffGap : (hoveredRace.q1CutoffGap / hoveredRace.fastestTeamBest) * 100)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -524,6 +640,9 @@ export default function ConstructorQualifyingEvolution({ races, height = 380 }: 
       <p style={{ fontSize: 11, color: C.textMute, margin: "10px 4px 0", lineHeight: 1.5 }}>
         Each line = the faster of the team's two drivers in qualifying, vs the fastest constructor of that race.
         Reflects raw single-lap car potential, less polluted by race-day variance than the race-pace chart.
+        Dashed lines: <span style={{ color: "#F59E0B" }}>Q2 cut</span> (10th-fastest driver's gap to pole) and{" "}
+        <span style={{ color: "#EF4444" }}>Q1 cut</span> (15th) — sitting above a dashed line in any round means
+        the team's faster driver would have been eliminated there.
       </p>
     </div>
   );

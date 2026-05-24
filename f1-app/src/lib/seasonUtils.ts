@@ -106,6 +106,12 @@ export interface ConstructorQualifyingRace {
   round: number;
   fastestTeamBest: number;  // sec — the reference for gapToFastest
   teams: ConstructorQualifyingPoint[];
+  // Cutoffs derived from all-drivers-sorted best laps: 15th best ≈ Q1
+  // elimination boundary, 10th best ≈ Q2 elimination boundary.
+  q1Cutoff?: number;        // sec — 15th-best driver's best lap (absolute)
+  q1CutoffGap?: number;     // sec — gap to fastest constructor
+  q2Cutoff?: number;        // sec — 10th-best
+  q2CutoffGap?: number;     // sec
 }
 
 export function aggregateConstructorQualifyingByRace(races: RaceData[]): ConstructorQualifyingRace[] {
@@ -152,6 +158,12 @@ export function aggregateConstructorQualifyingByRace(races: RaceData[]): Constru
       teamRows.sort((a, b) => a.bestLap - b.bestLap);
       const fastest = teamRows[0].bestLap;
 
+      // Q-cutoffs from the all-drivers ranking. 15th best ≈ Q1 boundary
+      // (top 15 advance), 10th best ≈ Q2 boundary (top 10 advance).
+      const allBestLaps = Object.values(bestByDriver).sort((a, b) => a - b);
+      const q1Cutoff = allBestLaps[14];
+      const q2Cutoff = allBestLaps[9];
+
       return {
         meetingKey: r.meta.meetingKey,
         slug: r.meta.slug,
@@ -165,6 +177,14 @@ export function aggregateConstructorQualifyingByRace(races: RaceData[]): Constru
           bestDriver: t.bestDriver,
           gapToFastest: +(t.bestLap - fastest).toFixed(3),
         })),
+        ...(q1Cutoff != null ? {
+          q1Cutoff: +q1Cutoff.toFixed(3),
+          q1CutoffGap: +(q1Cutoff - fastest).toFixed(3),
+        } : {}),
+        ...(q2Cutoff != null ? {
+          q2Cutoff: +q2Cutoff.toFixed(3),
+          q2CutoffGap: +(q2Cutoff - fastest).toFixed(3),
+        } : {}),
       };
     })
     .filter((x): x is ConstructorQualifyingRace => !!x);
