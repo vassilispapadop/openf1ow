@@ -26,6 +26,7 @@ export interface RaceData {
   drivers: Driver[];
   laps: Lap[];
   stints: Stint[];
+  qualiLaps?: Lap[];
 }
 
 export interface ConstructorPacePoint {
@@ -83,6 +84,90 @@ export function aggregateConstructorPaceByRace(races: RaceData[]): ConstructorPa
       };
     })
     .filter((x): x is ConstructorPaceRace => !!x);
+}
+
+// Per team, per race: best qualifying lap of the quicker driver becomes the
+// "constructor's qualifying time". Gap to the fastest constructor mirrors
+// the race-pace evolution chart, but uses single-lap push pace instead of
+// race medians — much closer to "raw car potential".
+
+export interface ConstructorQualifyingPoint {
+  team: string;
+  bestLap: number;          // sec — fastest of the team's drivers in quali
+  bestDriver: string;       // name_acronym of who set it
+  gapToFastest: number;     // sec, +0.000 for the leader
+}
+
+export interface ConstructorQualifyingRace {
+  meetingKey: number;
+  slug: string;
+  meetingName: string;
+  dateStart: string;
+  round: number;
+  fastestTeamBest: number;  // sec — the reference for gapToFastest
+  teams: ConstructorQualifyingPoint[];
+}
+
+export function aggregateConstructorQualifyingByRace(races: RaceData[]): ConstructorQualifyingRace[] {
+  return races
+    .map(r => {
+      const laps = r.qualiLaps?.length ? r.qualiLaps : null;
+      if (!laps) return null;
+      const threshold = computeSlowLapThreshold(laps);
+      if (!isFinite(threshold)) return null;
+
+      const cleanByDriver: Record<number, number[]> = {};
+      for (const l of laps) {
+        if (!isCleanLap(l, threshold)) continue;
+        (cleanByDriver[l.driver_number] ||= []).push(l.lap_duration!);
+      }
+
+      // Require 2+ clean push laps for a reliable "best" — single laps may
+      // be aborted/compromised attempts.
+      const bestByDriver: Record<number, number> = {};
+      for (const [num, ls] of Object.entries(cleanByDriver)) {
+        if (ls.length < 2) continue;
+        bestByDriver[Number(num)] = Math.min(...ls);
+      }
+
+      const teamByDriver: Record<string, Driver[]> = {};
+      for (const d of r.drivers) {
+        const t = d.team_name || "Unknown";
+        (teamByDriver[t] ||= []).push(d);
+      }
+
+      const teamRows: { team: string; bestLap: number; bestDriver: string }[] = [];
+      for (const [team, drivers] of Object.entries(teamByDriver)) {
+        let best: { lap: number; driver: string } | null = null;
+        for (const d of drivers) {
+          const lap = bestByDriver[d.driver_number];
+          if (lap == null) continue;
+          if (!best || lap < best.lap) best = { lap, driver: d.name_acronym };
+        }
+        if (best) teamRows.push({ team, bestLap: best.lap, bestDriver: best.driver });
+      }
+
+      if (teamRows.length < 4) return null;
+
+      teamRows.sort((a, b) => a.bestLap - b.bestLap);
+      const fastest = teamRows[0].bestLap;
+
+      return {
+        meetingKey: r.meta.meetingKey,
+        slug: r.meta.slug,
+        meetingName: r.meta.meetingName,
+        dateStart: r.meta.dateStart,
+        round: r.meta.round,
+        fastestTeamBest: +fastest.toFixed(3),
+        teams: teamRows.map(t => ({
+          team: t.team,
+          bestLap: +t.bestLap.toFixed(3),
+          bestDriver: t.bestDriver,
+          gapToFastest: +(t.bestLap - fastest).toFixed(3),
+        })),
+      };
+    })
+    .filter((x): x is ConstructorQualifyingRace => !!x);
 }
 
 // Per team, per race: which teammate was faster on common clean laps and
@@ -235,6 +320,7 @@ export interface SeasonTrends {
   year: number;
   raceCount: number;
   constructorPace: ConstructorPaceRace[];
+  constructorQualifying?: ConstructorQualifyingRace[]; // optional — older artifacts may not have this
   teammateGap: TeammateGapRace[];
   tireDeg: TireDegRace[];
 }
@@ -245,6 +331,7 @@ export function buildSeasonTrends(year: number, races: RaceData[]): SeasonTrends
     year,
     raceCount: races.length,
     constructorPace: aggregateConstructorPaceByRace(races),
+    constructorQualifying: aggregateConstructorQualifyingByRace(races),
     teammateGap: aggregateTeammateGapTrend(races),
     tireDeg: aggregateTireDegByCompound(races),
   };

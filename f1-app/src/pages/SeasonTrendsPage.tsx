@@ -4,6 +4,7 @@ import { F, C, R, sty } from "../lib/styles";
 import { loadSeasonTrends } from "../lib/seasonClient";
 import type { SeasonTrends } from "../lib/seasonUtils";
 import ConstructorPaceEvolution from "../components/season/ConstructorPaceEvolution";
+import ConstructorQualifyingEvolution from "../components/season/ConstructorQualifyingEvolution";
 import TeammateGapEvolution from "../components/season/TeammateGapEvolution";
 import TireDegByCompound from "../components/season/TireDegByCompound";
 import ShareButton from "../components/ShareButton";
@@ -14,6 +15,7 @@ export default function SeasonTrendsPage() {
   const year = Number(params.year) || new Date().getFullYear();
   const [trends, setTrends] = useState<SeasonTrends | null | "missing">(null);
   const constructorPaceRef = useRef<HTMLElement>(null);
+  const constructorQualifyingRef = useRef<HTMLElement>(null);
   const teammateGapRef = useRef<HTMLElement>(null);
   const tireDegRef = useRef<HTMLElement>(null);
 
@@ -92,6 +94,25 @@ export default function SeasonTrendsPage() {
         </header>
         <ConstructorPaceEvolution races={trends.constructorPace} />
       </section>
+
+      {trends.constructorQualifying && trends.constructorQualifying.length > 0 && (
+        <section ref={constructorQualifyingRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
+          <header style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
+                Constructor qualifying evolution
+              </h2>
+              <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
+                The faster of each team's two drivers in qualifying becomes the constructor's lap.
+                Same chart shape as the race-pace one, but on single-lap push pace — less polluted by
+                race-day traffic and pit-stop variance.
+              </p>
+            </div>
+            <ShareButton domRef={constructorQualifyingRef} meta={`${year} constructor qualifying`} filename={`openf1ow-constructor-qualifying-${year}`} />
+          </header>
+          <ConstructorQualifyingEvolution races={trends.constructorQualifying} />
+        </section>
+      )}
 
       <section ref={teammateGapRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
         <header style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 12 }}>

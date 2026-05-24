@@ -145,6 +145,68 @@ function aggregateConstructorPaceByRace(races) {
     .filter(Boolean);
 }
 
+// Constructor qualifying: best clean push lap of the team's faster driver
+// becomes the "constructor's" qualifying time. Gap to fastest team is the
+// metric. Mirrors aggregateConstructorPaceByRace but on quali laps.
+function aggregateConstructorQualifyingByRace(races) {
+  return races
+    .map(r => {
+      const laps = r.qualiLaps?.length ? r.qualiLaps : null;
+      if (!laps) return null;
+      const threshold = computeSlowLapThreshold(laps);
+      if (!isFinite(threshold)) return null;
+
+      const cleanByDriver = {};
+      for (const l of laps) {
+        if (!isCleanLap(l, threshold)) continue;
+        (cleanByDriver[l.driver_number] ||= []).push(l.lap_duration);
+      }
+
+      const bestByDriver = {};
+      for (const [num, ls] of Object.entries(cleanByDriver)) {
+        if (ls.length < 2) continue;
+        bestByDriver[Number(num)] = Math.min(...ls);
+      }
+
+      const teamByDriver = {};
+      for (const d of r.drivers) {
+        const t = d.team_name || "Unknown";
+        (teamByDriver[t] ||= []).push(d);
+      }
+
+      const teamRows = [];
+      for (const [team, drivers] of Object.entries(teamByDriver)) {
+        let best = null;
+        for (const d of drivers) {
+          const lap = bestByDriver[d.driver_number];
+          if (lap == null) continue;
+          if (!best || lap < best.lap) best = { lap, driver: d.name_acronym };
+        }
+        if (best) teamRows.push({ team, bestLap: best.lap, bestDriver: best.driver });
+      }
+
+      if (teamRows.length < 4) return null;
+      teamRows.sort((a, b) => a.bestLap - b.bestLap);
+      const fastest = teamRows[0].bestLap;
+
+      return {
+        meetingKey: r.meta.meetingKey,
+        slug: r.meta.slug,
+        meetingName: r.meta.meetingName,
+        dateStart: r.meta.dateStart,
+        round: r.meta.round,
+        fastestTeamBest: +fastest.toFixed(3),
+        teams: teamRows.map(t => ({
+          team: t.team,
+          bestLap: +t.bestLap.toFixed(3),
+          bestDriver: t.bestDriver,
+          gapToFastest: +(t.bestLap - fastest).toFixed(3),
+        })),
+      };
+    })
+    .filter(Boolean);
+}
+
 // Teammate gap measured from QUALIFYING best laps, not race medians.
 // Race-pace teammate gaps are dominated by traffic/pit-stop variance —
 // qualifying is the clean head-to-head (same car, same track, push lap).
@@ -374,11 +436,12 @@ async function processYear(year, allRaces) {
     year,
     raceCount: racesData.length,
     constructorPace: aggregateConstructorPaceByRace(racesData),
+    constructorQualifying: aggregateConstructorQualifyingByRace(racesData),
     teammateGap: aggregateTeammateGapTrend(racesData),
     tireDeg: aggregateTireDegByCompound(racesData),
   };
 
-  console.log(`  built trends: cp=${trends.constructorPace.length} tg=${trends.teammateGap.length} td=${trends.tireDeg.length}`);
+  console.log(`  built trends: cp=${trends.constructorPace.length} cq=${trends.constructorQualifying.length} tg=${trends.teammateGap.length} td=${trends.tireDeg.length}`);
   uploadToR2(year, trends);
 }
 
