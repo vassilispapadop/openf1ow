@@ -582,8 +582,8 @@ const TEAM_COLORS: Record<string, string> = {
   "Haas F1 Team": "#B6BABD",
   "AlphaTauri": "#5E8FAA",
   "Alfa Romeo": "#900000",
-  "Audi": "#13141A",
-  "Cadillac": "#0E1A30",
+  "Audi": "#E1224B",
+  "Cadillac": "#F8C545",
 };
 
 const FALLBACK_COLORS = ["#a78bfa", "#06b6d4", "#f43f5e", "#84cc16", "#f97316", "#6366f1", "#ec4899"];
