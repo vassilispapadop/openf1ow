@@ -30,7 +30,7 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
   const [width, setWidth] = useState(0);
   const [hovered, setHovered] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [showAll, setShowAll] = useState(false);
+  const [showAll, setShowAll] = useState(true);
   const [hoverRound, setHoverRound] = useState<number | null>(null);
   const [unit, setUnit] = useState<Unit>("s");
 
