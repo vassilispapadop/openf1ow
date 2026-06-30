@@ -41,5 +41,15 @@
       "binding": "F1_DATA",
       "bucket_name": "openf1-data"
     }
+  ],
+  // Long-term usage history. The built-in GraphQL analytics only retain ~32
+  // days (Workers) / 24h (zone HTTP), so we also write per-request data points
+  // here — queryable for months via the Analytics Engine SQL API. The dataset
+  // is created lazily on first write.
+  "analytics_engine_datasets": [
+    {
+      "binding": "ANALYTICS",
+      "dataset": "openf1ow_usage"
+    }
   ]
 }

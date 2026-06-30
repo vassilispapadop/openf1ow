@@ -14,6 +14,15 @@ interface Env {
   // Google Analytics 4 measurement ID (G-XXXXXXXXXX). Optional — when unset,
   // Worker-rendered pages skip the gtag snippet.
   GA_ID?: string;
+  // Workers Analytics Engine dataset for long-term usage history (optional;
+  // the /api/f1 cache handler records per-request data points when present).
+  ANALYTICS?: {
+    writeDataPoint: (event: {
+      blobs?: (string | null)[];
+      doubles?: number[];
+      indexes?: string[];
+    }) => void;
+  };
 }
 
 // ============================================================================

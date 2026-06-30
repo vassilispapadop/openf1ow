@@ -8,6 +8,14 @@ const TTL_5M = 300_000;
 
 interface Env {
   F1_DATA: R2Bucket;
+  // Optional Workers Analytics Engine dataset for long-term usage history.
+  ANALYTICS?: { writeDataPoint: (event: AnalyticsEngineDataPoint) => void };
+}
+
+interface AnalyticsEngineDataPoint {
+  blobs?: (string | null)[];
+  doubles?: number[];
+  indexes?: string[];
 }
 
 /** Telemetry endpoints that are stored as full-session blobs in R2 */
@@ -29,6 +37,28 @@ function normalizeKey(path: string): string {
     .filter(([k]) => !isTelemetry || (!k.startsWith("date>") && !k.startsWith("date<")))
     .sort((a, b) => a[0].localeCompare(b[0]));
   return clean + "?" + sorted.map(([k, v]) => `${k}=${v}`).join("&");
+}
+
+/**
+ * Edge cache key: a canonical URL that keeps ALL query params (including the
+ * date filters that normalizeKey strips for telemetry). This keeps each
+ * client-visible date slice as a distinct edge-cache entry, so the expensive
+ * JSON parse + slice happens once per (session, date-range) per edge node and
+ * is then served straight from cache — instead of re-parsing the multi-MB
+ * full-session blob on every request (the cause of the `exceededResources`
+ * 503s on /api/f1/car_data and /api/f1/location).
+ */
+function edgeCacheKey(apiPath: string): Request {
+  const [base, qs] = apiPath.split("?");
+  const clean = base.replace(/^\//, "");
+  let canon = clean;
+  if (qs) {
+    const params = [...new URLSearchParams(qs).entries()].sort((a, b) =>
+      a[0].localeCompare(b[0]),
+    );
+    canon += "?" + params.map(([k, v]) => `${k}=${v}`).join("&");
+  }
+  return new Request("https://f1-edge-cache.openf1ow/" + canon);
 }
 
 /**
@@ -76,6 +106,17 @@ function getTTL(key: string): number {
 }
 
 /**
+ * Edge cache lifetime (seconds), derived from the same TTL policy as R2.
+ * Immutable historical data is cached at the edge for a week; live data
+ * inherits its short R2 TTL so race-weekend freshness is unchanged.
+ */
+function edgeMaxAge(key: string): number {
+  const ttl = getTTL(key);
+  if (ttl === TTL_FOREVER) return 604_800; // 1 week
+  return Math.floor(ttl / 1000);
+}
+
+/**
  * Check if cached R2 object is still fresh based on its custom metadata.
  */
 function isFresh(obj: R2Object): boolean {
@@ -88,13 +129,61 @@ function isFresh(obj: R2Object): boolean {
   return Date.now() - ts < ttl;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
- * Main handler: transparent read-through R2 cache for OpenF1 API.
+ * In-isolate single-flight: collapse concurrent identical upstream fetches
+ * into one request. A burst of cache misses (e.g. everyone opening the same
+ * live session) would otherwise fan out into many parallel calls to OpenF1
+ * and get rate-limited (429). One retry with backoff smooths transient 429/5xx.
+ */
+const inflight = new Map<
+  string,
+  Promise<{ ok: boolean; status: number; body: string }>
+>();
+
+async function fetchUpstreamOnce(
+  fetchPath: string,
+): Promise<{ ok: boolean; status: number; body: string }> {
+  const existing = inflight.get(fetchPath);
+  if (existing) return existing;
+
+  const p = (async () => {
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const res = await fetch(OPENF1 + fetchPath);
+        // Back off once on rate-limit / upstream error, then accept the result.
+        if ((res.status === 429 || res.status >= 500) && attempt === 0) {
+          await sleep(400);
+          continue;
+        }
+        return { ok: res.ok, status: res.status, body: await res.text() };
+      } catch (e) {
+        lastErr = e;
+        if (attempt === 0) {
+          await sleep(400);
+          continue;
+        }
+      }
+    }
+    throw lastErr ?? new Error("upstream fetch failed");
+  })();
+
+  inflight.set(fetchPath, p);
+  try {
+    return await p;
+  } finally {
+    inflight.delete(fetchPath);
+  }
+}
+
+/**
+ * Main handler: transparent read-through cache for the OpenF1 API.
  *
- * 1. Strips /api/f1 prefix to get the OpenF1 path
- * 2. Checks R2 for cached response
- * 3. If fresh hit, returns it
- * 4. If miss or stale, fetches from OpenF1, caches in R2, returns
+ *   1. Cloudflare edge cache (caches.default) — fastest; skips R2, parse, upstream
+ *   2. R2 read-through cache — persistent, shared across edge nodes
+ *   3. OpenF1 origin (single-flight + retry), with stale-R2 fallback on failure
  */
 export async function handleF1Request(
   request: Request,
@@ -110,35 +199,69 @@ export async function handleF1Request(
   const isTelemetry = TELEMETRY_ENDPOINTS.includes(endpoint);
   const dateFilters = isTelemetry ? getDateFilters(url) : null;
 
-  // Try R2 first
+  const cache = caches.default;
+  const ck = edgeCacheKey(apiPath);
+
+  const record = (status: string) =>
+    env.ANALYTICS?.writeDataPoint?.({
+      blobs: [endpoint, status],
+      doubles: [1],
+      indexes: [endpoint],
+    });
+
+  // 1. Edge cache — returns immediately, no R2 read or JSON work.
+  const edged = await cache.match(ck);
+  if (edged) {
+    record("edge");
+    return edged;
+  }
+
+  // Build a cacheable response, store it at the edge, and record the outcome.
+  const finalize = (body: string, xcache: string): Response => {
+    const maxAge = edgeMaxAge(key);
+    const resp = new Response(body, {
+      headers: {
+        "Content-Type": "application/json",
+        // Short browser TTL keeps clients revalidating; long s-maxage lets the
+        // Cloudflare edge absorb the load; SWR avoids origin stampedes.
+        "Cache-Control": `public, max-age=60, s-maxage=${maxAge}, stale-while-revalidate=86400`,
+        "X-Cache": xcache,
+      },
+    });
+    ctx.waitUntil(cache.put(ck, resp.clone()));
+    record(xcache.toLowerCase());
+    return resp;
+  };
+
+  // 2. R2 read-through.
   const cached = await env.F1_DATA.get(key);
   if (cached && isFresh(cached)) {
     let body = await cached.text();
-    // For telemetry with date filters, slice the full blob
     if (dateFilters) {
-      const sliced = sliceByDate(JSON.parse(body), dateFilters);
-      body = JSON.stringify(sliced);
+      body = JSON.stringify(sliceByDate(JSON.parse(body), dateFilters));
     }
-    const maxAge = getTTL(key) === Infinity ? 86400 : 60;
-    return new Response(body, {
-      headers: {
-        "Content-Type": "application/json",
-        "Cache-Control": `public, max-age=${maxAge}`,
-        "X-Cache": "HIT",
-      },
-    });
+    return finalize(body, "HIT");
   }
 
-  // Fetch from OpenF1 — for telemetry, fetch full session (no date filter)
-  // so we cache the complete blob and can slice future requests from R2
+  // 3. Origin fetch — single-flight + retry. For telemetry, fetch the full
+  // session (no date filter) so we cache the complete blob and slice later.
   const fetchPath = isTelemetry ? "/" + key : apiPath;
-  let res: Response;
+  let upstream: { ok: boolean; status: number; body: string } | null = null;
   try {
-    res = await fetch(OPENF1 + fetchPath);
-  } catch (e) {
-    // If OpenF1 is down but we have stale cache, serve it
+    upstream = await fetchUpstreamOnce(fetchPath);
+  } catch {
+    upstream = null;
+  }
+
+  // 4. On any upstream failure, always prefer stale R2 over erroring.
+  if (!upstream || !upstream.ok) {
     if (cached) {
-      const body = await cached.text();
+      let body = await cached.text();
+      if (dateFilters) {
+        body = JSON.stringify(sliceByDate(JSON.parse(body), dateFilters));
+      }
+      record("stale");
+      // Don't poison the edge cache with a long TTL for stale/error data.
       return new Response(body, {
         headers: {
           "Content-Type": "application/json",
@@ -147,33 +270,16 @@ export async function handleF1Request(
         },
       });
     }
-    return new Response(JSON.stringify({ error: "OpenF1 API unavailable" }), {
-      status: 502,
-      headers: { "Content-Type": "application/json" },
-    });
+    record("error");
+    const status = upstream?.status ?? 502;
+    return new Response(
+      JSON.stringify({ error: "OpenF1 API unavailable" }),
+      { status, headers: { "Content-Type": "application/json" } },
+    );
   }
 
-  if (!res.ok) {
-    // Serve stale cache if available
-    if (cached) {
-      const body = await cached.text();
-      return new Response(body, {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=60",
-          "X-Cache": "STALE",
-        },
-      });
-    }
-    return new Response(res.body, {
-      status: res.status,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-
-  const fullBody = await res.text();
-
-  // Store full blob in R2 (non-blocking)
+  // 5. Success — persist full blob to R2 (non-blocking), return (sliced) body.
+  const fullBody = upstream.body;
   ctx.waitUntil(
     env.F1_DATA.put(key, fullBody, {
       httpMetadata: { contentType: "application/json" },
@@ -181,19 +287,9 @@ export async function handleF1Request(
     }),
   );
 
-  // For telemetry with date filters, slice before returning
   let responseBody = fullBody;
   if (dateFilters) {
-    const sliced = sliceByDate(JSON.parse(fullBody), dateFilters);
-    responseBody = JSON.stringify(sliced);
+    responseBody = JSON.stringify(sliceByDate(JSON.parse(fullBody), dateFilters));
   }
-
-  const maxAge = getTTL(key) === Infinity ? 86400 : 60;
-  return new Response(responseBody, {
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": `public, max-age=${maxAge}`,
-      "X-Cache": "MISS",
-    },
-  });
+  return finalize(responseBody, "MISS");
 }

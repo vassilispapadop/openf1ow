@@ -21,21 +21,62 @@ const W = 1200;
 const H = 630;
 
 // ---------------------------------------------------------------------------
-// Font loading — cached in module scope so subsequent calls are free.
-// workers-og's loadGoogleFont fetches and parses the Google Fonts CSS to
-// extract the .woff URL, then returns the binary.
+// Font loading — cached in module scope so subsequent calls in a warm isolate
+// are free, and persisted to R2 so a cold isolate hits Google Fonts at most
+// once ever (rather than on every OG render). workers-og's loadGoogleFont
+// fetches and parses the Google Fonts CSS to extract the .woff URL, then
+// returns the binary; that upstream call is what produced the /css2 504s.
 // ---------------------------------------------------------------------------
 
 let fontCache: { bold: ArrayBuffer; semibold: ArrayBuffer } | null = null;
 
-async function loadInter(): Promise<{ bold: ArrayBuffer; semibold: ArrayBuffer } | null> {
+const FONT_KEYS = { bold: "fonts/inter-800.woff", semibold: "fonts/inter-600.woff" };
+
+/** Fetch from Google Fonts with a timeout so a slow/unavailable upstream
+ * can't hang (or 504) the OG render — we fall back to the default font. */
+async function loadGoogleFontTimed(weight: number): Promise<ArrayBuffer> {
+  return Promise.race([
+    loadGoogleFont({ family: "Inter", weight }),
+    new Promise<ArrayBuffer>((_, reject) =>
+      setTimeout(() => reject(new Error("font fetch timeout")), 2500),
+    ),
+  ]);
+}
+
+async function loadInter(
+  F1_DATA?: R2Bucket,
+): Promise<{ bold: ArrayBuffer; semibold: ArrayBuffer } | null> {
   if (fontCache) return fontCache;
+
+  // 1. Serve from R2 if both weights were cached on a previous render.
+  if (F1_DATA) {
+    try {
+      const [b, s] = await Promise.all([
+        F1_DATA.get(FONT_KEYS.bold),
+        F1_DATA.get(FONT_KEYS.semibold),
+      ]);
+      if (b && s) {
+        fontCache = { bold: await b.arrayBuffer(), semibold: await s.arrayBuffer() };
+        return fontCache;
+      }
+    } catch {
+      /* fall through to Google Fonts */
+    }
+  }
+
+  // 2. Fetch from Google Fonts (with timeout), then persist to R2.
   try {
     const [bold, semibold] = await Promise.all([
-      loadGoogleFont({ family: "Inter", weight: 800 }),
-      loadGoogleFont({ family: "Inter", weight: 600 }),
+      loadGoogleFontTimed(800),
+      loadGoogleFontTimed(600),
     ]);
     fontCache = { bold, semibold };
+    if (F1_DATA) {
+      await Promise.all([
+        F1_DATA.put(FONT_KEYS.bold, bold),
+        F1_DATA.put(FONT_KEYS.semibold, semibold),
+      ]).catch(() => {});
+    }
     return fontCache;
   } catch {
     return null;
@@ -333,7 +374,7 @@ export async function handleShareRaceRequest(opts: {
   });
   if (!data) return new Response("Race not found", { status: 404 });
 
-  const fonts = await loadInter();
+  const fonts = await loadInter(opts.F1_DATA);
 
   return new ImageResponse(<RaceCard data={data} />, {
     width: W,
@@ -665,7 +706,7 @@ export async function handleShareDriverRequest(opts: {
   });
   if (!data) return new Response("Driver not found for this race", { status: 404 });
 
-  const fonts = await loadInter();
+  const fonts = await loadInter(opts.F1_DATA);
 
   return new ImageResponse(<DriverCard data={data} />, {
     width: W,
