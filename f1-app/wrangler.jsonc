@@ -24,7 +24,15 @@
       "/api/*",
       // Race pages: Worker injects per-page OG tags + JSON-LD into index.html.
       // Covers /:year, /:year/:mk, /:year/:mk/:sk/...
-      "/2*"
+      "/2*",
+      // Vulnerability-scanner probe paths — routed to the Worker so its
+      // BOT_PROBE_RE guard returns 403 instead of the asset binding serving
+      // the SPA fallback. (A zone WAF rule would block these at the edge.)
+      "/wp-*",
+      "/uploads/*",
+      "/vendor/*",
+      "/xmlrpc*",
+      "/phpmyadmin*"
     ]
   },
   "compatibility_flags": [

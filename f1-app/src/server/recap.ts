@@ -252,6 +252,92 @@ function buildSummaryProse(d: RecapData): string {
   return sentences.join(" ");
 }
 
+// Crawlable content block injected into the interactive race page (/:year/:mk…),
+// which is otherwise an empty SPA shell. Gives search engines and LLMs a real
+// headline (winner + podium) plus internal links to the recap and analysis
+// views. React replaces this markup on mount, so users see it only as a brief
+// content-rich loading state. Cheap by design: race-index (cached) + two R2
+// reads (results, drivers) — no laps/pace computation.
+export async function buildRaceContentBlock(opts: {
+  ASSETS: { fetch: (req: Request | string) => Promise<Response> };
+  F1_DATA: R2Bucket;
+  origin: string;
+  year: string;
+  meetingKey: number;
+}): Promise<string | null> {
+  const idx = await loadRaceIndex(opts.ASSETS, opts.origin);
+  const race = idx?.byYear[opts.year]?.find(r => r.meetingKey === opts.meetingKey);
+  if (!race) return null;
+
+  const raceSk = race.sessions?.race;
+  let prose = "";
+  let podiumHtml = "";
+
+  if (raceSk) {
+    const [results, drivers] = await Promise.all([
+      getSessionData<SessionResult[]>(opts.F1_DATA, "session_result", raceSk),
+      getSessionData<Driver[]>(opts.F1_DATA, "drivers", raceSk),
+    ]);
+    if (results && drivers) {
+      const drvByNum: Record<number, Driver> = {};
+      drivers.forEach(d => { drvByNum[d.driver_number] = d; });
+      const top3 = results
+        .filter(r => r.position && r.position <= 3)
+        .sort((a, b) => (a.position ?? 99) - (b.position ?? 99));
+
+      const winner = top3.find(r => r.position === 1);
+      const winnerDrv = winner?.driver_number ? drvByNum[winner.driver_number] : null;
+      const second = top3.find(r => r.position === 2);
+      const secondDrv = second?.driver_number ? drvByNum[second.driver_number] : null;
+
+      if (winnerDrv) {
+        const wn = winnerDrv.full_name || winnerDrv.name_acronym;
+        const team = winnerDrv.team_name ? ` (${escHtml(winnerDrv.team_name)})` : "";
+        if (secondDrv && second?.gap_to_leader != null && second.gap_to_leader !== "") {
+          const gap = typeof second.gap_to_leader === "number"
+            ? `+${second.gap_to_leader.toFixed(3)}s`
+            : String(second.gap_to_leader);
+          prose = `<strong>${escHtml(wn)}</strong>${team} won the ${escHtml(opts.year)} ${escHtml(race.meetingName)} at ${escHtml(race.circuit)} ahead of ${escHtml(secondDrv.full_name || secondDrv.name_acronym)} by ${escHtml(gap)}.`;
+        } else {
+          prose = `<strong>${escHtml(wn)}</strong>${team} won the ${escHtml(opts.year)} ${escHtml(race.meetingName)} at ${escHtml(race.circuit)}.`;
+        }
+      }
+
+      if (top3.length) {
+        const items = top3.map(r => {
+          const drv = r.driver_number ? drvByNum[r.driver_number] : null;
+          const nm = drv?.full_name || drv?.name_acronym || r.full_name || "—";
+          const tm = drv?.team_name ? ` — ${escHtml(drv.team_name)}` : "";
+          return `<li>${escHtml(nm)}${tm}</li>`;
+        }).join("");
+        podiumHtml = `<h2 style="font-size:1.05rem;font-weight:700;margin:20px 0 6px;">Podium</h2><ol style="margin:0;padding-left:1.3em;line-height:1.7;color:#c8c8d0;">${items}</ol>`;
+      }
+    }
+  }
+
+  if (!prose) {
+    prose = `Live telemetry, lap times, sector splits, tyre strategy and race analysis for the ${escHtml(opts.year)} ${escHtml(race.meetingName)} at ${escHtml(race.circuit)}, ${escHtml(race.country)}.`;
+  }
+
+  const recapUrl = `/recap/${opts.year}/${race.slug}`;
+  const overviewUrl = raceSk ? `/${opts.year}/${opts.meetingKey}/${raceSk}/analysis/overview` : `/${opts.year}/${opts.meetingKey}`;
+  const paceUrl = raceSk ? `/${opts.year}/${opts.meetingKey}/${raceSk}/analysis/pace` : overviewUrl;
+  const link = (href: string, text: string) =>
+    `<a href="${href}" style="color:#ff5a4a;text-decoration:none;font-weight:600;">${text}</a>`;
+
+  return `<section style="max-width:820px;margin:0 auto;padding:48px 20px;font-family:'Inter','SF Pro Display',system-ui,sans-serif;color:#e8e8ec;">
+      <h1 style="font-size:1.9rem;font-weight:800;letter-spacing:-0.02em;margin:0 0 14px;">${escHtml(opts.year)} ${escHtml(race.meetingName)}</h1>
+      <p style="font-size:1.05rem;line-height:1.6;color:#c8c8d0;margin:0;">${prose}</p>
+      ${podiumHtml}
+      <nav style="margin-top:26px;display:flex;flex-wrap:wrap;gap:18px;">
+        ${link(recapUrl, "Full race recap →")}
+        ${link(overviewUrl, "Race analysis →")}
+        ${link(paceUrl, "Race pace →")}
+      </nav>
+      <p style="margin-top:28px;color:#6a6a72;font-size:0.9rem;">Loading interactive telemetry…</p>
+    </section>`;
+}
+
 export function renderRecapHtml(d: RecapData, origin: string, gaId?: string): string {
   const { race, year } = d;
   const slug = race.slug;
