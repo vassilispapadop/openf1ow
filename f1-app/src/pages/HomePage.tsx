@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useSession } from "../contexts/SessionContext";
 import { F, C } from "../lib/styles";
 import { paths } from "../lib/constants";
+import { useLastRace } from "../lib/retention";
 import LatestRaceCard from "../components/home/LatestRaceCard";
 import HotStats from "../components/home/HotStats";
 import ConstructorPaceTile from "../components/home/ConstructorPaceTile";
@@ -12,6 +13,7 @@ import SeasonGrid from "../components/home/SeasonGrid";
 export default function HomePage() {
   const { year, sessions, mk, sk, loading } = useSession();
   const navigate = useNavigate();
+  const lastRace = useLastRace();
 
   // Preserve the existing UX: when a meeting is selected via SelectorBar
   // (sets `mk`), auto-pick the most recent started session (typically Race)
@@ -54,6 +56,35 @@ export default function HomePage() {
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.accent }} />
         <span>F1 · {year} season</span>
       </div>
+
+      {lastRace && (
+        <a
+          href={lastRace.path}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "10px 14px",
+            marginBottom: 12,
+            borderRadius: 10,
+            border: "1px solid " + C.border,
+            background: C.surface,
+            textDecoration: "none",
+            fontFamily: F,
+            transition: "border-color 0.15s ease",
+          }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.14)"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
+        >
+          <span style={{ fontSize: 13, color: C.textDim, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <span style={{ color: C.textMute, fontWeight: 600 }}>Resume</span>
+            {" · "}
+            <span style={{ color: C.text, fontWeight: 600 }}>{lastRace.label}</span>
+          </span>
+          <span style={{ fontSize: 13, color: C.text, fontWeight: 600, flexShrink: 0 }}>→</span>
+        </a>
+      )}
 
       <LatestRaceCard year={year} />
 

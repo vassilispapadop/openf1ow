@@ -1,5 +1,6 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Outlet, useParams, useNavigate, useMatch } from "react-router-dom";
+import { recordLastRace } from "../lib/retention";
 import { SessionProvider, useSession } from "../contexts/SessionContext";
 import Header from "../components/shell/Header";
 import SelectorBar from "../components/shell/SelectorBar";
@@ -18,6 +19,16 @@ function LayoutInner() {
 
   const dn = params.driverNumber || "";
   const isDriver = !!useMatch("/:year/:mk/:sk/driver/:dn/:tab");
+
+  // Remember the last race/session viewed so the home page can offer "Resume".
+  useEffect(() => {
+    if (!mk || !sk) return;
+    const meeting = meetings.find((m: any) => String(m.meeting_key) === mk);
+    if (!meeting) return;
+    const session = sessions.find((s: any) => String(s.session_key) === sk);
+    const label = `${meeting.meeting_name}${session?.session_name ? " · " + session.session_name : ""}`;
+    recordLastRace({ path: window.location.pathname + window.location.search, label, ts: Date.now() });
+  }, [mk, sk, meetings, sessions]);
 
   const onReset = useCallback(() => navigate(paths.home()), [navigate]);
   const onMeeting = useCallback((meetingKey: string) => navigate(paths.meeting(year, meetingKey)), [navigate, year]);

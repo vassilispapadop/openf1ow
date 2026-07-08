@@ -1,8 +1,12 @@
 import { useState, useCallback } from "react";
 import { F } from "../lib/styles";
 import { captureCanvas, captureCanvasStack, captureDom, copyToClipboard, downloadPng, uploadShareImage } from "../lib/snapshot";
+import { shareImage, canShareFiles } from "../lib/share";
 
-type Status = "idle" | "copying" | "copied" | "downloaded" | "uploading" | "linked" | "error";
+type Status = "idle" | "copying" | "copied" | "downloaded" | "uploading" | "linked" | "sharing" | "shared" | "error";
+
+// Capability probe for native image sharing (mobile share sheet).
+const CAN_SHARE_IMAGE = canShareFiles([new File([], "x.png", { type: "image/png" })]);
 
 export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filename }: {
   canvasRef?: React.RefObject<HTMLCanvasElement | null>;
@@ -66,15 +70,31 @@ export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filen
     setTimeout(() => setStatus("idle"), 2500);
   }, [getBlob]);
 
+  const onNativeShare = useCallback(async () => {
+    setShowMenu(false);
+    setStatus("sharing");
+    try {
+      const blob = await getBlob();
+      if (!blob) { setStatus("error"); setTimeout(() => setStatus("idle"), 2000); return; }
+      const ok = await shareImage(blob, (filename || "openf1ow-chart") + ".png", {
+        title: "F1 analysis · OpenF1ow",
+      });
+      setStatus(ok ? "shared" : "error");
+    } catch { setStatus("error"); }
+    setTimeout(() => setStatus("idle"), 2000);
+  }, [getBlob, filename]);
+
   const label =
     status === "copied" ? "Copied!" :
     status === "downloaded" ? "Saved!" :
     status === "uploading" ? "Uploading…" :
     status === "linked" ? "Link copied!" :
+    status === "sharing" ? "Sharing…" :
+    status === "shared" ? "Shared!" :
     status === "error" ? "Failed" :
     "Share";
   const color =
-    status === "copied" || status === "downloaded" || status === "linked" ? "#22c55e" :
+    status === "copied" || status === "downloaded" || status === "linked" || status === "shared" ? "#22c55e" :
     status === "error" ? "#ef4444" :
     "rgba(255,255,255,0.35)";
 
@@ -113,6 +133,11 @@ export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filen
           minWidth: 150,
           boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
         }}>
+          {CAN_SHARE_IMAGE && (
+            <button onClick={onNativeShare} style={menuItemStyle}>
+              Share…
+            </button>
+          )}
           <button onClick={onCopy} style={menuItemStyle}>
             Copy to clipboard
           </button>

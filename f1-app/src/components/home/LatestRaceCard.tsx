@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { F, C, R } from "../../lib/styles";
+import { shareUrl, canShareUrl } from "../../lib/share";
 import { fd } from "../../lib/format";
 import { loadRaceIndex } from "../../lib/raceIndex";
 import { loadSeasonTrends } from "../../lib/seasonClient";
@@ -130,8 +131,57 @@ export default function LatestRaceCard({ year }: { year: number }) {
         <CtaPill href={trendsHref}>
           {race.year} season trends
         </CtaPill>
+        <ShareCta url={`${typeof window !== "undefined" ? window.location.origin : "https://www.openf1ow.com"}${recapHref}`} title={`${race.meetingName} — F1 race analysis`} />
       </div>
     </div>
+  );
+}
+
+// One-tap share of the race recap. Native share sheet on mobile, clipboard copy
+// on desktop — the low-friction path that turns a race page into a referral.
+function ShareCta({ url, title }: { url: string; title: string }) {
+  const [status, setStatus] = useState<"idle" | "copied" | "shared">("idle");
+  const onClick = useCallback(async () => {
+    if (canShareUrl()) {
+      const ok = await shareUrl({ url, title });
+      if (ok) { setStatus("shared"); setTimeout(() => setStatus("idle"), 2000); return; }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setStatus("copied");
+    } catch { /* ignore */ }
+    setTimeout(() => setStatus("idle"), 2000);
+  }, [url, title]);
+
+  const label = status === "copied" ? "Link copied" : status === "shared" ? "Shared" : "Share";
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 7,
+        padding: "9px 16px",
+        background: "transparent",
+        color: C.text,
+        border: "1px solid " + C.border,
+        borderRadius: 999,
+        fontSize: 13,
+        fontWeight: 600,
+        cursor: "pointer",
+        fontFamily: F,
+        transition: "border-color 0.15s ease",
+      }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
+      aria-label="Share this race"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+        <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+      </svg>
+      {label}
+    </button>
   );
 }
 

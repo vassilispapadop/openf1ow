@@ -1,0 +1,20 @@
+{
+  "name": "OpenF1ow — F1 Telemetry & Race Analysis",
+  "short_name": "OpenF1ow",
+  "description": "Free F1 telemetry, lap times, tyre strategy and race analysis for every Grand Prix.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0d",
+  "theme_color": "#0a0a0d",
+  "categories": ["sports", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any maskable"
+    }
+  ]
+}
