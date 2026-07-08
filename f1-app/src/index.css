@@ -19,6 +19,18 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.16); }
 ::-webkit-scrollbar-corner { background: transparent; }
 
+/* ====== REDUCED MOTION ====== */
+/* Honor the OS "reduce motion" setting: neutralize fades, shimmer, spin, and
+   the drag-scroll smooth behavior for users prone to motion sickness. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ====== ANIMATIONS — subtle, essential only ====== */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(8px); }

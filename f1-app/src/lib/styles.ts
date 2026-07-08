@@ -10,8 +10,12 @@ export const C = {
   borderStrong: "rgba(255,255,255,0.12)",
   text: "#f4f4f6",
   textDim: "#a0a0ac",
-  textMute: "#6a6a74",
-  textFaint: "#3d3d46",
+  // Raised from #6a6a74 / #3d3d46: the old values put 9–11px labels below the
+  // WCAG-AA 4.5:1 threshold on the dark surfaces (~3.2:1 and ~1.7:1). These
+  // clear it for small text while preserving the text > dim > mute > faint
+  // hierarchy.
+  textMute: "#8a8a94",
+  textFaint: "#63636d",
   accent: "#ff1e00",
   accentDim: "rgba(255,30,0,0.12)",
   pos: "#2ed573",
