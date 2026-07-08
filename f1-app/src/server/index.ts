@@ -1,5 +1,5 @@
 import { handleF1Request } from "./r2-cache";
-import { handleRecapRequest, handleInsightsRequest } from "./recap";
+import { handleRecapRequest, handleInsightsRequest, buildRaceContentBlock } from "./recap";
 import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
 import { handleShareImageUpload, handleShareImageRead } from "./share-image";
 import { handleSeasonTrendsRequest } from "./season-trends";
@@ -426,9 +426,23 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+// Paths that only vulnerability scanners request — this is a static React app
+// on Cloudflare, so any .php, WordPress path, or exposed-dotfile probe is junk.
+const BOT_PROBE_RE =
+  /(\.php($|[?/])|\/wp-(admin|includes|content|login)|xmlrpc|\/\.(env|git|aws|ssh)|\/vendor\/|\/phpmyadmin)/i;
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    // Drop automated vulnerability-scanner probes early — the app has no PHP,
+    // WordPress, or dotfiles, so these are always malicious noise (they inflate
+    // request counts and hit the SPA fallback). Blocking here short-circuits
+    // before any R2/upstream work. A zone WAF rule would block at the edge
+    // (cheaper still); this is the in-Worker equivalent when WAF isn't wired up.
+    if (BOT_PROBE_RE.test(url.pathname)) {
+      return new Response("Not found", { status: 403 });
+    }
 
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: CORS_HEADERS });
@@ -527,8 +541,29 @@ export default {
             html = injectOgTags(html, og);
             html = injectJsonLd(html, og.jsonLd);
           }
+          // Inject crawlable race content (winner, podium, internal links) into
+          // the otherwise-empty SPA shell. Best-effort — never block the page.
+          if (ogParams.mk && ogParams.year) {
+            try {
+              const block = await buildRaceContentBlock({
+                ASSETS: env.ASSETS,
+                F1_DATA: env.F1_DATA,
+                origin: url.origin,
+                year: ogParams.year,
+                meetingKey: Number(ogParams.mk),
+              });
+              if (block) {
+                html = html.replace(/<div id="root">\s*<\/div>/, `<div id="root">${block}</div>`);
+              }
+            } catch { /* fall back to the plain shell */ }
+          }
           return new Response(html, {
-            headers: { "Content-Type": "text/html; charset=utf-8" },
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              // Cache the rendered shell at the edge (content is static once the
+              // race is done); SWR keeps it fresh without blocking requests.
+              "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+            },
           });
         }
         // Dev mode fallback: proxy to root for SPA
