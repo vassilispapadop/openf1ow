@@ -560,9 +560,12 @@ export default {
           return new Response(html, {
             headers: {
               "Content-Type": "text/html; charset=utf-8",
-              // Cache the rendered shell at the edge (content is static once the
-              // race is done); SWR keeps it fresh without blocking requests.
-              "Cache-Control": "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+              // MUST NOT be edge-cached: this shell embeds fingerprinted asset
+              // URLs (index-<hash>.js). A cached copy outlives the next deploy
+              // and then points at 404'd bundles, leaving only the injected
+              // static block ("Loading interactive telemetry…" that never
+              // resolves). Revalidate every time; the Worker re-injects cheaply.
+              "Cache-Control": "no-cache, must-revalidate",
             },
           });
         }
