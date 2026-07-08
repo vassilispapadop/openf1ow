@@ -9,9 +9,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useSession } from "../contexts/SessionContext";
 import { findSlugForMeeting } from "../lib/raceIndex";
 import { paths } from "../lib/constants";
+import { shareUrl, canShareUrl } from "../lib/share";
 import Pill from "./Pill";
 
-type Status = "idle" | "copied" | "error";
+type Status = "idle" | "copied" | "shared" | "error";
 
 interface Props {
   driverNumber?: string;
@@ -43,6 +44,13 @@ export default function ShareLinkButton({ driverNumber }: Props) {
       // Fallback if slug isn't resolved yet — share the current SPA URL.
       url = window.location.href;
     }
+    // Prefer the native share sheet (mobile: X/WhatsApp/Messages/…) — much
+    // lower friction than copy. Fall back to clipboard on desktop browsers.
+    const title = driverNumber ? "F1 driver analysis · OpenF1ow" : "F1 race analysis · OpenF1ow";
+    if (canShareUrl()) {
+      const ok = await shareUrl({ url, title });
+      if (ok) { setStatus("shared"); setTimeout(() => setStatus("idle"), 2000); return; }
+    }
     try {
       await navigator.clipboard.writeText(url);
       setStatus("copied");
@@ -54,7 +62,11 @@ export default function ShareLinkButton({ driverNumber }: Props) {
 
   if (!mk) return null;
 
-  const label = status === "copied" ? "Link copied" : status === "error" ? "Copy failed" : "Share";
+  const label =
+    status === "copied" ? "Link copied" :
+    status === "shared" ? "Shared" :
+    status === "error" ? "Copy failed" :
+    "Share";
 
   return (
     <Pill

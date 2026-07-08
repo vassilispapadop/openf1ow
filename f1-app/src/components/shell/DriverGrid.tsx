@@ -1,12 +1,21 @@
 import { F, M, C } from "../../lib/styles";
 import type { Driver } from "../../lib/types";
+import { useFollowedDrivers } from "../../lib/retention";
 
 export default function DriverGrid({ drivers, dn, onDriver }: {
   drivers: Driver[];
   dn: string;
   onDriver: (v: string) => void;
 }) {
+  const { isFollowed, toggle } = useFollowedDrivers();
   if (!drivers.length) return null;
+
+  // Followed drivers pinned to the front (Array.prototype.sort is stable, so
+  // order within each group is preserved) — a small personalisation that makes
+  // a returning visitor's driver the first thing they see.
+  const ordered = [...drivers].sort(
+    (a, b) => (isFollowed(a.driver_number) ? 0 : 1) - (isFollowed(b.driver_number) ? 0 : 1),
+  );
 
   return (
     <div style={{
@@ -15,9 +24,10 @@ export default function DriverGrid({ drivers, dn, onDriver }: {
       gap: 5,
       marginBottom: 16,
     }}>
-      {drivers.map(d => {
+      {ordered.map(d => {
         const selected = String(d.driver_number) === dn;
         const color = "#" + (d.team_colour || "666");
+        const followed = isFollowed(d.driver_number);
         return (
           <button
             key={d.driver_number}
@@ -26,7 +36,7 @@ export default function DriverGrid({ drivers, dn, onDriver }: {
               display: "flex",
               alignItems: "center",
               gap: 6,
-              padding: "3px 10px 3px 3px",
+              padding: "3px 8px 3px 3px",
               borderRadius: 999,
               border: "1px solid " + (selected ? color : C.border),
               background: selected ? `${color}14` : C.surface,
@@ -71,6 +81,33 @@ export default function DriverGrid({ drivers, dn, onDriver }: {
               color: selected ? C.text : C.textDim,
             }}>
               {d.name_acronym}
+            </span>
+            <span
+              role="button"
+              tabIndex={0}
+              aria-label={followed ? `Unfollow ${d.name_acronym}` : `Follow ${d.name_acronym}`}
+              aria-pressed={followed}
+              title={followed ? "Following — click to unfollow" : "Follow driver"}
+              onClick={(e) => { e.stopPropagation(); toggle(d.driver_number); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  toggle(d.driver_number);
+                }
+              }}
+              style={{
+                marginLeft: 1,
+                fontSize: 12,
+                lineHeight: 1,
+                color: followed ? C.warn : C.textFaint,
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "2px",
+              }}
+            >
+              {followed ? "★" : "☆"}
             </span>
           </button>
         );
