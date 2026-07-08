@@ -6,7 +6,7 @@ import SelectorBar from "../components/shell/SelectorBar";
 import DriverGrid from "../components/shell/DriverGrid";
 import Footer from "../components/shell/Footer";
 import LiveSessionBanner from "../components/LiveSessionBanner";
-import Spinner from "../components/Spinner";
+import { SkeletonAnalysis, SkeletonHome } from "../components/Skeleton";
 import { F, C, sty } from "../lib/styles";
 import { paths } from "../lib/constants";
 import Pill from "../components/Pill";
@@ -113,7 +113,10 @@ function LayoutInner() {
           </div>
         )}
 
-        {loading && <Spinner label={loading} />}
+        {/* Layout-matching skeleton keeps the page shape during navigation
+            instead of collapsing to a centered spinner. Analysis-shaped when a
+            meeting is selected, season-dashboard-shaped on the home route. */}
+        {loading && (mk ? <SkeletonAnalysis label={loading} /> : <SkeletonHome />)}
 
         <Outlet />
       </main>
