@@ -7,7 +7,7 @@
 //   - navigations: network-first, fall back to the cached shell only offline
 //     (so deploys and fresh data are never masked by the SW).
 //   - hashed static assets: cache-first (filenames change on every deploy).
-const CACHE = "openf1ow-v1";
+const CACHE = "openf1ow-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -34,8 +34,12 @@ self.addEventListener("fetch", (event) => {
       (async () => {
         try {
           const res = await fetch(req);
-          const cache = await caches.open(CACHE);
-          cache.put("/", res.clone());
+          // Only keep the true root as the offline shell. Caching a race URL's
+          // HTML here would pin a shell that embeds fingerprinted asset refs.
+          if (url.pathname === "/") {
+            const cache = await caches.open(CACHE);
+            cache.put("/", res.clone());
+          }
           return res;
         } catch {
           return (await caches.match("/")) || Response.error();
