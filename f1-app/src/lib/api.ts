@@ -47,7 +47,16 @@ export async function api(path: string, retries = 2) {
         }
         throw new Error("Unauthorized: " + path);
       }
-      lastError = new Error(`HTTP ${r.status}: ${path}`);
+      // 429 = OpenF1 rate-limiting. Common during and right after a live
+      // session (data isn't published/cached yet). Tag it so the UI can show a
+      // calm "waiting for data" state + auto-retry instead of a raw error.
+      if (r.status === 429) {
+        const e = new Error("The F1 data source is rate-limiting this session's timing data — this is normal during and just after a live session, and clears once the data is published.");
+        (e as Error & { code?: string }).code = "RATE_LIMITED";
+        lastError = e;
+      } else {
+        lastError = new Error(`HTTP ${r.status}: ${path}`);
+      }
     } catch (e) {
       if (e instanceof Error && e.message.startsWith("Live session")) throw e;
       lastError = e instanceof Error ? e : new Error(String(e));
