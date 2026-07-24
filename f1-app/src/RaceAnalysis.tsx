@@ -15,6 +15,7 @@ import Pill from "./components/Pill";
 import ScatterPlot from "./components/analysis/ScatterPlot";
 import type { ScatterPoint } from "./components/analysis/useTooltip";
 import SubTab from "./components/analysis/SubTab";
+import { PendingData, isRateLimited } from "./components/analysis/PendingData";
 import ViewToggle from "./components/analysis/ViewToggle";
 import LapEvolutionChart from "./components/analysis/LapEvolutionChart";
 import RacePaceRanking from "./components/analysis/RacePaceRanking";
@@ -76,6 +77,9 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   const [allPits, setAllPits] = useState<Pit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  // >0 = rate-limited by the data source (transient, common during/after a live
+  // session); the number is the attempt count that drives capped auto-retry.
+  const [pending, setPending] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "graph">("graph");
   const [progress, setProgress] = useState("");
@@ -199,9 +203,18 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
       setAllStints(stints);
       setAllPits(pits);
       setLoaded(true);
+      setPending(0);
       setProgress("");
     } catch (e: any) {
-      setError(e.message);
+      // A rate-limit is expected right after a live session (data not published
+      // yet) — treat it as a transient "pending" state, not a hard error.
+      if (isRateLimited(e)) {
+        setPending(p => p + 1);
+        setError("");
+      } else {
+        setError(e.message);
+        setPending(0);
+      }
       setProgress("");
     }
     setLoading(false);
@@ -210,6 +223,23 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   useEffect(() => {
     if (sessionKey && drivers.length && !loaded && !loading) fetchAll();
   }, [sessionKey, drivers]);
+
+  // Auto-retry a rate-limited load a few times, then leave it to the user.
+  useEffect(() => {
+    if (pending === 0 || pending > 4 || loaded) return;
+    const id = setTimeout(() => fetchAll(), 12000);
+    return () => clearTimeout(id);
+  }, [pending, loaded, fetchAll]);
+
+  if (pending > 0 && !loaded) {
+    return (
+      <PendingData
+        onRetry={() => { setPending(0); fetchAll(); }}
+        checking={loading}
+        exhausted={pending > 4}
+      />
+    );
+  }
 
   if (!loaded && !loading) {
     return (

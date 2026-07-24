@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Driver, Lap, Stint } from "../../lib/types";
 import { api } from "../../lib/api";
+import { PendingData, isRateLimited } from "../analysis/PendingData";
 import { F, M, C, sty } from "../../lib/styles";
 import { ft3, podiumColor, rowBg } from "../../lib/format";
 import { TC } from "../../lib/constants";
@@ -22,8 +23,9 @@ export default function PracticeAnalysis({ sessionKey, drivers, sessionName }: {
   const [stints, setStints] = useState<Stint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(0);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     setLoading(true);
     setError("");
     Promise.all([
@@ -32,17 +34,29 @@ export default function PracticeAnalysis({ sessionKey, drivers, sessionName }: {
     ]).then(([l, s]) => {
       setLaps(l as Lap[]);
       setStints(s as Stint[]);
+      setPending(0);
       setLoading(false);
     }).catch(e => {
-      setError(e.message);
+      if (isRateLimited(e)) setPending(p => p + 1);
+      else setError(e.message);
       setLoading(false);
     });
   }, [sessionKey]);
+
+  useEffect(() => { load(); }, [load]);
+
+  // Auto-retry a rate-limited load a few times, then leave it to the user.
+  useEffect(() => {
+    if (pending === 0 || pending > 4) return;
+    const id = setTimeout(load, 12000);
+    return () => clearTimeout(id);
+  }, [pending, load]);
 
   const bests = useMemo(() => bestLapsByDriver(laps, drivers, stints), [laps, drivers, stints]);
   const longRuns = useMemo(() => longRunsByDriver(laps, drivers, stints, 6), [laps, drivers, stints]);
   const program = useMemo(() => compoundProgramByDriver(stints, drivers), [stints, drivers]);
 
+  if (pending > 0) return <PendingData onRetry={() => { setPending(0); load(); }} checking={loading} exhausted={pending > 4} />;
   if (loading) return <Spinner label="Loading practice laps..." />;
   if (error) return <div style={sty.err}>{error}</div>;
   if (!bests.length) return <div style={{ ...sty.card, color: C.textMute, fontSize: 13 }}>No timed laps in this session yet.</div>;
