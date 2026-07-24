@@ -4,6 +4,7 @@ import { shareUrl, canShareUrl } from "../../lib/share";
 import { fd } from "../../lib/format";
 import { loadRaceIndex } from "../../lib/raceIndex";
 import { loadSeasonTrends } from "../../lib/seasonClient";
+import { api } from "../../lib/api";
 import { paths } from "../../lib/constants";
 import type { ConstructorPaceRace } from "../../lib/seasonUtils";
 
@@ -33,9 +34,34 @@ export default function LatestRaceCard({ year }: { year: number }) {
       const list = idx.byYear[String(year)];
       if (!list) { setLoading(false); return; }
       const now = Date.now();
+
+      // A race counts as "latest" only once its Race session has actually
+      // started — not when the weekend begins. `dateStart` is FP1/Friday, so
+      // keying off it made an upcoming GP show as "latest" during its practice
+      // days (and clash with the NEXT RACE card). Use the real Race-session
+      // start from the (cached) sessions list; fall back to dateStart if the
+      // sessions fetch is unavailable (e.g. gated during a live session).
+      const raceStartByMeeting: Record<number, number> = {};
+      try {
+        const sessions = (await api(`/sessions?year=${year}`)) as Array<{
+          meeting_key: number; session_name: string; date_start?: string;
+        }>;
+        if (Array.isArray(sessions)) {
+          for (const s of sessions) {
+            if (s.session_name === "Race" && s.date_start) {
+              raceStartByMeeting[s.meeting_key] = new Date(s.date_start).getTime();
+            }
+          }
+        }
+      } catch { /* fall back to dateStart below */ }
+
+      const raceStart = (r: { meetingKey: number; dateStart?: string }) =>
+        raceStartByMeeting[r.meetingKey] ??
+        (r.dateStart ? new Date(r.dateStart).getTime() : 0);
+
       const past = list
-        .filter(r => r.sessions?.race && r.dateStart && new Date(r.dateStart).getTime() < now)
-        .sort((a, b) => (b.dateStart || "").localeCompare(a.dateStart || ""));
+        .filter(r => r.sessions?.race && raceStart(r) > 0 && raceStart(r) < now)
+        .sort((a, b) => raceStart(b) - raceStart(a));
       const latest = past[0];
       if (!latest) { setLoading(false); return; }
 
