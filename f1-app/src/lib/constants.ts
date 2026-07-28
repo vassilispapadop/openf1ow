@@ -29,6 +29,7 @@ export const ANALYSIS_VIEWS = [
   { key: "pace", label: "Pace" },
   { key: "strategy", label: "Strategy" },
   { key: "battles", label: "Battles" },
+  { key: "coaching", label: "Coaching" },
   { key: "track", label: "Track" },
 ] as const;
 

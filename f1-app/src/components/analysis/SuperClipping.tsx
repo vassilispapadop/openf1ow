@@ -79,8 +79,13 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
       for (const lap of cleanLaps) {
         if (cancelled()) return;
         try {
-          const end = new Date(new Date(lap.date_start).getTime() + lap.lap_duration! * 1000 + 2000).toISOString();
-          const q = `?session_key=${sessionKey}&driver_number=${dn}&date>=${lap.date_start}&date<=${end}`;
+          // Normalise both bounds to ISO-Z: the raw OpenF1 date_start carries a
+          // "+00:00" offset whose "+" decodes as a space in a query string,
+          // which the API rejects (422) — silently dropping the lap here.
+          const startMs = new Date(lap.date_start).getTime();
+          const start = new Date(startMs).toISOString();
+          const end = new Date(startMs + lap.lap_duration! * 1000 + 2000).toISOString();
+          const q = `?session_key=${sessionKey}&driver_number=${dn}&date>=${start}&date<=${end}`;
           const [cd, loc] = await Promise.all([
             api("/car_data" + q),
             api("/location" + q).catch(() => []),
