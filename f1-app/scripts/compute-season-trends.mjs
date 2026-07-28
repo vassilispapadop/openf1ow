@@ -298,7 +298,10 @@ function aggregateTireDegByCompound(races) {
       for (const st of r.stints) {
         const deg = stintDegradation(st, lapLookup, threshold, fc);
         if (deg == null) continue;
-        const c = (st.compound || "UNKNOWN").toUpperCase();
+        // Skip stints OpenF1 hasn't tagged with a compound — a synthetic
+        // "UNKNOWN" bucket mixes tyres and plots as a bogus high-deg series.
+        if (!st.compound) continue;
+        const c = st.compound.toUpperCase();
         (byCompound[c] ||= []).push(deg);
       }
       const compounds = Object.entries(byCompound)

@@ -28,6 +28,7 @@ import FuelVisualization from "./components/analysis/FuelVisualization";
 import WeatherCorrelation from "./components/analysis/WeatherCorrelation";
 import DirtyAirAnalysis from "./components/analysis/DirtyAirAnalysis";
 import SuperClipping from "./components/analysis/SuperClipping";
+import CoachingComparison from "./components/analysis/CoachingComparison";
 import HeadlineInsights from "./components/analysis/HeadlineInsights";
 
 function Section({ title, hint, actions, children }: {
@@ -748,6 +749,19 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
               return <ScatterPlot data={pts} xLabel="Avg Gap in Traffic (s)" yLabel="Time Loss (s)" xFmt={v => v.toFixed(2)} yFmt={v => v.toFixed(3)} />;
             })()}
           </Section>
+        </>
+      )}
+
+      {subTab === "coaching" && (
+        <>
+          <div style={{ marginBottom: 14 }}>
+            <h3 style={{ ...sty.sectionHead, fontSize: 16, marginBottom: 6 }}>Head-to-head lap comparison</h3>
+            <p style={{ fontSize: 12, color: C.textMute, margin: 0, lineHeight: 1.55, maxWidth: 760 }}>
+              The pit-wall delta-time tool. Pick any two drivers and see exactly where one gains or loses time over a
+              single lap — the reference every race engineer and driver coach works from. Built from each driver's fastest clean lap.
+            </p>
+          </div>
+          <CoachingComparison sessionKey={sessionKey} allLaps={allLaps} drivers={drivers} />
         </>
       )}
 
