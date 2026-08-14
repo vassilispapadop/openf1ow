@@ -6,11 +6,13 @@ interface DriverInfoCardProps {
   best: any;
   laps: number;
   pits: number;
+  /** Counts render as em dashes rather than a misleading 0 while data is in flight. */
+  loading?: boolean;
   onLoadBest?: () => void;
   onAddBest?: () => void;
 }
 
-export default function DriverInfoCard({ drv, best, laps, pits, onLoadBest, onAddBest }: DriverInfoCardProps) {
+export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadBest, onAddBest }: DriverInfoCardProps) {
   const team = "#" + drv.team_colour;
 
   return (
@@ -68,8 +70,8 @@ export default function DriverInfoCard({ drv, best, laps, pits, onLoadBest, onAd
               {onAddBest && <GhostBtn onClick={onAddBest} title="Add best lap to comparison">+</GhostBtn>}
             </div>
           )}
-          <Stat label="Laps" value={String(laps)} />
-          <Stat label="Pits" value={String(pits)} />
+          <Stat label="Laps" value={loading ? "—" : String(laps)} />
+          <Stat label="Pits" value={loading ? "—" : String(pits)} />
         </div>
       </div>
     </div>

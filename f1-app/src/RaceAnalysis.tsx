@@ -29,6 +29,7 @@ import WeatherCorrelation from "./components/analysis/WeatherCorrelation";
 import DirtyAirAnalysis from "./components/analysis/DirtyAirAnalysis";
 import SuperClipping from "./components/analysis/SuperClipping";
 import HeadlineInsights from "./components/analysis/HeadlineInsights";
+import StickyTabBar from "./components/shell/StickyTabBar";
 
 function Section({ title, hint, actions, children }: {
   title: string;
@@ -315,25 +316,26 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         onOpenTab={onSubTabChange}
       />
 
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        marginBottom: 16,
-        flexWrap: "wrap",
-      }}>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {ANALYSIS_VIEWS.map(v => (
-            <SubTab key={v.key} active={subTab === v.key} onClick={() => onSubTabChange(v.key)}>
-              {v.label}
-            </SubTab>
-          ))}
+      <StickyTabBar>
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+        }}>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {ANALYSIS_VIEWS.map(v => (
+              <SubTab key={v.key} active={subTab === v.key} onClick={() => onSubTabChange(v.key)}>
+                {v.label}
+              </SubTab>
+            ))}
+          </div>
+          <Pill size="sm" onClick={exportJson} title="Download race analysis data as JSON">
+            Export JSON
+          </Pill>
         </div>
-        <Pill size="sm" onClick={exportJson} title="Download race analysis data as JSON">
-          Export JSON
-        </Pill>
-      </div>
+      </StickyTabBar>
 
       {subTab === "overview" && (
         <AIAnalysis

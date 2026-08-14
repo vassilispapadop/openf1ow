@@ -90,15 +90,11 @@ function LayoutInner() {
           onSession={onSession}
         />
 
-        {drivers.length > 0 && !loading && (
-          <DriverGrid drivers={drivers} dn={dn} onDriver={onDriver} />
-        )}
-
         {drivers.length > 0 && !loading && sk && (
           <div style={{
             display: "inline-flex",
             gap: 2,
-            marginBottom: 18,
+            marginBottom: 16,
             background: C.surface,
             borderRadius: 999,
             padding: 3,
@@ -122,6 +118,12 @@ function LayoutInner() {
               Driver view
             </Pill>
           </div>
+        )}
+
+        {/* Driver picker belongs to Driver view only — on Race analysis it added
+            two rows of chips that selected nothing on the page below. */}
+        {drivers.length > 0 && !loading && isDriver && (
+          <DriverGrid drivers={drivers} dn={dn} onDriver={onDriver} />
         )}
 
         {/* Layout-matching skeleton keeps the page shape during navigation

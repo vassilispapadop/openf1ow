@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import { F, C } from "../../lib/styles";
 import Pill from "../Pill";
 import ShareLinkButton from "../ShareLinkButton";
@@ -21,8 +22,28 @@ export default function Header({ meetings, mk, sessions, sk, drivers, dn, onRese
   const driver = dn && drivers ? drivers.find(d => String(d.driver_number) === dn) : undefined;
   const driverColor = driver?.team_colour ? "#" + driver.team_colour : C.text;
 
+  // Publish the rendered height as --header-h so sticky sub-navigation can park
+  // directly beneath it. The height differs per breakpoint (the tagline is
+  // hidden on mobile), so measure it rather than hard-coding an offset.
+  const ref = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    // Fractional height, not offsetHeight: rounding down leaves a hairline of
+    // content visible between the header and whatever sticks beneath it.
+    const publish = () =>
+      document.documentElement.style.setProperty(
+        "--header-h", el.getBoundingClientRect().height + "px",
+      );
+    publish();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   return (
-    <header style={{
+    <header ref={ref} style={{
       position: "sticky",
       top: 0,
       zIndex: 100,

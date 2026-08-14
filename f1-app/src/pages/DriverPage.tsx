@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from "react";
 
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSession } from "../contexts/SessionContext";
@@ -13,6 +13,7 @@ import ShareButton from "../components/ShareButton";
 import { Chart, DeltaChart } from "../components/TelemetryChart";
 import DominanceMap from "../components/session/DominanceMap";
 import DriverInfoCard from "../components/shell/DriverInfoCard";
+import StickyTabBar from "../components/shell/StickyTabBar";
 import LapsTab from "../components/driver/LapsTab";
 import TelemetryTab from "../components/driver/TelemetryTab";
 import StintsTab from "../components/driver/StintsTab";
@@ -53,6 +54,13 @@ export default function DriverPage() {
     loadedRef.current = key;
     setCarData([]);
     setSelLap(null);
+    // Cleared up front: the driver card and tabs now stay mounted during the
+    // fetch, so stale rows from the previous driver would render under the new
+    // driver's name.
+    setLaps([]);
+    setStints([]);
+    setPits([]);
+    setPositions([]);
     // Don't clear comparisons — they persist across driver switches
     // so users can compare laps from different drivers
     setDriverLoading("Loading driver data...");
@@ -166,33 +174,45 @@ export default function DriverPage() {
 
   const drv = useMemo(() => drivers.find(d => String(d.driver_number) === String(dn)), [drivers, dn]);
   const best = useMemo(() => laps.reduce((b: any, l: any) => (l.lap_duration && (!b || l.lap_duration < b.lap_duration) ? l : b), null), [laps]);
+
+  // Landing on the Telemetry tab used to show nothing but an instruction to go
+  // back to Laps & Sectors and press Load. Load the best lap automatically
+  // instead — once per driver/session, so a session with no car data doesn't
+  // retry forever. useLayoutEffect so the spinner replaces the empty state
+  // before paint rather than flashing it for a frame.
+  const autoTelRef = useRef("");
+  useLayoutEffect(() => {
+    if (currentTab !== "telemetry") return;
+    if (!best || carData.length || driverLoading) return;
+    const key = sk + "-" + dn;
+    if (autoTelRef.current === key) return;
+    autoTelRef.current = key;
+    loadTel(best);
+  }, [currentTab, best, carData.length, driverLoading, sk, dn, loadTel]);
+
   const cmpTraces = useMemo(() => comparisons.filter((c: any) => c.data.length > 0).map((c: any) => ({ data: c.data, color: c.color, label: c.label })), [comparisons]);
   const cmpDrsZones = useMemo(() => buildDrsZones(cmpTraces.map(t => t.data)), [cmpTraces]);
   const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data, cmpDrsZones).map(e => ({ ...e, color: t.color }))), [cmpTraces, cmpDrsZones]);
 
   if (!drv || !sk) return null;
 
-  if (driverLoading) {
-    return <Spinner label={driverLoading} />;
-  }
-
   return (
     <>
-      <DriverInfoCard drv={drv} best={best} laps={laps.length} pits={pits.length} onLoadBest={best ? () => loadTel(best) : undefined} onAddBest={best ? () => addComparison(dn, best, drv) : undefined} />
+      <DriverInfoCard drv={drv} best={best} laps={laps.length} pits={pits.length} loading={!!driverLoading} onLoadBest={best ? () => loadTel(best) : undefined} onAddBest={best ? () => addComparison(dn, best, drv) : undefined} />
 
       {/* Tab bar */}
-      <div style={{
-        display: "flex",
-        gap: 6,
-        marginBottom: 12,
-        overflowX: "auto",
-        flexWrap: "wrap",
-        padding: "4px 0",
-      }}>
-        {([["laps", "Laps & Sectors"], ["telemetry", "Telemetry"], ["stints", "Stints & Pits"], ["position", "Positions"], ["weather", "Weather"], ["rc", "Race Control"], ["results", "Results"]] as const).map(([k, v]) => (
-          <Tab key={k} active={currentTab === k} onClick={() => navigate(paths.driver(year, mk, sk, dn, k))}>{v}</Tab>
-        ))}
-      </div>
+      <StickyTabBar>
+        <div style={{
+          display: "flex",
+          gap: 6,
+          overflowX: "auto",
+          flexWrap: "wrap",
+        }}>
+          {([["laps", "Laps & Sectors"], ["telemetry", "Telemetry"], ["stints", "Stints & Pits"], ["position", "Positions"], ["weather", "Weather"], ["rc", "Race Control"], ["results", "Results"]] as const).map(([k, v]) => (
+            <Tab key={k} active={currentTab === k} onClick={() => navigate(paths.driver(year, mk, sk, dn, k))}>{v}</Tab>
+          ))}
+        </div>
+      </StickyTabBar>
 
       {/* Comparison panel */}
       {comparisons.length > 0 && (
@@ -274,27 +294,32 @@ export default function DriverPage() {
         </div>
       )}
 
-      {/* Tab content */}
-      {currentTab === "laps" && (
-        <LapsTab laps={laps} best={best} drv={drv} comparisons={comparisons} dn={dn} carData={carData} selLap={selLap} onLoadTel={loadTel} onAddComparison={addComparison} />
-      )}
-      {currentTab === "telemetry" && (
-        <TelemetryTab carData={carData} selLap={selLap} dn={dn} drv={drv} />
-      )}
-      {currentTab === "stints" && (
-        <StintsTab stints={stints} pits={pits} />
-      )}
-      {currentTab === "position" && (
-        <PositionTab positions={positions} />
-      )}
-      {currentTab === "weather" && (
-        <WeatherTab weather={weather} />
-      )}
-      {currentTab === "rc" && (
-        <RaceControlTab rc={rc} />
-      )}
-      {currentTab === "results" && (
-        <ResultsTab results={results} drivers={drivers} dn={dn} />
+      {/* Tab content — the spinner is scoped here so the driver card and the
+          sticky tab bar stay put while a lap's telemetry loads. */}
+      {driverLoading ? <Spinner label={driverLoading} /> : (
+        <>
+          {currentTab === "laps" && (
+            <LapsTab laps={laps} best={best} drv={drv} comparisons={comparisons} dn={dn} carData={carData} selLap={selLap} onLoadTel={loadTel} onAddComparison={addComparison} />
+          )}
+          {currentTab === "telemetry" && (
+            <TelemetryTab carData={carData} selLap={selLap} dn={dn} drv={drv} />
+          )}
+          {currentTab === "stints" && (
+            <StintsTab stints={stints} pits={pits} />
+          )}
+          {currentTab === "position" && (
+            <PositionTab positions={positions} />
+          )}
+          {currentTab === "weather" && (
+            <WeatherTab weather={weather} />
+          )}
+          {currentTab === "rc" && (
+            <RaceControlTab rc={rc} />
+          )}
+          {currentTab === "results" && (
+            <ResultsTab results={results} drivers={drivers} dn={dn} />
+          )}
+        </>
       )}
     </>
   );
