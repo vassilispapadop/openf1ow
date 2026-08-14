@@ -36,7 +36,11 @@ export default function TelemetryTab({ carData, selLap, dn, drv }: TelemetryTabP
       </div>
       {!carData.length ? (
         <div style={{ textAlign: "center", padding: 40, color: "#5a5a6e" }}>
-          <p style={{ fontSize: 13, fontWeight: 500 }}>Go to <b style={{ color: "#e8e8ec" }}>Laps & Sectors</b> and click <b style={{ color: "#e8e8ec" }}>Load</b> on any lap.</p>
+          <p style={{ fontSize: 13, fontWeight: 500 }}>No car telemetry available for this lap.</p>
+          <p style={{ fontSize: 12, marginTop: 8 }}>
+            Press <b style={{ color: "#e8e8ec" }}>Load</b> on the driver card to retry the best lap,
+            or pick a different lap under <b style={{ color: "#e8e8ec" }}>Laps &amp; Sectors</b>.
+          </p>
           <p style={{ fontSize: 11, marginTop: 8, color: "#444" }}>Shows speed, throttle, brake, gear, RPM, DRS at ~3.7Hz</p>
         </div>
       ) : (
