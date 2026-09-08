@@ -7,6 +7,7 @@ import ConstructorPaceEvolution from "../components/season/ConstructorPaceEvolut
 import ConstructorQualifyingEvolution from "../components/season/ConstructorQualifyingEvolution";
 import TeammateGapEvolution from "../components/season/TeammateGapEvolution";
 import TireDegByCompound from "../components/season/TireDegByCompound";
+import CornerStraightBalance from "../components/season/CornerStraightBalance";
 import ShareButton from "../components/ShareButton";
 import Spinner from "../components/Spinner";
 
@@ -18,6 +19,7 @@ export default function SeasonTrendsPage() {
   const constructorQualifyingRef = useRef<HTMLElement>(null);
   const teammateGapRef = useRef<HTMLElement>(null);
   const tireDegRef = useRef<HTMLElement>(null);
+  const cornerStraightRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,7 +73,7 @@ export default function SeasonTrendsPage() {
           letterSpacing: "-0.025em",
           color: C.text,
         }}>
-          {year} F1 — pace, gaps, degradation
+          {year} F1 — pace, gaps, corners, degradation
         </h1>
         <p style={{ fontSize: 14, color: C.textDim, margin: "8px 0 0", maxWidth: 720 }}>
           Cross-race trends derived from clean-lap medians and fuel-corrected stint deg.
@@ -129,6 +131,25 @@ export default function SeasonTrendsPage() {
         </header>
         <TeammateGapEvolution races={trends.teammateGap} />
       </section>
+
+      {trends.cornerStraight && trends.cornerStraight.length > 0 && (
+        <section ref={cornerStraightRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
+          <header style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
+                Corners vs straights
+              </h2>
+              <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
+                Which half of the lap each team's deficit comes from. Corner and straight gaps are a
+                decomposition of the same qualifying lap, so they sum to the team's lap-time gap —
+                a car can be quicker through the corners and still lose the lap on the straights.
+              </p>
+            </div>
+            <ShareButton domRef={cornerStraightRef} meta={`${year} corners vs straights`} filename={`openf1ow-corners-straights-${year}`} />
+          </header>
+          <CornerStraightBalance races={trends.cornerStraight} />
+        </section>
+      )}
 
       <section ref={tireDegRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
         <header style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 12 }}>

@@ -12,6 +12,7 @@ import Spinner from "../components/Spinner";
 import ShareButton from "../components/ShareButton";
 import { Chart, DeltaChart } from "../components/TelemetryChart";
 import DominanceMap from "../components/session/DominanceMap";
+import SegmentComparison from "../components/session/SegmentComparison";
 import DriverInfoCard from "../components/shell/DriverInfoCard";
 import StickyTabBar from "../components/shell/StickyTabBar";
 import LapsTab from "../components/driver/LapsTab";
@@ -111,6 +112,10 @@ export default function DriverPage() {
         lapNumber: lap.lap_number,
         label: "#" + driverNumber + " " + (driverInfo.name_acronym || driverInfo.full_name) + " L" + lap.lap_number,
         color: DRIVER_COLORS[prev.length % DRIVER_COLORS.length],
+        // Kept alongside the samples so the corner/straight split can pin its
+        // window to exactly one lap rather than to the fetch window, which
+        // deliberately overruns the flag.
+        lap: { dateStart: lap.date_start, duration: lap.lap_duration },
         data: [],
         loading: true,
       }];
@@ -190,7 +195,7 @@ export default function DriverPage() {
     loadTel(best);
   }, [currentTab, best, carData.length, driverLoading, sk, dn, loadTel]);
 
-  const cmpTraces = useMemo(() => comparisons.filter((c: any) => c.data.length > 0).map((c: any) => ({ data: c.data, color: c.color, label: c.label })), [comparisons]);
+  const cmpTraces = useMemo(() => comparisons.filter((c: any) => c.data.length > 0).map((c: any) => ({ data: c.data, color: c.color, label: c.label, lap: c.lap })), [comparisons]);
   const cmpDrsZones = useMemo(() => buildDrsZones(cmpTraces.map(t => t.data)), [cmpTraces]);
   const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data, cmpDrsZones).map(e => ({ ...e, color: t.color }))), [cmpTraces, cmpDrsZones]);
 
@@ -287,6 +292,22 @@ export default function DriverPage() {
                     </span>
                   </div>
                   <DominanceMap traces={cmpTraces} height={420} />
+                </div>
+              )}
+              {cmpTraces.length >= 2 && (
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                  <div style={{
+                    display: "flex",
+                    alignItems: "baseline",
+                    gap: 10,
+                    marginBottom: 10,
+                  }}>
+                    <span style={sty.sectionHead}>CORNERS vs STRAIGHTS</span>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
+                      where the lap time was won and lost
+                    </span>
+                  </div>
+                  <SegmentComparison traces={cmpTraces} />
                 </div>
               )}
             </div>

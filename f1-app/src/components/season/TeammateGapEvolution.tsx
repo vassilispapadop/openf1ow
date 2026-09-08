@@ -7,30 +7,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { F, M, C } from "../../lib/styles";
+import { TEAM_COLORS, TEAM_FALLBACK_COLORS } from "../../lib/constants";
 import type { TeammateGapRace } from "../../lib/seasonUtils";
 
 interface Props { races: TeammateGapRace[]; height?: number; }
 
 const MARGIN = { top: 14, right: 12, bottom: 36, left: 56 };
 
-const TEAM_COLORS: Record<string, string> = {
-  "Red Bull Racing": "#1E5BC6",
-  "McLaren": "#FF8000",
-  "Ferrari": "#DC0000",
-  "Mercedes": "#27F4D2",
-  "Aston Martin": "#229971",
-  "Alpine": "#FF87BC",
-  "Williams": "#64C4FF",
-  "RB": "#6692FF",
-  "Racing Bulls": "#6692FF",
-  "Kick Sauber": "#52E252",
-  "Haas F1 Team": "#B6BABD",
-  "AlphaTauri": "#5E8FAA",
-  "Alfa Romeo": "#900000",
-  "Audi": "#E1224B",
-  "Cadillac": "#F8C545",
-};
-const FALLBACK = ["#a78bfa", "#06b6d4", "#f43f5e", "#84cc16", "#f97316", "#6366f1", "#ec4899"];
 
 export default function TeammateGapEvolution({ races, height = 360 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -106,7 +89,7 @@ export default function TeammateGapEvolution({ races, height = 360 }: Props) {
 
   const xFor = (r: number) => MARGIN.left + ((r - minRound) / xRange) * innerW;
   const yFor = (g: number) => MARGIN.top + ((yMax - g) / yRange) * innerH;
-  const colorOf = (team: string, idx: number) => TEAM_COLORS[team] ?? FALLBACK[idx % FALLBACK.length];
+  const colorOf = (team: string, idx: number) => TEAM_COLORS[team] ?? TEAM_FALLBACK_COLORS[idx % TEAM_FALLBACK_COLORS.length];
 
   // Y axis ticks: round to sensible intervals
   const yTicks: number[] = [];
