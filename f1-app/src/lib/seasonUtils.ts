@@ -335,6 +335,46 @@ export function aggregateTireDegByCompound(races: RaceData[]): TireDegRace[] {
 
 // Top-level artifact shape written to R2.
 
+// ---------------------------------------------------------------------------
+// Corner / straight balance
+// ---------------------------------------------------------------------------
+// Where each team finds (or loses) its lap time: cornering vs straight-line
+// running. Built from qualifying telemetry — each team's fastest lap of the
+// weekend is split into corner and straight sections (see lib/lapSegments) and
+// timed against the fastest team's lap. cornerGap + straightGap is exactly the
+// team's lap-time gap, so the two numbers are a true decomposition rather than
+// two loosely related indices.
+//
+// Unlike the other aggregations this one can't be computed from RaceData —
+// it needs per-lap car_data and location, which only the offline trends script
+// fetches. buildSeasonTrends therefore leaves it out.
+
+export interface CornerStraightPoint {
+  team: string;
+  driver: string;           // name_acronym of whoever set the team's lap
+  lapTime: number;          // sec
+  cornerTime: number;       // sec — summed across the lap's corner sections
+  straightTime: number;     // sec — summed across the straights
+  cornerGap: number;        // sec vs the reference team's corner total
+  straightGap: number;      // sec vs the reference team's straight total
+  gapToFastest: number;     // sec — equals cornerGap + straightGap
+}
+
+export interface CornerStraightRace {
+  meetingKey: number;
+  slug: string;
+  meetingName: string;
+  dateStart: string;
+  round: number;
+  referenceTeam: string;    // fastest team that weekend — the 0.000 baseline
+  cornerCount: number;      // corner sections the circuit was split into
+  straightCount: number;
+  cornerDistance: number;   // m of the lap classified as corner
+  straightDistance: number;
+  trackDistance: number;    // m — measured lap length
+  teams: CornerStraightPoint[];
+}
+
 export interface SeasonTrends {
   generatedAt: string;        // ISO timestamp
   year: number;
@@ -343,6 +383,7 @@ export interface SeasonTrends {
   constructorQualifying?: ConstructorQualifyingRace[]; // optional — older artifacts may not have this
   teammateGap: TeammateGapRace[];
   tireDeg: TireDegRace[];
+  cornerStraight?: CornerStraightRace[]; // optional — telemetry-derived, only in artifacts built with it
 }
 
 export function buildSeasonTrends(year: number, races: RaceData[]): SeasonTrends {

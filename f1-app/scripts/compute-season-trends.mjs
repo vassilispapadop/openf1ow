@@ -4,16 +4,25 @@
  * from src/lib/{raceUtils,seasonUtils}.ts because Node ESM can't import
  * .ts directly here — keep the two in sync if you change either.
  *
+ * The corner/straight aggregation is the exception to the duplication rule
+ * above: it imports lib/lapSegments.ts and lib/telemetry.ts directly, since
+ * Node strips the type annotations natively and those two modules are pure
+ * functions with no DOM or React dependency. Re-deriving several hundred lines
+ * of segmentation maths here would be far more likely to drift.
+ *
  * Usage:
  *   node scripts/compute-season-trends.mjs                # all years
  *   node scripts/compute-season-trends.mjs --year 2025
  *   node scripts/compute-season-trends.mjs --dry-run      # no R2 write
+ *   node scripts/compute-season-trends.mjs --skip-corners # no telemetry pass
  */
 
 import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { compareLapSegments } from "../src/lib/lapSegments.ts";
+import { mergeDistance } from "../src/lib/telemetry.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..");
@@ -26,6 +35,10 @@ const FETCH_DELAY_MS = 200;
 // CLI flags
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
+// The corner/straight pass is the only one that fetches telemetry, and it's
+// two orders of magnitude more requests than everything else combined. Skip it
+// when you just want the lap-time aggregations refreshed.
+const skipCorners = args.includes("--skip-corners");
 const yearIdx = args.indexOf("--year");
 const targetYear = yearIdx >= 0 ? Number(args[yearIdx + 1]) : null;
 
@@ -322,6 +335,190 @@ function aggregateTireDegByCompound(races) {
     .filter(Boolean);
 }
 
+// ---------------------------------------------------------------------------
+// Corner / straight balance (telemetry pass)
+// ---------------------------------------------------------------------------
+
+/** Extra slack fetched past the flag so the lap's last sample isn't clipped;
+ *  compareLapSegments trims back to the exact lap. */
+const TELEMETRY_TAIL_MS = 2000;
+/** Telemetry endpoints rate-limit harder than the session ones. */
+const TELEMETRY_DELAY_MS = 900;
+
+function telemetryCachePath(sk, driverNumber, lapNumber) {
+  return join(CACHE_DIR, `tel_${sk}_${driverNumber}_${lapNumber}.json`);
+}
+
+async function fetchTelemetryRange(endpoint, sk, driverNumber, startIso, endIso) {
+  const q = `session_key=${sk}&driver_number=${driverNumber}&date>=${startIso}&date<=${endIso}`;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    try {
+      const res = await fetch(`${API}/${endpoint}?${q}`);
+      if (res.ok) return await res.json();
+      // 422 means the query itself is malformed — retrying won't help.
+      if (res.status === 422) {
+        console.warn(`\n    ${endpoint} 422 for #${driverNumber} — ${q}`);
+        return null;
+      }
+      if (res.status === 404) return null;
+    } catch { /* retry */ }
+    await sleep(900 * (attempt + 1));
+  }
+  return null;
+}
+
+/** car_data + location for one lap, merged into distance-stamped samples.
+ *  Cached on disk keyed by session/driver/lap — a season's telemetry is a few
+ *  hundred fetches, so a re-run should never pay for them twice. */
+async function fetchLapTelemetry(sk, driverNumber, lap) {
+  const cached = telemetryCachePath(sk, driverNumber, lap.lap_number);
+  if (existsSync(cached)) {
+    const data = JSON.parse(readFileSync(cached, "utf-8"));
+    if (Array.isArray(data) && data.length > 0) return data;
+  }
+  // OpenF1 rejects the raw "+00:00" offset that comes back on date_start with
+  // a 422; normalise both bounds to ISO-Z.
+  const startIso = new Date(lap.date_start).toISOString();
+  const endIso = new Date(new Date(lap.date_start).getTime() + lap.lap_duration * 1000 + TELEMETRY_TAIL_MS).toISOString();
+
+  const cd = await fetchTelemetryRange("car_data", sk, driverNumber, startIso, endIso);
+  if (!cd?.length) return null;
+  await sleep(TELEMETRY_DELAY_MS);
+  const loc = await fetchTelemetryRange("location", sk, driverNumber, startIso, endIso);
+
+  const merged = mergeDistance(cd, loc || []);
+  // Without location data every sample sits at distance 0 and the segmentation
+  // has nothing to cut on, so don't cache a useless result.
+  if (!merged.length || !merged.some(p => (p.distance ?? 0) > 0)) return null;
+  writeFileSync(cached, JSON.stringify(merged));
+  return merged;
+}
+
+/** Each team's fastest clean qualifying lap, as {team, driver, lap}. */
+function bestQualiLapPerTeam(race) {
+  const laps = race.qualiLaps;
+  if (!laps?.length) return [];
+  const threshold = computeSlowLapThreshold(laps);
+  if (!isFinite(threshold)) return [];
+
+  const teamOf = {};
+  const acronymOf = {};
+  for (const d of race.drivers) {
+    teamOf[d.driver_number] = d.team_name || "Unknown";
+    acronymOf[d.driver_number] = d.name_acronym || String(d.driver_number);
+  }
+
+  const best = {};
+  for (const l of laps) {
+    if (!isCleanLap(l, threshold)) continue;
+    // Segmentation needs a start timestamp and a duration to pin the window.
+    if (!l.date_start || !l.lap_duration) continue;
+    const team = teamOf[l.driver_number];
+    if (!team) continue;
+    const cur = best[team];
+    if (!cur || l.lap_duration < cur.lap.lap_duration) {
+      best[team] = { team, driver: acronymOf[l.driver_number], driverNumber: l.driver_number, lap: l };
+    }
+  }
+  return Object.values(best).sort((a, b) => a.lap.lap_duration - b.lap.lap_duration);
+}
+
+/** One race's corner/straight decomposition. Returns null when the weekend
+ *  has no qualifying telemetry to work with. */
+async function cornerStraightForRace(race) {
+  const qualiSk = race.meta.qualifyingSessionKey;
+  if (!qualiSk) return null;
+  const candidates = bestQualiLapPerTeam(race);
+  if (candidates.length < 2) return null;
+
+  const traces = [];
+  for (const c of candidates) {
+    const data = await fetchLapTelemetry(qualiSk, c.driverNumber, c.lap);
+    await sleep(TELEMETRY_DELAY_MS);
+    if (!data) continue;
+    traces.push({
+      data,
+      color: "888888",              // unused here; the UI colours by team
+      label: c.team,
+      lap: { dateStart: c.lap.date_start, duration: c.lap.lap_duration },
+      driver: c.driver,
+      lapTime: c.lap.lap_duration,
+    });
+  }
+  if (traces.length < 2) return null;
+
+  const cmp = compareLapSegments(traces);
+  if (!cmp) return null;
+
+  // compareLapSegments picks the quickest lap as its own baseline, which is
+  // the team we want everything measured against.
+  const byLabel = Object.fromEntries(traces.map(t => [t.label, t]));
+  const teams = cmp.totals
+    .map(t => ({
+      team: t.label,
+      driver: byLabel[t.label]?.driver ?? "",
+      lapTime: byLabel[t.label]?.lapTime ?? 0,
+      cornerTime: round3(t.cornerTime),
+      straightTime: round3(t.straightTime),
+      cornerGap: round3(t.cornerDelta),
+      straightGap: round3(t.straightDelta),
+      gapToFastest: round3(t.totalDelta),
+    }))
+    .sort((a, b) => a.gapToFastest - b.gapToFastest);
+
+  return {
+    meetingKey: race.meta.meetingKey,
+    slug: race.meta.slug,
+    meetingName: race.meta.meetingName,
+    dateStart: race.meta.dateStart,
+    round: race.meta.round,
+    referenceTeam: cmp.baselineLabel,
+    cornerCount: cmp.cornerCount,
+    straightCount: cmp.straightCount,
+    cornerDistance: Math.round(cmp.cornerDistance),
+    straightDistance: Math.round(cmp.straightDistance),
+    trackDistance: Math.round(cmp.trackDistance),
+    teams,
+  };
+}
+
+function round3(v) {
+  return Math.round(v * 1000) / 1000;
+}
+
+/** The already-published corner/straight rows for a year. Used by
+ *  --skip-corners: the upload replaces the whole artifact, so without carrying
+ *  these forward a fast rebuild would silently delete the section. */
+async function existingCornerStraight(year) {
+  try {
+    const res = await fetch(`https://www.openf1ow.com/api/season-trends/${year}`);
+    if (!res.ok) return [];
+    const prev = await res.json();
+    return Array.isArray(prev?.cornerStraight) ? prev.cornerStraight : [];
+  } catch {
+    return [];
+  }
+}
+
+async function aggregateCornerStraightByRace(races) {
+  const out = [];
+  for (const race of races) {
+    process.stdout.write(`  [corners] ${race.meta.slug.padEnd(20)} `);
+    try {
+      const row = await cornerStraightForRace(race);
+      if (row) {
+        out.push(row);
+        console.log(`${row.teams.length} teams · ${row.cornerCount}c/${row.straightCount}s · ref ${row.referenceTeam}`);
+      } else {
+        console.log("(skipped — no usable qualifying telemetry)");
+      }
+    } catch (e) {
+      console.log(`(failed — ${e.message})`);
+    }
+  }
+  return out;
+}
+
 function localCachePath(endpoint, sk) {
   return join(CACHE_DIR, `${endpoint}_${sk}.json`);
 }
@@ -391,6 +588,7 @@ async function loadRaceData(year, race, round) {
       location: race.location,
       dateStart: race.dateStart,
       round,
+      qualifyingSessionKey: qualiSk || null,
     },
     drivers,
     laps: laps || [],
@@ -453,6 +651,13 @@ async function processYear(year, allRaces) {
     return;
   }
 
+  const cornerStraight = skipCorners
+    ? await existingCornerStraight(year)
+    : await aggregateCornerStraightByRace(racesData);
+  if (skipCorners) {
+    console.log(`  [corners] skipped — carrying over ${cornerStraight.length} previously published races`);
+  }
+
   const trends = {
     generatedAt: new Date().toISOString(),
     year,
@@ -462,8 +667,9 @@ async function processYear(year, allRaces) {
     teammateGap: aggregateTeammateGapTrend(racesData),
     tireDeg: aggregateTireDegByCompound(racesData),
   };
+  if (cornerStraight.length) trends.cornerStraight = cornerStraight;
 
-  console.log(`  built trends: cp=${trends.constructorPace.length} cq=${trends.constructorQualifying.length} tg=${trends.teammateGap.length} td=${trends.tireDeg.length}`);
+  console.log(`  built trends: cp=${trends.constructorPace.length} cq=${trends.constructorQualifying.length} tg=${trends.teammateGap.length} td=${trends.tireDeg.length} cs=${cornerStraight.length}`);
   uploadToR2(year, trends);
 }
 
