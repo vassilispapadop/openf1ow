@@ -1666,43 +1666,43 @@
   <url>
     <loc>https://www.openf1ow.com/recap/2026/zandvoort</loc>
     <lastmod>2026-08-21</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.openf1ow.com/2026/zandvoort/race</loc>
     <lastmod>2026-08-21</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.openf1ow.com/2026/zandvoort/qualifying</loc>
     <lastmod>2026-08-21</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.openf1ow.com/2026/zandvoort/sprint</loc>
     <lastmod>2026-08-21</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://www.openf1ow.com/recap/2026/monza</loc>
     <lastmod>2026-09-04</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.openf1ow.com/2026/monza/race</loc>
     <lastmod>2026-09-04</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.openf1ow.com/2026/monza/qualifying</loc>
     <lastmod>2026-09-04</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
