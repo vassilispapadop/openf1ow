@@ -5,7 +5,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { F, M, C } from "../../lib/styles";
+import { smoothPath, gridYTicks, shortMeetingName } from "../../lib/chartUtils";
 import type { ConstructorQualifyingRace } from "../../lib/seasonUtils";
+import { TEAM_COLORS, TEAM_FALLBACK_COLORS } from "../../lib/constants";
 
 interface Props {
   races: ConstructorQualifyingRace[];
@@ -151,7 +153,7 @@ export default function ConstructorQualifyingEvolution({ races, height = 380 }: 
   const xFor = (round: number) => MARGIN.left + ((round - minRound) / xRange) * innerW;
   const yFor = (v: number) => MARGIN.top + (v / yRange) * innerH;
   const valueOf = (p: Point) => unit === "s" ? p.gapSec : p.gapPct;
-  const teamColor = (team: string, idx: number) => TEAM_COLORS[team] ?? FALLBACK_COLORS[idx % FALLBACK_COLORS.length];
+  const teamColor = (team: string, idx: number) => TEAM_COLORS[team] ?? TEAM_FALLBACK_COLORS[idx % TEAM_FALLBACK_COLORS.length];
 
   const formatValue = (v: number) =>
     unit === "s" ? "+" + v.toFixed(v < 1 ? 3 : 2) : "+" + v.toFixed(2) + "%";
@@ -649,60 +651,8 @@ export default function ConstructorQualifyingEvolution({ races, height = 380 }: 
 }
 
 function labelFor(r: ConstructorQualifyingRace): string {
-  const name = r.meetingName.replace(/\s+(Grand Prix|GP)$/i, "").trim();
-  return name.length > 10 ? name.slice(0, 9) + "…" : name;
+  return shortMeetingName(r.meetingName);
 }
 
-function gridYTicks(yRange: number): number[] {
-  const targetTicks = 5;
-  const rawStep = yRange / targetTicks;
-  const mag = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
-  const norm = rawStep / mag;
-  const niceNorm = norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10;
-  const step = niceNorm * mag;
-  const ticks: number[] = [];
-  for (let g = 0; g <= yRange + step * 0.0001; g += step) ticks.push(+g.toFixed(4));
-  return ticks;
-}
 
-function smoothPath(points: { x: number; y: number }[]): string {
-  if (points.length === 0) return "";
-  if (points.length === 1) return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
-  if (points.length === 2) {
-    return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)} L ${points[1].x.toFixed(1)} ${points[1].y.toFixed(1)}`;
-  }
-  const t = 0.18;
-  let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[i - 1] || points[i];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[i + 2] || p2;
-    const cp1x = p1.x + (p2.x - p0.x) * t;
-    const cp1y = p1.y + (p2.y - p0.y) * t;
-    const cp2x = p2.x - (p3.x - p1.x) * t;
-    const cp2y = p2.y - (p3.y - p1.y) * t;
-    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
-  }
-  return d;
-}
 
-const TEAM_COLORS: Record<string, string> = {
-  "Red Bull Racing": "#1E5BC6",
-  "McLaren": "#FF8000",
-  "Ferrari": "#DC0000",
-  "Mercedes": "#27F4D2",
-  "Aston Martin": "#229971",
-  "Alpine": "#FF87BC",
-  "Williams": "#64C4FF",
-  "RB": "#6692FF",
-  "Racing Bulls": "#6692FF",
-  "Kick Sauber": "#52E252",
-  "Haas F1 Team": "#B6BABD",
-  "AlphaTauri": "#5E8FAA",
-  "Alfa Romeo": "#900000",
-  "Audi": "#E1224B",
-  "Cadillac": "#F8C545",
-};
-
-const FALLBACK_COLORS = ["#a78bfa", "#06b6d4", "#f43f5e", "#84cc16", "#f97316", "#6366f1", "#ec4899"];

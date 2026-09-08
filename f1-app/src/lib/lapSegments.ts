@@ -111,6 +111,16 @@ const BRAKING = 5;
 const MERGE_GAP_M = 130;
 /** Gaps shorter than this aren't a straight — absorb them into the corner. */
 const MIN_STRAIGHT_M = 70;
+/** How far a trace's integrated lap length may sit from the field's before we
+ *  stop trusting its section split. mergeDistance walks a polyline through
+ *  ~3.7 Hz location fixes; laps normally land within ~1% of each other, so a
+ *  trace several percent short has a locally distorted distance axis. The
+ *  lap-fraction normalisation stretches it uniformly, which keeps the total
+ *  honest but puts the section boundaries at the wrong track positions — time
+ *  then shuffles between corners and straights. Seen in the wild: a lap 6.7%
+ *  short reported -9.2 s through the corners and +12.4 s on the straights for
+ *  a car only 3.1 s off the lap. */
+const MAX_LAP_LENGTH_DEVIATION = 0.03;
 
 interface Point {
   dist: number;
@@ -360,8 +370,25 @@ function findCornerZones(
   return merged;
 }
 
+/** Drop traces whose integrated lap length disagrees with the field — their
+ *  section split can't be trusted (see MAX_LAP_LENGTH_DEVIATION). Needs at
+ *  least three traces to have a field to compare against; with two there's no
+ *  way to tell which one is wrong, so both are kept. */
+function dropDistortedTraces(prepared: Prepared[]): Prepared[] {
+  if (prepared.length < 3) return prepared;
+  const lengths = prepared.map(p => p.endDist - p.startDist).sort((a, b) => a - b);
+  const mid = lengths.length >> 1;
+  const median = lengths.length % 2 ? lengths[mid] : (lengths[mid - 1] + lengths[mid]) / 2;
+  if (median <= 0) return prepared;
+  const kept = prepared.filter(p =>
+    Math.abs((p.endDist - p.startDist) - median) / median <= MAX_LAP_LENGTH_DEVIATION);
+  // If the filter would gut the set then the median itself is suspect, and
+  // showing everything beats showing two arbitrary survivors.
+  return kept.length >= Math.max(2, prepared.length - Math.ceil(prepared.length / 3)) ? kept : prepared;
+}
+
 export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | null {
-  const prepared = traces.map(prepare).filter((p): p is Prepared => p != null);
+  const prepared = dropDistortedTraces(traces.map(prepare).filter((p): p is Prepared => p != null));
   if (prepared.length < 2) return null;
 
   // Lap length varies a little between traces because mergeDistance integrates

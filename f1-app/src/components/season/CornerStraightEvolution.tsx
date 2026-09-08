@@ -1,40 +1,47 @@
-// SVG (not canvas): one redraw per resize, free CSS responsiveness, and
-// trivial click-to-isolate on the legend.
+// Corner and straight gap, race by race — the same shape as the constructor
+// pace and qualifying evolution charts, but on one half of the lap at a time.
 //
-// "Top 3 by default" + hover crosshair so 11 overlapping lines stay
-// readable: the top of the field is the visual story, and any race can
-// be inspected to see the full ranking via the tooltip.
+// The one structural difference: these gaps are signed. A team can be *faster*
+// than the weekend's reference car through the corners while losing the lap
+// overall, so the Y axis spans both sides of zero rather than hanging down
+// from the leader. Above the zero line = quicker than the reference through
+// that part of the lap.
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { F, M, C } from "../../lib/styles";
-import { smoothPath, gridYTicks, shortMeetingName } from "../../lib/chartUtils";
 import { TEAM_COLORS, TEAM_FALLBACK_COLORS } from "../../lib/constants";
-import type { ConstructorPaceRace } from "../../lib/seasonUtils";
+import { smoothPath, signedYTicks, shortMeetingName } from "../../lib/chartUtils";
+import type { CornerStraightRace } from "../../lib/seasonUtils";
 
 interface Props {
-  races: ConstructorPaceRace[];
+  races: CornerStraightRace[];
   height?: number;
 }
 
-const MARGIN = { top: 18, right: 18, bottom: 36, left: 56 };
+const MARGIN = { top: 18, right: 18, bottom: 36, left: 62 };
 const TOP_N_DEFAULT = 3;
 
-type Unit = "s" | "%";
+type Mode = "corners" | "straights";
+
+const MODE_COLOR: Record<Mode, string> = { corners: C.warn, straights: C.violet };
+const MODE_LABEL: Record<Mode, string> = { corners: "Corners", straights: "Straights" };
 
 interface Point {
   round: number;
-  gapSec: number;
-  gapPct: number;
+  corner: number;
+  straight: number;
+  driver: string;
+  lapGap: number;
 }
 
-export default function ConstructorPaceEvolution({ races, height = 380 }: Props) {
+export default function CornerStraightEvolution({ races, height = 380 }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [hovered, setHovered] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [showAll, setShowAll] = useState(true);
   const [hoverRound, setHoverRound] = useState<number | null>(null);
-  const [unit, setUnit] = useState<Unit>("s");
+  const [mode, setMode] = useState<Mode>("corners");
 
   useEffect(() => {
     if (!wrapRef.current) return;
@@ -45,90 +52,89 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
     return () => ro.disconnect();
   }, []);
 
-  const { teams, minRound, maxRound, racesByRound, allMaxSec, allMaxPct } = useMemo(() => {
+  const ordered = useMemo(() => [...races].sort((a, b) => a.round - b.round), [races]);
+
+  const { teams, minRound, maxRound, racesByRound } = useMemo(() => {
     const series: Record<string, Point[]> = {};
-    let maxSec = 0;
-    let maxPct = 0;
     let minRound = Infinity;
     let maxRound = -Infinity;
-    const racesByRound: Record<number, ConstructorPaceRace> = {};
-    for (const r of races) {
+    const racesByRound: Record<number, CornerStraightRace> = {};
+    for (const r of ordered) {
       racesByRound[r.round] = r;
       minRound = Math.min(minRound, r.round);
       maxRound = Math.max(maxRound, r.round);
       for (const t of r.teams) {
-        const gapPct = r.fastestTeamMedian > 0 ? (t.gapToFastest / r.fastestTeamMedian) * 100 : 0;
-        (series[t.team] ||= []).push({ round: r.round, gapSec: t.gapToFastest, gapPct });
-        if (t.gapToFastest > maxSec) maxSec = t.gapToFastest;
-        if (gapPct > maxPct) maxPct = gapPct;
+        (series[t.team] ||= []).push({
+          round: r.round,
+          corner: t.cornerGap,
+          straight: t.straightGap,
+          driver: t.driver,
+          lapGap: t.gapToFastest,
+        });
       }
     }
+    // Ordered by season form so the legend and the top-3 default match the
+    // other charts on the page.
     const teams = Object.entries(series)
-      .map(([team, points]) => ({ team, points: points.sort((a, b) => a.round - b.round) }))
-      .sort((a, b) => {
-        const al = a.points[a.points.length - 1]?.gapSec ?? Infinity;
-        const bl = b.points[b.points.length - 1]?.gapSec ?? Infinity;
-        return al - bl;
-      });
-    return {
-      teams,
-      minRound,
-      maxRound,
-      racesByRound,
-      allMaxSec: maxSec || 1,
-      allMaxPct: maxPct || 1,
-    };
-  }, [races]);
+      .map(([team, points]) => {
+        const sorted = points.sort((a, b) => a.round - b.round);
+        const meanLapGap = sorted.reduce((s, p) => s + p.lapGap, 0) / sorted.length;
+        return { team, points: sorted, meanLapGap };
+      })
+      .sort((a, b) => a.meanLapGap - b.meanLapGap);
+    return { teams, minRound, maxRound, racesByRound };
+  }, [ordered]);
 
   const topTeams = useMemo(() => new Set(teams.slice(0, TOP_N_DEFAULT).map(t => t.team)), [teams]);
+  const isFocusedTeam = (team: string) => !hidden.has(team) && (showAll || topTeams.has(team));
 
-  const isFocusedTeam = (team: string) =>
-    !hidden.has(team) && (showAll || topTeams.has(team));
+  const valueOf = (p: Point) => mode === "corners" ? p.corner : p.straight;
 
-  // Y scales to the focused teams' max so the visible story fills the chart.
-  const focusedMaxValue = useMemo(() => {
-    let max = 0;
+  // Scale to whatever is on screen, but always keep zero in frame — it's the
+  // line that says "level with the reference car".
+  const { yMin, yMax } = useMemo(() => {
+    let lo = 0, hi = 0;
+    let any = false;
     for (const t of teams) {
       if (!isFocusedTeam(t.team)) continue;
       for (const p of t.points) {
-        const v = unit === "s" ? p.gapSec : p.gapPct;
-        if (v > max) max = v;
+        const v = mode === "corners" ? p.corner : p.straight;
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+        any = true;
       }
     }
-    if (max === 0) max = unit === "s" ? allMaxSec : allMaxPct;
-    return max;
-  }, [teams, hidden, showAll, unit, allMaxSec, allMaxPct]);
+    if (!any) { lo = -0.5; hi = 0.5; }
+    const pad = Math.max(0.05, (hi - lo) * 0.08);
+    return { yMin: lo - pad, yMax: hi + pad };
+  }, [teams, hidden, showAll, mode]);
 
-  if (width === 0) {
-    return <div ref={wrapRef} style={{ height, fontFamily: F }} />;
+  if (!races.length) {
+    return <div style={{ color: C.textMute, fontSize: 12, padding: 12 }}>No corner/straight data yet.</div>;
   }
+  if (width === 0) return <div ref={wrapRef} style={{ height, fontFamily: F }} />;
 
   const innerW = Math.max(20, width - MARGIN.left - MARGIN.right);
   const innerH = height - MARGIN.top - MARGIN.bottom;
   const xRange = Math.max(1, maxRound - minRound);
-  const yRange = focusedMaxValue * 1.08;
+  const yRange = (yMax - yMin) || 1;
 
   const xFor = (round: number) => MARGIN.left + ((round - minRound) / xRange) * innerW;
-  const yFor = (v: number) => MARGIN.top + (v / yRange) * innerH;
-  const valueOf = (p: Point) => unit === "s" ? p.gapSec : p.gapPct;
+  // Quicker-than-reference at the top, slower hanging below it — the same
+  // orientation as the pace and qualifying charts, where the leader is the
+  // top line. Note this means y grows with the gap, unlike a plain plot.
+  const yFor = (v: number) => MARGIN.top + ((v - yMin) / yRange) * innerH;
   const teamColor = (team: string, idx: number) => TEAM_COLORS[team] ?? TEAM_FALLBACK_COLORS[idx % TEAM_FALLBACK_COLORS.length];
-
-  const formatValue = (v: number) =>
-    unit === "s" ? "+" + v.toFixed(v < 1 ? 3 : 2) : "+" + v.toFixed(2) + "%";
-  const formatTick = (v: number) =>
-    unit === "s" ? "+" + v.toFixed(2) + "s" : "+" + v.toFixed(1) + "%";
+  const fmt = (v: number) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(v === 0 ? 2 : 3);
 
   const handleSvgMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * width;
-    if (x < MARGIN.left - 8 || x > width - MARGIN.right + 8) {
-      setHoverRound(null);
-      return;
-    }
+    if (x < MARGIN.left - 8 || x > width - MARGIN.right + 8) { setHoverRound(null); return; }
     const rNum = minRound + ((x - MARGIN.left) / innerW) * xRange;
-    let best = races[0]?.round ?? null;
+    let best = ordered[0]?.round ?? null;
     let bestD = Infinity;
-    for (const r of races) {
+    for (const r of ordered) {
       const d = Math.abs(r.round - rNum);
       if (d < bestD) { bestD = d; best = r.round; }
     }
@@ -138,35 +144,35 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
   const hoveredRace = hoverRound != null ? racesByRound[hoverRound] : null;
   const tooltipX = hoverRound != null ? xFor(hoverRound) : 0;
   const tooltipOnRight = tooltipX < width / 2;
-  const clipId = "ccp-clip";
+  const clipId = "cse-clip";
+
+  // Ranked for the tooltip by the half of the lap currently on screen.
+  const hoverRanked = hoveredRace
+    ? [...hoveredRace.teams].sort((a, b) =>
+        (mode === "corners" ? a.cornerGap - b.cornerGap : a.straightGap - b.straightGap))
+    : [];
 
   return (
     <div ref={wrapRef} style={{ position: "relative", width: "100%", fontFamily: F }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        alignItems: "center",
-        gap: 6,
-        marginBottom: 8,
-      }}>
-        <div role="tablist" aria-label="Gap unit" style={{
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div role="tablist" aria-label="Lap section" style={{
           display: "inline-flex",
           background: "rgba(255,255,255,0.04)",
           border: "1px solid rgba(255,255,255,0.08)",
           borderRadius: 6,
           padding: 2,
         }}>
-          {(["s", "%"] as Unit[]).map(u => {
-            const active = unit === u;
+          {(["corners", "straights"] as Mode[]).map(m => {
+            const active = mode === m;
             return (
               <button
-                key={u}
+                key={m}
                 role="tab"
                 aria-selected={active}
-                onClick={() => setUnit(u)}
+                onClick={() => setMode(m)}
                 style={{
                   background: active ? "rgba(255,255,255,0.12)" : "transparent",
-                  color: active ? C.text : C.textMute,
+                  color: active ? MODE_COLOR[m] : C.textMute,
                   border: "none",
                   padding: "3px 10px",
                   fontSize: 10,
@@ -176,11 +182,8 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
                   cursor: "pointer",
                   borderRadius: 4,
                   textTransform: "uppercase",
-                  minWidth: 32,
                 }}
-              >
-                {u === "s" ? "Sec" : "%"}
-              </button>
+              >{MODE_LABEL[m]}</button>
             );
           })}
         </div>
@@ -199,9 +202,7 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
             fontFamily: F,
             cursor: "pointer",
           }}
-        >
-          {showAll ? "Top 3 only" : "Show all teams"}
-        </button>
+        >{showAll ? "Top 3 only" : "Show all teams"}</button>
       </div>
 
       <svg
@@ -215,32 +216,20 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
       >
         <defs>
           <clipPath id={clipId}>
-            <rect
-              x={MARGIN.left}
-              y={MARGIN.top - 2}
-              width={innerW}
-              height={innerH + 4}
-            />
+            <rect x={MARGIN.left} y={MARGIN.top - 2} width={innerW} height={innerH + 4} />
           </clipPath>
-          <linearGradient id="ccp-plot-bg" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="cse-plot-bg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="rgba(255,255,255,0.025)" />
             <stop offset="100%" stopColor="rgba(255,255,255,0)" />
           </linearGradient>
         </defs>
 
-        {/* Plot area subtle background */}
-        <rect
-          x={MARGIN.left}
-          y={MARGIN.top}
-          width={innerW}
-          height={innerH}
-          fill="url(#ccp-plot-bg)"
-        />
+        <rect x={MARGIN.left} y={MARGIN.top} width={innerW} height={innerH} fill="url(#cse-plot-bg)" />
 
-        {/* Y gridlines */}
-        {gridYTicks(yRange).map(g => {
+        {signedYTicks(yMin, yMax).map(g => {
           const y = yFor(g);
-          const isZero = g < 1e-6;
+          if (y < MARGIN.top - 1 || y > height - MARGIN.bottom + 1) return null;
+          const isZero = Math.abs(g) < 1e-9;
           return (
             <g key={g}>
               <line
@@ -260,26 +249,28 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
                 textAnchor="end"
                 fontWeight={isZero ? 700 : 400}
               >
-                {isZero ? "leader" : formatTick(g)}
+                {isZero ? "reference" : fmt(g) + "s"}
               </text>
             </g>
           );
         })}
 
-        {/* X axis labels — full meeting name (truncated) every Nth race */}
-        {races.map(r => {
-          const everyN = width < 480 ? Math.ceil(races.length / 5) : Math.ceil(races.length / 10);
+        {ordered.map(r => {
+          const everyN = width < 480 ? Math.ceil(ordered.length / 5) : Math.ceil(ordered.length / 10);
           if ((r.round - minRound) % everyN !== 0 && r.round !== maxRound) return null;
-          const x = xFor(r.round);
-          const label = labelFor(r);
           return (
-            <text key={r.round} x={x} y={height - MARGIN.bottom + 16} fontSize={10} fontFamily={M} fill={C.textMute} textAnchor="middle">
-              {label}
-            </text>
+            <text
+              key={r.round}
+              x={xFor(r.round)}
+              y={height - MARGIN.bottom + 16}
+              fontSize={10}
+              fontFamily={M}
+              fill={C.textMute}
+              textAnchor="middle"
+            >{shortMeetingName(r.meetingName)}</text>
           );
         })}
 
-        {/* Hover crosshair */}
         {hoveredRace && (
           <line
             x1={tooltipX}
@@ -294,14 +285,12 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
         )}
 
         <g clipPath={`url(#${clipId})`}>
-          {/* Background lines (dimmed teams) drawn first so highlights sit on top */}
           {teams.map((t, idx) => {
             if (hidden.has(t.team) || isFocusedTeam(t.team)) return null;
-            const pts = t.points.map(p => ({ x: xFor(p.round), y: yFor(valueOf(p)) }));
             return (
               <path
                 key={t.team + "-bg"}
-                d={smoothPath(pts)}
+                d={smoothPath(t.points.map(p => ({ x: xFor(p.round), y: yFor(valueOf(p)) })))}
                 fill="none"
                 stroke={teamColor(t.team, idx)}
                 strokeWidth={1}
@@ -312,15 +301,13 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
             );
           })}
 
-          {/* Foreground (focused) team lines */}
           {teams.map((t, idx) => {
             if (hidden.has(t.team) || !isFocusedTeam(t.team)) return null;
-            const pts = t.points.map(p => ({ x: xFor(p.round), y: yFor(valueOf(p)) }));
             const isActive = hovered === null || hovered === t.team;
             return (
               <path
                 key={t.team}
-                d={smoothPath(pts)}
+                d={smoothPath(t.points.map(p => ({ x: xFor(p.round), y: yFor(valueOf(p)) })))}
                 fill="none"
                 stroke={teamColor(t.team, idx)}
                 strokeWidth={hovered === t.team ? 3 : 2.25}
@@ -331,27 +318,19 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
             );
           })}
 
-          {/* Race-round dots on focused lines so smoothing doesn't hide data points */}
           {teams.map((t, idx) => {
             if (hidden.has(t.team) || !isFocusedTeam(t.team)) return null;
             const isActive = hovered === null || hovered === t.team;
             return (
               <g key={t.team + "-pts"} opacity={isActive ? 0.85 : 0.25}>
                 {t.points.map(p => (
-                  <circle
-                    key={p.round}
-                    cx={xFor(p.round)}
-                    cy={yFor(valueOf(p))}
-                    r={1.6}
-                    fill={teamColor(t.team, idx)}
-                  />
+                  <circle key={p.round} cx={xFor(p.round)} cy={yFor(valueOf(p))} r={1.6} fill={teamColor(t.team, idx)} />
                 ))}
               </g>
             );
           })}
         </g>
 
-        {/* Endpoint dots for focused teams (outside clip so a bit of the edge can pop) */}
         {teams.map((t, idx) => {
           if (hidden.has(t.team) || !isFocusedTeam(t.team)) return null;
           const last = t.points[t.points.length - 1];
@@ -370,42 +349,39 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
           );
         })}
 
-        {/* Per-team hover dots at the hovered round */}
         {hoveredRace && hoveredRace.teams.map(tp => {
           if (hidden.has(tp.team)) return null;
-          const isFocused = isFocusedTeam(tp.team);
-          const pct = hoveredRace.fastestTeamMedian > 0 ? (tp.gapToFastest / hoveredRace.fastestTeamMedian) * 100 : 0;
-          const v = unit === "s" ? tp.gapToFastest : pct;
+          const focused = isFocusedTeam(tp.team);
+          const v = mode === "corners" ? tp.cornerGap : tp.straightGap;
           return (
             <circle
               key={"hover-" + tp.team}
               cx={tooltipX}
               cy={yFor(v)}
-              r={isFocused ? 3.5 : 2}
+              r={focused ? 3.5 : 2}
               fill={teamColor(tp.team, teams.findIndex(x => x.team === tp.team))}
               stroke="#0a0a14"
               strokeWidth={1}
-              opacity={isFocused ? 1 : 0.5}
+              opacity={focused ? 1 : 0.5}
               pointerEvents="none"
             />
           );
         })}
       </svg>
 
-      {/* Floating tooltip on hover */}
       {hoveredRace && (
         <div style={{
           position: "absolute",
           top: MARGIN.top + 6,
           [tooltipOnRight ? "left" : "right"]: tooltipOnRight
-            ? Math.min(width - 220, tooltipX + 14)
-            : Math.min(width - tooltipX + 14, width - 220),
+            ? Math.min(width - 250, tooltipX + 14)
+            : Math.min(width - tooltipX + 14, width - 250),
           background: "rgba(8,8,16,0.96)",
           border: "1px solid rgba(255,255,255,0.1)",
           borderRadius: 8,
           padding: "10px 12px",
-          minWidth: 200,
-          maxWidth: 240,
+          minWidth: 230,
+          maxWidth: 270,
           fontSize: 11,
           fontFamily: F,
           color: C.text,
@@ -414,52 +390,43 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
           zIndex: 5,
         }}>
           <div style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.1em",
-            color: C.textMute,
-            marginBottom: 6,
-            textTransform: "uppercase",
+            fontSize: 10, fontWeight: 700, letterSpacing: "0.1em",
+            color: C.textMute, marginBottom: 2, textTransform: "uppercase",
           }}>
             Round {hoveredRace.round} · {hoveredRace.meetingName}
           </div>
-          {hoveredRace.teams.map((tp, i) => {
+          <div style={{ fontSize: 10, color: C.textFaint, marginBottom: 6 }}>
+            <span style={{ color: MODE_COLOR[mode], fontWeight: 700 }}>{MODE_LABEL[mode]}</span>
+            {" · "}
+            {mode === "corners"
+              ? `${hoveredRace.cornerCount} sections, ${hoveredRace.cornerDistance.toLocaleString()} m`
+              : `${hoveredRace.straightCount} sections, ${hoveredRace.straightDistance.toLocaleString()} m`}
+          </div>
+          {hoverRanked.map((tp, i) => {
             const idx = teams.findIndex(x => x.team === tp.team);
-            const pct = hoveredRace.fastestTeamMedian > 0
-              ? (tp.gapToFastest / hoveredRace.fastestTeamMedian) * 100
-              : 0;
-            const primary = unit === "s" ? tp.gapToFastest : pct;
+            const v = mode === "corners" ? tp.cornerGap : tp.straightGap;
+            const isRef = tp.team === hoveredRace.referenceTeam;
             return (
               <div key={tp.team} style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "2px 0",
-                opacity: hidden.has(tp.team) ? 0.35 : 1,
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "2px 0", opacity: hidden.has(tp.team) ? 0.35 : 1,
               }}>
-                <span style={{ color: C.textFaint, fontFamily: M, fontSize: 10, width: 16 }}>
-                  {i + 1}
-                </span>
-                <span style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 2,
-                  background: teamColor(tp.team, idx),
-                  flexShrink: 0,
-                }} />
+                <span style={{ color: C.textFaint, fontFamily: M, fontSize: 10, width: 16 }}>{i + 1}</span>
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: teamColor(tp.team, idx), flexShrink: 0 }} />
                 <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {tp.team}
+                  {isRef && <span style={{ color: C.textFaint, fontSize: 9, marginLeft: 5 }}>ref</span>}
                 </span>
-                <span style={{ fontFamily: M, fontVariantNumeric: "tabular-nums", color: tp.gapToFastest === 0 ? "#22c55e" : C.textDim, textAlign: "right" }}>
-                  {tp.gapToFastest === 0 ? "fastest" : formatValue(primary)}
-                </span>
+                <span style={{
+                  fontFamily: M, fontVariantNumeric: "tabular-nums",
+                  color: v < -0.005 ? C.pos : C.textDim, textAlign: "right",
+                }}>{fmt(v)}</span>
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Legend — clickable to toggle visibility */}
       <ul style={{
         display: "grid",
         gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
@@ -471,55 +438,46 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
         {teams.map((t, idx) => {
           const isHidden = hidden.has(t.team);
           const focused = isFocusedTeam(t.team);
-          const lastPoint = t.points[t.points.length - 1];
-          const lastValue = lastPoint ? (unit === "s" ? lastPoint.gapSec : lastPoint.gapPct) : 0;
+          const last = t.points[t.points.length - 1];
+          const lastValue = last ? valueOf(last) : 0;
           return (
             <li key={t.team}>
               <button
                 onMouseEnter={() => setHovered(t.team)}
                 onMouseLeave={() => setHovered(null)}
-                onClick={() => {
-                  setHidden(prev => {
-                    const next = new Set(prev);
-                    if (next.has(t.team)) next.delete(t.team); else next.add(t.team);
-                    return next;
-                  });
-                }}
+                onClick={() => setHidden(prev => {
+                  const next = new Set(prev);
+                  if (next.has(t.team)) next.delete(t.team); else next.add(t.team);
+                  return next;
+                })}
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 8,
-                  padding: "5px 8px",
-                  background: "transparent",
-                  border: "1px solid transparent",
-                  borderRadius: 6,
-                  cursor: "pointer",
+                  gap: 7,
                   width: "100%",
-                  textAlign: "left",
-                  color: isHidden ? C.textFaint : (focused ? C.text : C.textDim),
+                  background: "transparent",
+                  border: "none",
+                  padding: "3px 2px",
+                  cursor: "pointer",
                   fontFamily: F,
-                  fontSize: 12,
-                  fontWeight: focused ? 600 : 400,
-                  opacity: isHidden ? 0.5 : 1,
+                  fontSize: 11.5,
+                  color: isHidden ? C.textFaint : C.text,
+                  opacity: isHidden ? 0.45 : focused ? 1 : 0.55,
+                  textAlign: "left",
                 }}
               >
-                <span style={{ color: C.textFaint, fontFamily: M, fontSize: 10, minWidth: 16 }}>
-                  {idx + 1}
-                </span>
                 <span style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 2,
+                  width: 10, height: 10, borderRadius: 3, flexShrink: 0,
                   background: teamColor(t.team, idx),
-                  opacity: isHidden ? 0.25 : (focused ? 1 : 0.45),
-                  flexShrink: 0,
+                  outline: isHidden ? "1px solid rgba(255,255,255,0.2)" : "none",
                 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {t.team}
                 </span>
-                <span style={{ marginLeft: "auto", color: C.textMute, fontFamily: M, fontSize: 11 }}>
-                  {formatValue(lastValue)}
-                </span>
+                <span style={{
+                  fontFamily: M, fontSize: 10.5, fontVariantNumeric: "tabular-nums",
+                  color: lastValue < -0.005 ? C.pos : C.textMute,
+                }}>{fmt(lastValue)}</span>
               </button>
             </li>
           );
@@ -527,18 +485,13 @@ export default function ConstructorPaceEvolution({ races, height = 380 }: Props)
       </ul>
 
       <p style={{ fontSize: 11, color: C.textMute, margin: "10px 4px 0", lineHeight: 1.5 }}>
-        Each line = a constructor's median lap-time gap to the fastest car of that race.
-        Hover the chart for the full ranking at any round.
+        Each line is a team's gap through the{" "}
+        <span style={{ color: MODE_COLOR[mode], fontWeight: 600 }}>{MODE_LABEL[mode].toLowerCase()}</span>{" "}
+        of its fastest qualifying lap, against the fastest team of that weekend. Above the green line means
+        quicker than the reference car through that part of the lap — which a team can manage while still
+        losing the lap overall, since the corner and straight gaps add up to the total. The reference is
+        re-picked every race, so this tracks relative form rather than absolute pace.
       </p>
     </div>
   );
 }
-
-function labelFor(r: ConstructorPaceRace): string {
-  return shortMeetingName(r.meetingName);
-}
-
-
-// Catmull-Rom-derived cubic Bezier with low tension so the curve hugs the data
-// (small visual softening, not enough to invent shape).
-

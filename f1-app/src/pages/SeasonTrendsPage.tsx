@@ -8,6 +8,7 @@ import ConstructorQualifyingEvolution from "../components/season/ConstructorQual
 import TeammateGapEvolution from "../components/season/TeammateGapEvolution";
 import TireDegByCompound from "../components/season/TireDegByCompound";
 import CornerStraightBalance from "../components/season/CornerStraightBalance";
+import CornerStraightEvolution from "../components/season/CornerStraightEvolution";
 import ShareButton from "../components/ShareButton";
 import Spinner from "../components/Spinner";
 
@@ -20,6 +21,7 @@ export default function SeasonTrendsPage() {
   const teammateGapRef = useRef<HTMLElement>(null);
   const tireDegRef = useRef<HTMLElement>(null);
   const cornerStraightRef = useRef<HTMLElement>(null);
+  const cornerEvolutionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,6 +133,25 @@ export default function SeasonTrendsPage() {
         </header>
         <TeammateGapEvolution races={trends.teammateGap} />
       </section>
+
+      {trends.cornerStraight && trends.cornerStraight.length > 0 && (
+        <section ref={cornerEvolutionRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
+          <header style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0, letterSpacing: "-0.01em" }}>
+                Corner &amp; straight evolution
+              </h2>
+              <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0" }}>
+                The same chart shape as constructor qualifying, but on one half of the lap at a time.
+                Switch between corners and straights to see which way a team's development went — and
+                note the axis is signed, so a line can sit above the reference.
+              </p>
+            </div>
+            <ShareButton domRef={cornerEvolutionRef} meta={`${year} corner & straight evolution`} filename={`openf1ow-corner-straight-evolution-${year}`} />
+          </header>
+          <CornerStraightEvolution races={trends.cornerStraight} />
+        </section>
+      )}
 
       {trends.cornerStraight && trends.cornerStraight.length > 0 && (
         <section ref={cornerStraightRef} style={{ ...sty.card, padding: "clamp(16px, 3vw, 24px)", marginTop: 12 }}>
