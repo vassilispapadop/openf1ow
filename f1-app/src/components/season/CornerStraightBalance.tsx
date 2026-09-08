@@ -19,6 +19,11 @@ interface Props {
   races: CornerStraightRace[];
 }
 
+/** Seconds, or the gap as a share of the reference car's time through that
+ *  part of the lap — the cross-circuit read, since corner time varies far more
+ *  between tracks than straight time does. */
+type Unit = "s" | "%";
+
 interface Row {
   team: string;
   cornerGap: number;      // median across races
@@ -26,6 +31,13 @@ interface Row {
   totalGap: number;
   races: number;
   bestAt: string | null;  // weekend where the team's corner advantage peaked
+}
+
+/** The reference car's own corner and straight times for a race. */
+function refTimesFor(r: CornerStraightRace): { corner: number; straight: number } {
+  const ref = r.teams.find(t => t.team === r.referenceTeam)
+    ?? r.teams.reduce((m, t) => (t.gapToFastest < m.gapToFastest ? t : m), r.teams[0]);
+  return { corner: ref?.cornerTime ?? 0, straight: ref?.straightTime ?? 0 };
 }
 
 function median(xs: number[]): number {
@@ -38,8 +50,14 @@ function median(xs: number[]): number {
 const sd = (v: number, dp = 2) =>
   (Math.abs(v) < 5e-3 ? "" : v > 0 ? "+" : "−") + Math.abs(v).toFixed(dp);
 
+/** Gap as a share of the reference car's time over the same stretch. */
+function pct(gap: number, base: number): number {
+  return base > 0 ? (gap / base) * 100 : 0;
+}
+
 export default function CornerStraightBalance({ races }: Props) {
   const [round, setRound] = useState<number | "season">("season");
+  const [unit, setUnit] = useState<Unit>("s");
 
   const ordered = useMemo(() => [...races].sort((a, b) => a.round - b.round), [races]);
 
@@ -47,11 +65,13 @@ export default function CornerStraightBalance({ races }: Props) {
     if (round !== "season") {
       const r = ordered.find(x => x.round === round);
       if (!r) return [];
+      const ref = refTimesFor(r);
+      const lapBase = ref.corner + ref.straight;
       return r.teams.map(t => ({
         team: t.team,
-        cornerGap: t.cornerGap,
-        straightGap: t.straightGap,
-        totalGap: t.gapToFastest,
+        cornerGap: unit === "s" ? t.cornerGap : pct(t.cornerGap, ref.corner),
+        straightGap: unit === "s" ? t.straightGap : pct(t.straightGap, ref.straight),
+        totalGap: unit === "s" ? t.gapToFastest : pct(t.gapToFastest, lapBase),
         races: 1,
         bestAt: null,
       })).sort((a, b) => a.totalGap - b.totalGap);
@@ -61,11 +81,15 @@ export default function CornerStraightBalance({ races }: Props) {
     // yellow, a wet Q3) doesn't decide a team's character.
     const byTeam: Record<string, { corner: number[]; straight: number[]; total: number[]; best: { gap: number; at: string } | null }> = {};
     for (const r of ordered) {
+      const ref = refTimesFor(r);
+      const lapBase = ref.corner + ref.straight;
       for (const t of r.teams) {
         const e = (byTeam[t.team] ||= { corner: [], straight: [], total: [], best: null });
-        e.corner.push(t.cornerGap);
-        e.straight.push(t.straightGap);
-        e.total.push(t.gapToFastest);
+        // Percentages are taken per race and then medianed, not the other way
+        // round — each weekend gets normalised against its own circuit first.
+        e.corner.push(unit === "s" ? t.cornerGap : pct(t.cornerGap, ref.corner));
+        e.straight.push(unit === "s" ? t.straightGap : pct(t.straightGap, ref.straight));
+        e.total.push(unit === "s" ? t.gapToFastest : pct(t.gapToFastest, lapBase));
         if (!e.best || t.cornerGap < e.best.gap) e.best = { gap: t.cornerGap, at: r.meetingName };
       }
     }
@@ -79,13 +103,13 @@ export default function CornerStraightBalance({ races }: Props) {
         bestAt: e.best?.at ?? null,
       }))
       .sort((a, b) => a.totalGap - b.totalGap);
-  }, [ordered, round]);
+  }, [ordered, round, unit]);
 
   const selected = round === "season" ? null : ordered.find(r => r.round === round) ?? null;
 
   const scale = useMemo(
-    () => Math.max(0.15, ...rows.flatMap(r => [Math.abs(r.cornerGap), Math.abs(r.straightGap)])),
-    [rows],
+    () => Math.max(unit === "s" ? 0.15 : 0.3, ...rows.flatMap(r => [Math.abs(r.cornerGap), Math.abs(r.straightGap)])),
+    [rows, unit],
   );
 
   if (!races.length || !rows.length) {
@@ -93,6 +117,9 @@ export default function CornerStraightBalance({ races }: Props) {
   }
 
   const colorOf = (team: string, i: number) => TEAM_COLORS[team] ?? TEAM_FALLBACK_COLORS[i % TEAM_FALLBACK_COLORS.length];
+
+  const suffix = unit === "s" ? "s" : "%";
+  const val = (v: number, dp = 2) => { const t = sd(v, dp); return t ? t + suffix : "—"; };
 
   const bar = (v: number, color: string) => {
     const pct = Math.min(100, (Math.abs(v) / scale) * 100);
@@ -111,8 +138,39 @@ export default function CornerStraightBalance({ races }: Props) {
 
   return (
     <div style={{ fontFamily: F }}>
-      {/* Round picker — the season median, or any single weekend */}
+      {/* Round picker — the season median, or any single weekend — plus the unit */}
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 14, alignItems: "center" }}>
+        <div role="tablist" aria-label="Gap unit" style={{
+          display: "inline-flex",
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid " + C.border,
+          borderRadius: 6,
+          padding: 2,
+          marginRight: 4,
+        }}>
+          {(["s", "%"] as Unit[]).map(u => (
+            <button
+              key={u}
+              role="tab"
+              aria-selected={unit === u}
+              onClick={() => setUnit(u)}
+              style={{
+                background: unit === u ? "rgba(255,255,255,0.12)" : "transparent",
+                color: unit === u ? C.text : C.textMute,
+                border: "none",
+                padding: "3px 10px",
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                fontFamily: F,
+                cursor: "pointer",
+                borderRadius: 4,
+                minWidth: 32,
+              }}
+            >{u === "s" ? "Sec" : "%"}</button>
+          ))}
+        </div>
         <button
           onClick={() => setRound("season")}
           style={chip(round === "season")}
@@ -179,14 +237,14 @@ export default function CornerStraightBalance({ races }: Props) {
 
             <div style={{ display: "grid", gap: 5 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ ...mono, width: 52, textAlign: "right", color: gapColor(r.cornerGap) }}>
-                  {sd(r.cornerGap) || "—"}
+                <span style={{ ...mono, width: 58, textAlign: "right", color: gapColor(r.cornerGap) }}>
+                  {val(r.cornerGap)}
                 </span>
                 <span style={{ flex: 1 }}>{bar(r.cornerGap, C.warn)}</span>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ ...mono, width: 52, textAlign: "right", color: gapColor(r.straightGap) }}>
-                  {sd(r.straightGap) || "—"}
+                <span style={{ ...mono, width: 58, textAlign: "right", color: gapColor(r.straightGap) }}>
+                  {val(r.straightGap)}
                 </span>
                 <span style={{ flex: 1 }}>{bar(r.straightGap, C.violet)}</span>
               </div>
@@ -194,7 +252,7 @@ export default function CornerStraightBalance({ races }: Props) {
 
             <div style={{ textAlign: "right" }}>
               <div style={{ ...mono, fontSize: 13, fontWeight: 700, color: gapColor(r.totalGap) }}>
-                {sd(r.totalGap, 3) || "0.000"}
+                {sd(r.totalGap, unit === "s" ? 3 : 2) || (unit === "s" ? "0.000" : "0.00")}{suffix}
               </div>
               <div style={{ fontSize: 9.5, color: C.textFaint }}>lap gap</div>
             </div>
@@ -208,7 +266,9 @@ export default function CornerStraightBalance({ races }: Props) {
         team's lap-time deficit. A team can read negative through the corners and still lose the lap —
         that's a car trading downforce for straight-line speed, or the reverse. Section boundaries adapt
         to the whole grid (earliest braking to the point every car is back on power), so the corner share
-        of a lap runs wider here than in a two-car comparison.
+        of a lap runs wider here than in a two-car comparison. Switch to <strong>%</strong> to read each gap
+        as a share of the reference car's time over that stretch, which is the fairer comparison across
+        circuits — corner time swings far more track to track than straight time does.
       </p>
     </div>
   );

@@ -22,6 +22,11 @@ const MARGIN = { top: 18, right: 18, bottom: 36, left: 62 };
 const TOP_N_DEFAULT = 3;
 
 type Mode = "corners" | "straights";
+/** Seconds, or the gap as a share of the reference car's time through that
+ *  part of the lap. Percent is the more honest cross-circuit read here:
+ *  Monaco's corners take ~44 s and Monza's ~16 s, so a tenth means very
+ *  different things at the two. */
+type Unit = "s" | "%";
 
 const MODE_COLOR: Record<Mode, string> = { corners: C.warn, straights: C.violet };
 const MODE_LABEL: Record<Mode, string> = { corners: "Corners", straights: "Straights" };
@@ -30,6 +35,8 @@ interface Point {
   round: number;
   corner: number;
   straight: number;
+  cornerPct: number;
+  straightPct: number;
   driver: string;
   lapGap: number;
 }
@@ -42,6 +49,7 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
   const [showAll, setShowAll] = useState(true);
   const [hoverRound, setHoverRound] = useState<number | null>(null);
   const [mode, setMode] = useState<Mode>("corners");
+  const [unit, setUnit] = useState<Unit>("s");
 
   useEffect(() => {
     if (!wrapRef.current) return;
@@ -63,11 +71,16 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
       racesByRound[r.round] = r;
       minRound = Math.min(minRound, r.round);
       maxRound = Math.max(maxRound, r.round);
+      // The reference car's own corner and straight times are what the
+      // percentages are a share of.
+      const ref = refTimesFor(r);
       for (const t of r.teams) {
         (series[t.team] ||= []).push({
           round: r.round,
           corner: t.cornerGap,
           straight: t.straightGap,
+          cornerPct: ref.corner > 0 ? (t.cornerGap / ref.corner) * 100 : 0,
+          straightPct: ref.straight > 0 ? (t.straightGap / ref.straight) * 100 : 0,
           driver: t.driver,
           lapGap: t.gapToFastest,
         });
@@ -88,7 +101,10 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
   const topTeams = useMemo(() => new Set(teams.slice(0, TOP_N_DEFAULT).map(t => t.team)), [teams]);
   const isFocusedTeam = (team: string) => !hidden.has(team) && (showAll || topTeams.has(team));
 
-  const valueOf = (p: Point) => mode === "corners" ? p.corner : p.straight;
+  const valueOf = (p: Point) =>
+    unit === "s"
+      ? (mode === "corners" ? p.corner : p.straight)
+      : (mode === "corners" ? p.cornerPct : p.straightPct);
 
   // Scale to whatever is on screen, but always keep zero in frame — it's the
   // line that says "level with the reference car".
@@ -98,16 +114,16 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
     for (const t of teams) {
       if (!isFocusedTeam(t.team)) continue;
       for (const p of t.points) {
-        const v = mode === "corners" ? p.corner : p.straight;
+        const v = valueOf(p);
         if (v < lo) lo = v;
         if (v > hi) hi = v;
         any = true;
       }
     }
-    if (!any) { lo = -0.5; hi = 0.5; }
-    const pad = Math.max(0.05, (hi - lo) * 0.08);
+    if (!any) { lo = unit === "s" ? -0.5 : -1; hi = unit === "s" ? 0.5 : 1; }
+    const pad = Math.max(unit === "s" ? 0.05 : 0.1, (hi - lo) * 0.08);
     return { yMin: lo - pad, yMax: hi + pad };
-  }, [teams, hidden, showAll, mode]);
+  }, [teams, hidden, showAll, mode, unit]);
 
   if (!races.length) {
     return <div style={{ color: C.textMute, fontSize: 12, padding: 12 }}>No corner/straight data yet.</div>;
@@ -125,7 +141,12 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
   // top line. Note this means y grows with the gap, unlike a plain plot.
   const yFor = (v: number) => MARGIN.top + ((v - yMin) / yRange) * innerH;
   const teamColor = (team: string, idx: number) => TEAM_COLORS[team] ?? TEAM_FALLBACK_COLORS[idx % TEAM_FALLBACK_COLORS.length];
-  const fmt = (v: number) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(v === 0 ? 2 : 3);
+  const sign = (v: number) => v > 0 ? "+" : v < 0 ? "−" : "";
+  const fmt = (v: number) =>
+    unit === "s"
+      ? sign(v) + Math.abs(v).toFixed(v === 0 ? 2 : 3)
+      : sign(v) + Math.abs(v).toFixed(2) + "%";
+  const axisLabel = (v: number) => unit === "s" ? fmt(v) + "s" : fmt(v);
 
   const handleSvgMove = (e: React.MouseEvent<SVGSVGElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -146,6 +167,15 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
   const tooltipOnRight = tooltipX < width / 2;
   const clipId = "cse-clip";
 
+  // Values for the hovered round, in whichever unit is on screen.
+  const hoverRef = hoveredRace ? refTimesFor(hoveredRace) : { corner: 0, straight: 0 };
+  const hoverValue = (tp: CornerStraightRace["teams"][number]) => {
+    const gap = mode === "corners" ? tp.cornerGap : tp.straightGap;
+    if (unit === "s") return gap;
+    const base = mode === "corners" ? hoverRef.corner : hoverRef.straight;
+    return base > 0 ? (gap / base) * 100 : 0;
+  };
+
   // Ranked for the tooltip by the half of the lap currently on screen.
   const hoverRanked = hoveredRace
     ? [...hoveredRace.teams].sort((a, b) =>
@@ -155,6 +185,39 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
   return (
     <div ref={wrapRef} style={{ position: "relative", width: "100%", fontFamily: F }}>
       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 6, marginBottom: 8 }}>
+        <div role="tablist" aria-label="Gap unit" style={{
+          display: "inline-flex",
+          background: "rgba(255,255,255,0.04)",
+          border: "1px solid rgba(255,255,255,0.08)",
+          borderRadius: 6,
+          padding: 2,
+        }}>
+          {(["s", "%"] as Unit[]).map(u => {
+            const active = unit === u;
+            return (
+              <button
+                key={u}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setUnit(u)}
+                style={{
+                  background: active ? "rgba(255,255,255,0.12)" : "transparent",
+                  color: active ? C.text : C.textMute,
+                  border: "none",
+                  padding: "3px 10px",
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  fontFamily: F,
+                  cursor: "pointer",
+                  borderRadius: 4,
+                  textTransform: "uppercase",
+                  minWidth: 32,
+                }}
+              >{u === "s" ? "Sec" : "%"}</button>
+            );
+          })}
+        </div>
         <div role="tablist" aria-label="Lap section" style={{
           display: "inline-flex",
           background: "rgba(255,255,255,0.04)",
@@ -249,7 +312,7 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
                 textAnchor="end"
                 fontWeight={isZero ? 700 : 400}
               >
-                {isZero ? "reference" : fmt(g) + "s"}
+                {isZero ? "reference" : axisLabel(g)}
               </text>
             </g>
           );
@@ -352,7 +415,7 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
         {hoveredRace && hoveredRace.teams.map(tp => {
           if (hidden.has(tp.team)) return null;
           const focused = isFocusedTeam(tp.team);
-          const v = mode === "corners" ? tp.cornerGap : tp.straightGap;
+          const v = hoverValue(tp);
           return (
             <circle
               key={"hover-" + tp.team}
@@ -404,7 +467,7 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
           </div>
           {hoverRanked.map((tp, i) => {
             const idx = teams.findIndex(x => x.team === tp.team);
-            const v = mode === "corners" ? tp.cornerGap : tp.straightGap;
+            const v = hoverValue(tp);
             const isRef = tp.team === hoveredRace.referenceTeam;
             return (
               <div key={tp.team} style={{
@@ -490,8 +553,19 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
         of its fastest qualifying lap, against the fastest team of that weekend. Above the green line means
         quicker than the reference car through that part of the lap — which a team can manage while still
         losing the lap overall, since the corner and straight gaps add up to the total. The reference is
-        re-picked every race, so this tracks relative form rather than absolute pace.
+        re-picked every race, so this tracks relative form rather than absolute pace.{" "}
+        <strong>%</strong> shows the gap as a share of the reference car's time through that part of the lap —
+        worth switching to when comparing circuits, since Monaco's corners take about {"\u2248"}44 s and Monza's
+        about 16 s, so the same tenth means very different things.
       </p>
     </div>
   );
+}
+
+/** The reference car's own corner and straight times for a race — the base the
+ *  percentage gaps are a share of. */
+function refTimesFor(r: CornerStraightRace): { corner: number; straight: number } {
+  const ref = r.teams.find(t => t.team === r.referenceTeam)
+    ?? r.teams.reduce((m, t) => (t.gapToFastest < m.gapToFastest ? t : m), r.teams[0]);
+  return { corner: ref?.cornerTime ?? 0, straight: ref?.straightTime ?? 0 };
 }
