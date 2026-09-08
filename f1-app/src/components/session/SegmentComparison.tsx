@@ -10,6 +10,7 @@ import { useMemo } from "react";
 import { C, F, sty } from "../../lib/styles";
 import { rowBg } from "../../lib/format";
 import { compareLapSegments, type SegmentTrace, type SegmentTotals } from "../../lib/lapSegments";
+import SectionMap from "./SectionMap";
 
 interface Props {
   traces: SegmentTrace[];
@@ -99,7 +100,20 @@ export default function SegmentComparison({ traces }: Props) {
         {cmp.straightCount} straights ({Math.round(cmp.straightDistance).toLocaleString()} m)
         {" · "}
         reference lap <span style={{ color: C.text, fontWeight: 600 }}>{baselineLabel}</span>
+        {!cmp.fromGeometry && (
+          <span style={{ color: C.warn }}>
+            {" · "}no position data — sections read off braking and throttle, which misses flat-out corners
+          </span>
+        )}
       </div>
+
+      {/* The classification drawn on the circuit, so it can be checked against
+          a track map rather than taken on trust. */}
+      {cmp.path.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <SectionMap path={cmp.path} segments={segments} />
+        </div>
+      )}
 
       {/* Attribution: how much of each driver's gap came from corners vs straights */}
       <div style={{
@@ -218,13 +232,16 @@ export default function SegmentComparison({ traces }: Props) {
       </div>
 
       <p style={{ fontSize: 11, color: C.textMute, margin: "12px 4px 0", lineHeight: 1.5 }}>
-        A <strong style={{ color: KIND_COLOR.corner }}>corner</strong> runs from the braking point to the point
-        the car is back on full throttle — apexes closer than 130 m, so chicanes and esses, count as one section —
-        and everything between them is a <strong style={{ color: KIND_COLOR.straight }}>straight</strong>. Every
-        lap is cut at the same track positions and timed over its own start-to-line window, so the section times
-        add up to the lap time and the corner and straight deltas add up to the lap-time gap exactly. Turn numbers
-        are counted from the telemetry, not the official circuit map. Car data samples at ~4 Hz, so an individual
-        section gap carries around a tenth of noise even though the totals don't.
+        Sections come from the shape of the track, not from the driving: a{" "}
+        <strong style={{ color: KIND_COLOR.corner }}>corner</strong> is where the racing line's radius drops below
+        250 m — turns closer than 60 m apart, so chicanes and esses, count as one section — and everything else is
+        a <strong style={{ color: KIND_COLOR.straight }}>straight</strong>, braking and acceleration zones
+        included. That means a corner taken flat still counts as a corner. Every lap is cut at the same track
+        positions and timed over its own start-to-line window, so the section times add up to the lap time and the
+        corner and straight deltas add up to the lap-time gap exactly. Turn numbers are counted from the
+        telemetry and won't always match the official circuit numbering, which splits some flowing complexes into
+        several numbered turns. Car data samples at ~4 Hz, so an individual section gap carries around a tenth of
+        noise even though the totals don't.
       </p>
     </div>
   );

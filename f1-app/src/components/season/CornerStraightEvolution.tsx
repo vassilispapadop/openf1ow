@@ -548,7 +548,8 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
       </ul>
 
       <p style={{ fontSize: 11, color: C.textMute, margin: "10px 4px 0", lineHeight: 1.5 }}>
-        Each line is a team's gap through the{" "}
+        Sections come from the circuit's geometry — a corner is where the racing line's radius drops below
+        250 m, so a corner taken flat still counts as one. Each line is a team's gap through the{" "}
         <span style={{ color: MODE_COLOR[mode], fontWeight: 600 }}>{MODE_LABEL[mode].toLowerCase()}</span>{" "}
         of its fastest qualifying lap, against the fastest team of that weekend. Above the green line means
         quicker than the reference car through that part of the lap — which a team can manage while still

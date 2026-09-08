@@ -264,11 +264,12 @@ export default function CornerStraightBalance({ races }: Props) {
         Built from qualifying telemetry: each team's fastest clean lap is cut into corner and straight
         sections at the same track positions for the whole field, so the two gaps sum exactly to the
         team's lap-time deficit. A team can read negative through the corners and still lose the lap —
-        that's a car trading downforce for straight-line speed, or the reverse. Section boundaries adapt
-        to the whole grid (earliest braking to the point every car is back on power), so the corner share
-        of a lap runs wider here than in a two-car comparison. Switch to <strong>%</strong> to read each gap
-        as a share of the reference car's time over that stretch, which is the fairer comparison across
-        circuits — corner time swings far more track to track than straight time does.
+        that's a car trading downforce for straight-line speed, or the reverse. Sections come from the
+        circuit's geometry (a corner is where the racing line's radius drops below 250 m), so a corner
+        taken flat still counts as one, and braking and acceleration zones count as straight. Switch to{" "}
+        <strong>%</strong> to read each gap as a share of the reference car's time over that stretch, which
+        is the fairer comparison across circuits — corner time swings far more track to track than
+        straight time does.
       </p>
     </div>
   );

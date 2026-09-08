@@ -20,11 +20,27 @@
 //   3. Build one shared reference profile — corner boundaries have to fall at
 //      identical track positions for every trace or the times aren't
 //      comparable.
-//   4. Find apexes as local minima in that profile, then expand each out to
-//      the braking point behind it and the back-on-power point ahead of it:
-//      the phase where a driver can actually gain or lose.
-//   5. Merge apexes that sit close together (chicanes, esses) into one section
-//      and call everything left over a straight.
+//   4. Classify each point of the lap from the track's own GEOMETRY: corner
+//      where the racing line's radius drops below CORNER_RADIUS_M, straight
+//      where it doesn't. Curvature comes from the (x, y) fixes, so it says
+//      what the circuit does rather than what a driver did on it — Copse and
+//      Maggotts/Becketts are corners whether or not anyone lifted.
+//   5. Merge curvature runs that sit close together (chicanes, esses) into one
+//      section and call everything left over a straight.
+//
+// The geometric definition replaced an earlier one that ran each corner from
+// its braking point to the point the car was back at full throttle. That read
+// naturally but had two failure modes this one doesn't: flat-out corners were
+// classified as straights (Silverstone came out 27% corner against a true ~45%),
+// and because the brake/throttle envelope was taken across the whole comparison
+// set, the same circuit gave a different answer for two cars than for eleven.
+// Geometry is a property of the track, so the split is now stable and can be
+// checked against a circuit map.
+//
+// Calibration: a 250 m radius threshold puts (100 - corner%) within 3.8
+// percentage points of published full-throttle shares across the 2026 calendar
+// — exact at Monza (80%), Spielberg (72%) and Budapest (51%). Circuits with
+// fast corners taken flat sit above that line, which is the point.
 
 interface Sample {
   date: string;
@@ -62,6 +78,10 @@ export interface TrackSegment {
   startDist: number;   // metres from the line
   endDist: number;
   length: number;
+  /** Index range into SegmentComparison.path, so the section can be drawn on
+   *  the track map. */
+  startIdx: number;
+  endIdx: number;
   timings: SegmentTiming[];   // same order as the input traces
 }
 
@@ -80,6 +100,13 @@ export interface SegmentTotals {
 
 export interface SegmentComparison {
   segments: TrackSegment[];
+  /** The reference racing line, one point per grid step, for drawing the
+   *  circuit. Empty when the laps had no usable position fixes. */
+  path: { x: number; y: number }[];
+  /** False when the sections were read off braking and throttle because no
+   *  position fixes were available — the split is then driving-dependent and
+   *  misses corners taken flat. */
+  fromGeometry: boolean;
   totals: SegmentTotals[];
   baselineLabel: string;
   cornerCount: number;
@@ -107,10 +134,28 @@ const ZONE_FRAC = 0.5;
 const FULL_THROTTLE = 95;
 /** Brake % that counts as "on the brakes" — the corner-entry boundary. */
 const BRAKING = 5;
-/** Corner zones closer than this are one section (chicanes, esses). */
-const MERGE_GAP_M = 130;
+/** Turn radius at or below which the track counts as cornering. See the
+ *  calibration note at the top of the file. */
+const CORNER_RADIUS_M = 250;
+/** Baseline either side of a point when measuring heading change. Long enough
+ *  to ride over position-fix jitter, short enough to resolve a chicane. */
+const CURVATURE_WINDOW_M = 20;
+/** A corner has to be at least this long — shorter runs are fix noise. */
+const MIN_CORNER_M = 25;
+/** Corner zones closer than this are one section (chicanes, esses). Tuned
+ *  against published full-throttle shares: 60 m gives 3.3 pp mean error across
+ *  the 2026 calendar, against 4.0 at 90 m and 4.8 at 130 m — merge harder and
+ *  the short straights between chicane elements get eaten by the corners. */
+const MERGE_GAP_M = 60;
 /** Gaps shorter than this aren't a straight — absorb them into the corner. */
 const MIN_STRAIGHT_M = 70;
+/** Position fixes are decimetres — mirrors LOC_TO_METERS in lib/telemetry.ts. */
+const LOC_TO_METERS = 10;
+/** How far either side of the predicted position to look when matching a
+ *  sample to the reference line. Kept tight so parallel stretches of track
+ *  can't capture a sample. */
+const LINE_SEARCH_BACK = 4;
+const LINE_SEARCH_AHEAD = 8;
 /** How far a trace's integrated lap length may sit from the field's before we
  *  stop trusting its section split. mergeDistance walks a polyline through
  *  ~3.7 Hz location fixes; laps normally land within ~1% of each other, so a
@@ -128,6 +173,8 @@ interface Point {
   speed: number;
   throttle: number;
   brake: number;
+  x: number;
+  y: number;
 }
 
 interface Prepared {
@@ -143,6 +190,8 @@ interface Resampled {
   speed: number[];
   throttle: number[];
   brake: number[];
+  x: number[];
+  y: number[];
 }
 
 /** Where a lap closes on itself: the point past the 70% mark that comes back
@@ -217,6 +266,8 @@ function prepare(trace: SegmentTrace): Prepared | null {
       speed: p.speed ?? 0,
       throttle: p.throttle ?? 0,
       brake: p.brake ?? 0,
+      x: p.x ?? 0,
+      y: p.y ?? 0,
     });
   }
   if (pts.length < 10) return null;
@@ -258,6 +309,8 @@ function resample(p: Prepared, fractions: number[]): Resampled {
   const speed: number[] = [];
   const throttle: number[] = [];
   const brake: number[] = [];
+  const x: number[] = [];
+  const y: number[] = [];
   for (const u of fractions) {
     const d = p.startDist + u * span;
     let lo: number, frac: number;
@@ -277,6 +330,8 @@ function resample(p: Prepared, fractions: number[]): Resampled {
     const a = p.pts[lo], b = p.pts[Math.min(lo + 1, p.pts.length - 1)];
     elapsed.push(a.elapsed + frac * (b.elapsed - a.elapsed) - base);
     speed.push(a.speed + frac * (b.speed - a.speed));
+    x.push(a.x + frac * (b.x - a.x));
+    y.push(a.y + frac * (b.y - a.y));
     // Throttle and brake only drive boundary detection, where a step reads
     // truer than a ramp — take the sample we're sitting on.
     throttle.push(a.throttle);
@@ -285,17 +340,146 @@ function resample(p: Prepared, fractions: number[]): Resampled {
   // The axis is anchored on the lap's own duration, so pin the final elapsed
   // value rather than letting interpolation drift off it.
   elapsed[elapsed.length - 1] = p.lapTime;
-  return { elapsed, speed, throttle, brake };
+  return { elapsed, speed, throttle, brake, x, y };
+}
+
+/** A reference racing line: position plus cumulative arc length, in metres. */
+interface RefLine { x: number[]; y: number[]; s: number[]; length: number }
+
+/** Build the reference line from a prepared trace's own position fixes. */
+function buildRefLine(p: Prepared): RefLine | null {
+  const x: number[] = [], y: number[] = [], s: number[] = [];
+  let cum = 0;
+  for (const pt of p.pts) {
+    if (pt.x === 0 && pt.y === 0) continue;
+    if (x.length) {
+      const dx = pt.x - x[x.length - 1], dy = pt.y - y[y.length - 1];
+      const step = Math.sqrt(dx * dx + dy * dy) / LOC_TO_METERS;
+      if (step <= 0) continue;
+      cum += step;
+    }
+    x.push(pt.x); y.push(pt.y); s.push(cum);
+  }
+  if (x.length < 30 || cum < 500) return null;
+  return { x, y, s, length: cum };
+}
+
+/** Project a trace onto the reference line, giving each of its samples a
+ *  position along that line.
+ *
+ *  This is what keeps the traces aligned. Timing each lap by its own
+ *  integrated distance assumes mergeDistance's polyline error is spread evenly
+ *  around the lap; it isn't, and once sections are only a hundred metres long
+ *  the leftover drift is enough to shuffle whole tenths between a corner and
+ *  the straight beside it. Matching on position instead removes start-line
+ *  offset, scale error and local distortion in one step, because both laps are
+ *  then measured against the same piece of tarmac.
+ *
+ *  The search walks forward only, within a window of the last match, so a
+ *  circuit that crosses or doubles back on itself can't snap a sample to the
+ *  wrong passage. */
+function projectOntoRefLine(p: Prepared, ref: RefLine): { s: number; elapsed: number; speed: number }[] | null {
+  const out: { s: number; elapsed: number; speed: number }[] = [];
+  const spacing = ref.length / Math.max(1, ref.s.length - 1);
+  let cursor = 0;
+  let prevDist: number | null = null;
+
+  for (const pt of p.pts) {
+    if (pt.x === 0 && pt.y === 0) continue;
+    // The trace's own distance step is locally reliable even when its total is
+    // scaled wrong, so use it to predict how far along the line to look. A
+    // window anchored on that prediction stays narrow enough that a circuit
+    // running back alongside itself can't pull a sample onto the parallel
+    // passage.
+    const stepM = prevDist == null ? 0 : Math.max(0, pt.dist - prevDist);
+    const predicted = cursor + Math.round(stepM / spacing);
+    const lo = Math.max(cursor, predicted - LINE_SEARCH_BACK);
+    const hi = Math.min(ref.x.length - 1, predicted + LINE_SEARCH_AHEAD);
+    prevDist = pt.dist;
+
+    let bestI = -1, bestD2 = Infinity;
+    for (let i = lo; i <= hi; i++) {
+      const dx = ref.x[i] - pt.x, dy = ref.y[i] - pt.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestD2) { bestD2 = d2; bestI = i; }
+    }
+    if (bestI < 0) break;
+    cursor = bestI;
+    const sHere = ref.s[bestI];
+    // Monotonic by construction, but guard against a repeated match.
+    if (out.length && sHere <= out[out.length - 1].s) continue;
+    out.push({ s: sHere, elapsed: pt.elapsed, speed: pt.speed });
+  }
+  return out.length >= 20 ? out : null;
+}
+
+/** Turn radius (m) at each grid point of the reference racing line, from the
+ *  heading change over a fixed baseline either side. Straights come back as
+ *  Infinity. Position fixes are decimetres (see lib/telemetry.ts). */
+function radiusProfile(x: number[], y: number[], stepM: number): number[] {
+  const n = x.length;
+  const win = Math.max(1, Math.round(CURVATURE_WINDOW_M / stepM));
+  const radius = new Array<number>(n).fill(Infinity);
+  for (let i = win; i < n - win; i++) {
+    const h1 = Math.atan2(y[i] - y[i - win], x[i] - x[i - win]);
+    const h2 = Math.atan2(y[i + win] - y[i], x[i + win] - x[i]);
+    let dh = h2 - h1;
+    while (dh > Math.PI) dh -= 2 * Math.PI;
+    while (dh < -Math.PI) dh += 2 * Math.PI;
+    const kappa = Math.abs(dh) / (win * stepM);   // rad per metre
+    radius[i] = kappa > 0 ? 1 / kappa : Infinity;
+  }
+  // The window can't reach the first and last points; carry the nearest
+  // measured value in so the start/finish straight isn't misread.
+  for (let i = 0; i < win; i++) { radius[i] = radius[win]; radius[n - 1 - i] = radius[n - 1 - win]; }
+  return radius;
+}
+
+/** Corner zones straight off the track geometry. Returns null when the
+ *  position fixes are unusable, so the caller can fall back. */
+function findCornerZonesGeometric(
+  x: number[],
+  y: number[],
+  step: number,
+): { start: number; end: number; apexes: number }[] | null {
+  if (!x.some((v, i) => v !== 0 || y[i] !== 0)) return null;
+  const radius = radiusProfile(x, y, step);
+  if (!radius.some(r => isFinite(r))) return null;
+
+  const runs: { start: number; end: number; apexes: number }[] = [];
+  let start = -1;
+  for (let i = 0; i < radius.length; i++) {
+    const tight = radius[i] <= CORNER_RADIUS_M;
+    if (tight && start < 0) start = i;
+    else if (!tight && start >= 0) { runs.push({ start, end: i - 1, apexes: 1 }); start = -1; }
+  }
+  if (start >= 0) runs.push({ start, end: radius.length - 1, apexes: 1 });
+
+  const minLen = Math.max(1, Math.round(MIN_CORNER_M / step));
+  const kept = runs.filter(r => r.end - r.start >= minLen);
+  if (!kept.length) return null;
+
+  // Chicanes and esses read as separate curvature runs a few tens of metres
+  // apart; they're one section, but each element is still a turn.
+  const gap = Math.max(1, Math.round(MERGE_GAP_M / step));
+  const merged: typeof kept = [];
+  for (const r of kept) {
+    const prev = merged[merged.length - 1];
+    if (prev && r.start - prev.end <= gap) { prev.end = r.end; prev.apexes += r.apexes; }
+    else merged.push({ ...r });
+  }
+  return merged;
 }
 
 /** Corner zones as [startIdx, endIdx] index pairs on the grid, plus how many
  *  apexes each zone swallowed (a chicane is one zone but two turns).
  *
- *  `brake` is the hardest braking across the traces and `throttle` the most
- *  conservative, so a zone runs from the earliest braking point to the point
- *  every lap is back at full throttle — the window where the laps can differ.
- *  Whoever gets back on power first banks their time inside it. */
-function findCornerZones(
+ *  Fallback for laps with no usable position fixes, where geometry isn't
+ *  available. `brake` is the hardest braking across the traces and `throttle`
+ *  the most conservative, so a zone runs from the earliest braking point to
+ *  the point every lap is back at full throttle. Note this misses corners
+ *  taken flat — the reason geometry is preferred when we have it. */
+function findCornerZonesFromDriving(
   profile: number[],
   brake: number[],
   throttle: number[],
@@ -374,6 +558,12 @@ function findCornerZones(
  *  section split can't be trusted (see MAX_LAP_LENGTH_DEVIATION). Needs at
  *  least three traces to have a field to compare against; with two there's no
  *  way to tell which one is wrong, so both are kept. */
+function countPositioned(r: Resampled): number {
+  let n = 0;
+  for (let i = 0; i < r.x.length; i++) if (r.x[i] !== 0 || r.y[i] !== 0) n++;
+  return n;
+}
+
 function dropDistortedTraces(prepared: Prepared[]): Prepared[] {
   if (prepared.length < 3) return prepared;
   const lengths = prepared.map(p => p.endDist - p.startDist).sort((a, b) => a - b);
@@ -387,6 +577,63 @@ function dropDistortedTraces(prepared: Prepared[]): Prepared[] {
   return kept.length >= Math.max(2, prepared.length - Math.ceil(prepared.length / 3)) ? kept : prepared;
 }
 
+/** Resample a trace onto the reference line, at the same lap fractions the
+ *  rest of the pipeline uses. Elapsed times are rescaled so the lap still
+ *  spans exactly its own duration — the section times then sum to the lap time
+ *  as before, but the boundaries now sit at true track positions. */
+function resampleOnRefLine(p: Prepared, ref: RefLine, fractions: number[]): Resampled | null {
+  const proj = projectOntoRefLine(p, ref);
+  if (!proj) return null;
+
+  const at = (target: number) => {
+    if (target <= proj[0].s) return proj[0];
+    const last = proj[proj.length - 1];
+    if (target >= last.s) return last;
+    let lo = 0, hi = proj.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (proj[mid].s <= target) lo = mid; else hi = mid;
+    }
+    const f = (target - proj[lo].s) / (proj[hi].s - proj[lo].s || 1);
+    return {
+      s: target,
+      elapsed: proj[lo].elapsed + f * (proj[hi].elapsed - proj[lo].elapsed),
+      speed: proj[lo].speed + f * (proj[hi].speed - proj[lo].speed),
+    };
+  };
+
+  const base = at(0).elapsed;
+  const spanTime = at(ref.length).elapsed - base;
+  // Projection can clip a fraction of a sample at either end; stretch the
+  // elapsed axis back onto the lap's known duration so totals stay exact.
+  const scale = spanTime > 0 ? p.lapTime / spanTime : 1;
+
+  const elapsed: number[] = [], speed: number[] = [];
+  const throttle: number[] = [], brake: number[] = [];
+  const x: number[] = [], y: number[] = [];
+  for (const u of fractions) {
+    const target = u * ref.length;
+    const v = at(target);
+    elapsed.push((v.elapsed - base) * scale);
+    speed.push(v.speed);
+    // Interpolate the position along the line rather than snapping to the
+    // nearest fix. The grid is finer than the reference points, so snapping
+    // would quantise the line into steps and the curvature pass would read
+    // those steps as corners.
+    let lo = 0, hi = ref.s.length - 1;
+    while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (ref.s[mid] <= target) lo = mid; else hi = mid; }
+    const segLen = ref.s[hi] - ref.s[lo];
+    const g = segLen > 0 ? (target - ref.s[lo]) / segLen : 0;
+    x.push(ref.x[lo] + g * (ref.x[hi] - ref.x[lo]));
+    y.push(ref.y[lo] + g * (ref.y[hi] - ref.y[lo]));
+    // Throttle and brake only feed the fallback detector, which isn't reached
+    // on this path — the reference line's geometry drives the sections here.
+    throttle.push(0); brake.push(0);
+  }
+  elapsed[elapsed.length - 1] = p.lapTime;
+  return { elapsed, speed, throttle, brake, x, y };
+}
+
 export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | null {
   const prepared = dropDistortedTraces(traces.map(prepare).filter((p): p is Prepared => p != null));
   if (prepared.length < 2) return null;
@@ -397,16 +644,40 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
   const lapLength = prepared.reduce((a, p) => a + (p.endDist - p.startDist), 0) / prepared.length;
   const step = lapLength / (GRID_POINTS - 1);
   const fractions = Array.from({ length: GRID_POINTS }, (_, i) => i / (GRID_POINTS - 1));
-  const sampled = prepared.map(p => ({ trace: p.trace, r: resample(p, fractions) }));
 
-  // One shared set of profiles so every trace is cut at the same track
-  // positions: mean speed, hardest braking, most conservative throttle.
-  const profile = fractions.map((_, i) =>
-    sampled.reduce((sum, s) => sum + s.r.speed[i], 0) / sampled.length);
-  const brakeMax = fractions.map((_, i) => Math.max(...sampled.map(s => s.r.brake[i])));
-  const throttleMin = fractions.map((_, i) => Math.min(...sampled.map(s => s.r.throttle[i])));
+  // Preferred path: put every trace on one reference racing line by position,
+  // so all of them are measured against the same tarmac. Falls back to each
+  // lap's own distance axis when there aren't enough position fixes.
+  const positioned = prepared
+    .map(p => ({ p, n: p.pts.reduce((n, q) => n + (q.x !== 0 || q.y !== 0 ? 1 : 0), 0) }))
+    .sort((a, b) => b.n - a.n);
+  const refLine = positioned[0].n > 30 ? buildRefLine(positioned[0].p) : null;
 
-  const zones = findCornerZones(profile, brakeMax, throttleMin, step);
+  const sampled = prepared.map(p => {
+    if (refLine) {
+      const r = resampleOnRefLine(p, refLine, fractions);
+      if (r) return { trace: p.trace, r };
+    }
+    return { trace: p.trace, r: resample(p, fractions) };
+  });
+
+  // Geometry first: it describes the circuit rather than the driving, so the
+  // split is identical however many cars are in the comparison and can be
+  // checked against a circuit map. The reference line is whichever trace has
+  // the most usable position fixes.
+  const geoRef = sampled.reduce((best, cur) =>
+    countPositioned(cur.r) > countPositioned(best.r) ? cur : best);
+  let zones = findCornerZonesGeometric(geoRef.r.x, geoRef.r.y, step);
+  const fromGeometry = zones != null;
+
+  if (!zones) {
+    // No usable position fixes — read the corners off the driving instead.
+    const profile = fractions.map((_, i) =>
+      sampled.reduce((sum, t) => sum + t.r.speed[i], 0) / sampled.length);
+    const brakeMax = fractions.map((_, i) => Math.max(...sampled.map(t => t.r.brake[i])));
+    const throttleMin = fractions.map((_, i) => Math.min(...sampled.map(t => t.r.throttle[i])));
+    zones = findCornerZonesFromDriving(profile, brakeMax, throttleMin, step);
+  }
   if (!zones.length) return null;
 
   // Interleave corners with the straights between them.
@@ -476,6 +747,8 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
       startDist: fractions[r.start] * lapLength,
       endDist: fractions[r.end] * lapLength,
       length: (fractions[r.end] - fractions[r.start]) * lapLength,
+      startIdx: r.start,
+      endIdx: r.end,
       timings,
     };
   });
@@ -514,6 +787,8 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
 
   return {
     segments,
+    path: fromGeometry ? geoRef.r.x.map((x, i) => ({ x, y: geoRef.r.y[i] })) : [],
+    fromGeometry,
     totals,
     baselineLabel: sampled[baselineIdx].trace.label,
     cornerCount: cornerSegs.length,
