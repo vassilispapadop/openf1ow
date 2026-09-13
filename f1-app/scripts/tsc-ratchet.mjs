@@ -32,7 +32,10 @@ const run = spawnSync("npx", ["tsc", "-b", "--pretty", "false"], {
   maxBuffer: 64 * 1024 * 1024,
 });
 const output = (run.stdout || "") + (run.stderr || "");
-const lines = output.split("\n").filter(l => /error TS\d+/.test(l));
+// The test project type-checks the app tree transitively, so `tsc -b` reports
+// an app error once per project that reaches it. Count each distinct error
+// (file, position, code, message) once.
+const lines = [...new Set(output.split("\n").filter(l => /error TS\d+/.test(l)).map(l => l.trim()))];
 
 const perFile = {};
 for (const l of lines) {

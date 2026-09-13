@@ -1,0 +1,25 @@
+{
+  "sessionKey": 11253,
+  "slug": "suzuka-2026-race",
+  "recordedAt": "2026-09-13T08:15:38.964Z",
+  "source": "https://www.openf1ow.com/api/f1",
+  "sessionName": "Race",
+  "sessionType": "Race",
+  "dateStart": "2026-03-29T05:00:00+00:00",
+  "dateEnd": "2026-03-29T07:00:00+00:00",
+  "counts": {
+    "session": 1,
+    "meeting": 1,
+    "drivers": 22,
+    "laps": 1108,
+    "stints": 51,
+    "pit": 29,
+    "position": 445,
+    "intervals": 4915,
+    "race_control": 49,
+    "session_result": 22,
+    "weather": 156,
+    "starting_grid": 0,
+    "overtakes": 218
+  }
+}

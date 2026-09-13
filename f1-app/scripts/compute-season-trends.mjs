@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 /**
- * Builds season-trends/{year}.json and uploads to R2. Math is duplicated
- * from src/lib/{raceUtils,seasonUtils}.ts because Node ESM can't import
- * .ts directly here — keep the two in sync if you change either.
- *
- * The corner/straight aggregation is the exception to the duplication rule
- * above: it imports lib/lapSegments.ts and lib/telemetry.ts directly, since
- * Node strips the type annotations natively and those two modules are pure
- * functions with no DOM or React dependency. Re-deriving several hundred lines
- * of segmentation maths here would be far more likely to drift.
+ * Builds season-trends/{year}.json and uploads to R2. All the maths comes
+ * from src/engine (via src/lib/seasonUtils.ts), imported as TypeScript —
+ * Node strips the annotations natively and the engine has no DOM or React
+ * dependency — so the season page, the race page and this script share one
+ * definition of a clean lap, a degradation slope and a teammate gap.
  *
  * Usage:
  *   node scripts/compute-season-trends.mjs                # all years
@@ -21,8 +17,16 @@ import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { compareLapSegments } from "../src/lib/lapSegments.ts";
-import { mergeDistance } from "../src/lib/telemetry.ts";
+import { compareLapSegments } from "../src/engine/telemetry/lapSegments.ts";
+import { mergeDistance } from "../src/engine/telemetry/telemetry.ts";
+import { eligibleForBest } from "../src/engine/index.ts";
+import {
+  aggregateConstructorPaceByRace,
+  aggregateConstructorQualifyingByRace,
+  aggregateTeammateGapTrend,
+  aggregateTireDegByCompound,
+  qualiModel,
+} from "../src/lib/seasonUtils.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..");
@@ -44,303 +48,6 @@ const targetYear = yearIdx >= 0 ? Number(args[yearIdx + 1]) : null;
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-// Math primitives — mirror src/lib/raceUtils.ts.
-
-const FUEL_TOTAL_KG = 110;
-// Sprint races (~24 laps) are fuelled for ~40 kg, not 110. Without this,
-// fuel-corrected tyre deg on sprints is over-corrected ~2.7× and reported
-// 50-150% higher than reality. Mirror src/lib/raceUtils.ts.
-const FUEL_SPRINT_KG = 40;
-const SPRINT_LAP_THRESHOLD = 30;
-const FUEL_SEC_PER_KG = 0.055;
-const SLOW_LAP_FACTOR = 1.07;
-
-function inferStartFuelKg(totalLaps) {
-  return totalLaps > 0 && totalLaps <= SPRINT_LAP_THRESHOLD ? FUEL_SPRINT_KG : FUEL_TOTAL_KG;
-}
-
-function median(arr) {
-  if (!arr.length) return 0;
-  const s = [...arr].sort((a, b) => a - b);
-  const m = Math.floor(s.length / 2);
-  return s.length % 2 === 0 ? (s[m - 1] + s[m]) / 2 : s[m];
-}
-
-function linearSlope(xs, ys) {
-  if (xs.length < 2) return 0;
-  const n = xs.length;
-  const xMean = xs.reduce((s, x) => s + x, 0) / n;
-  const yMean = ys.reduce((s, y) => s + y, 0) / n;
-  const num = xs.reduce((s, x, i) => s + (x - xMean) * (ys[i] - yMean), 0);
-  const den = xs.reduce((s, x) => s + (x - xMean) ** 2, 0);
-  return den ? num / den : 0;
-}
-
-function computeSlowLapThreshold(laps) {
-  const valid = laps
-    .filter(l => l.lap_duration && l.lap_duration > 0 && !l.is_pit_out_lap && l.lap_number > 1)
-    .map(l => l.lap_duration);
-  if (!valid.length) return Infinity;
-  return median(valid) * SLOW_LAP_FACTOR;
-}
-
-function isCleanLap(l, threshold) {
-  return !!(l.lap_duration && l.lap_duration > 0 && l.lap_duration < threshold && !l.is_pit_out_lap && l.lap_number > 1);
-}
-
-function fuelCorrPerLap(totalLaps) {
-  return (inferStartFuelKg(totalLaps) / Math.max(1, totalLaps)) * FUEL_SEC_PER_KG;
-}
-
-function stintDegradation(stint, lapLookup, threshold, fc) {
-  const usable = [];
-  for (let ln = stint.lap_start + 2; ln <= stint.lap_end; ln++) {
-    const l = lapLookup[stint.driver_number + "-" + ln];
-    if (l && isCleanLap(l, threshold)) usable.push(l);
-  }
-  if (usable.length < 3) return null;
-  const xs = usable.map(l => l.lap_number - stint.lap_start);
-  const ys = usable.map(l => l.lap_duration + (l.lap_number - 1) * fc);
-  return Math.max(0, linearSlope(xs, ys));
-}
-
-// Aggregators — mirror src/lib/seasonUtils.ts.
-
-function paceByDriver(laps, drivers) {
-  const threshold = computeSlowLapThreshold(laps);
-  if (!isFinite(threshold)) return [];
-  const byDriver = {};
-  for (const l of laps) {
-    if (!isCleanLap(l, threshold)) continue;
-    (byDriver[l.driver_number] ||= []).push(l.lap_duration);
-  }
-  return drivers
-    .map(d => {
-      const t = byDriver[d.driver_number];
-      if (!t || t.length < 3) return null;
-      t.sort((a, b) => a - b);
-      return { driver: d.name_acronym, team: d.team_name, medianPace: median(t) };
-    })
-    .filter(Boolean);
-}
-
-function aggregateConstructorPaceByRace(races) {
-  return races
-    .map(r => {
-      const rows = paceByDriver(r.laps, r.drivers);
-      if (rows.length < 4) return null;
-      const byTeam = {};
-      for (const row of rows) {
-        const t = row.team || "Unknown";
-        (byTeam[t] ||= []).push(row.medianPace);
-      }
-      const teamRows = Object.entries(byTeam)
-        .filter(([, paces]) => paces.length > 0)
-        .map(([team, paces]) => ({ team, medianPace: median(paces), drivers: paces.length }));
-      if (!teamRows.length) return null;
-      teamRows.sort((a, b) => a.medianPace - b.medianPace);
-      const fastest = teamRows[0].medianPace;
-      return {
-        meetingKey: r.meta.meetingKey,
-        slug: r.meta.slug,
-        meetingName: r.meta.meetingName,
-        dateStart: r.meta.dateStart,
-        round: r.meta.round,
-        fastestTeamMedian: +fastest.toFixed(3),
-        teams: teamRows.map(t => ({
-          team: t.team,
-          medianPace: +t.medianPace.toFixed(3),
-          gapToFastest: +(t.medianPace - fastest).toFixed(3),
-          drivers: t.drivers,
-        })),
-      };
-    })
-    .filter(Boolean);
-}
-
-// Constructor qualifying: best clean push lap of the team's faster driver
-// becomes the "constructor's" qualifying time. Gap to fastest team is the
-// metric. Mirrors aggregateConstructorPaceByRace but on quali laps.
-function aggregateConstructorQualifyingByRace(races) {
-  return races
-    .map(r => {
-      const laps = r.qualiLaps?.length ? r.qualiLaps : null;
-      if (!laps) return null;
-      const threshold = computeSlowLapThreshold(laps);
-      if (!isFinite(threshold)) return null;
-
-      const cleanByDriver = {};
-      for (const l of laps) {
-        if (!isCleanLap(l, threshold)) continue;
-        (cleanByDriver[l.driver_number] ||= []).push(l.lap_duration);
-      }
-
-      const bestByDriver = {};
-      for (const [num, ls] of Object.entries(cleanByDriver)) {
-        if (ls.length < 2) continue;
-        bestByDriver[Number(num)] = Math.min(...ls);
-      }
-
-      const teamByDriver = {};
-      for (const d of r.drivers) {
-        const t = d.team_name || "Unknown";
-        (teamByDriver[t] ||= []).push(d);
-      }
-
-      const teamRows = [];
-      for (const [team, drivers] of Object.entries(teamByDriver)) {
-        let best = null;
-        for (const d of drivers) {
-          const lap = bestByDriver[d.driver_number];
-          if (lap == null) continue;
-          if (!best || lap < best.lap) best = { lap, driver: d.name_acronym };
-        }
-        if (best) teamRows.push({ team, bestLap: best.lap, bestDriver: best.driver });
-      }
-
-      if (teamRows.length < 4) return null;
-      teamRows.sort((a, b) => a.bestLap - b.bestLap);
-      const fastest = teamRows[0].bestLap;
-
-      // Q-cutoffs from the all-drivers ranking: 15th-best ≈ Q1 boundary,
-      // 10th-best ≈ Q2 boundary.
-      const allBestLaps = Object.values(bestByDriver).sort((a, b) => a - b);
-      const q1Cutoff = allBestLaps[14];
-      const q2Cutoff = allBestLaps[9];
-
-      return {
-        meetingKey: r.meta.meetingKey,
-        slug: r.meta.slug,
-        meetingName: r.meta.meetingName,
-        dateStart: r.meta.dateStart,
-        round: r.meta.round,
-        fastestTeamBest: +fastest.toFixed(3),
-        teams: teamRows.map(t => ({
-          team: t.team,
-          bestLap: +t.bestLap.toFixed(3),
-          bestDriver: t.bestDriver,
-          gapToFastest: +(t.bestLap - fastest).toFixed(3),
-        })),
-        ...(q1Cutoff != null ? {
-          q1Cutoff: +q1Cutoff.toFixed(3),
-          q1CutoffGap: +(q1Cutoff - fastest).toFixed(3),
-        } : {}),
-        ...(q2Cutoff != null ? {
-          q2Cutoff: +q2Cutoff.toFixed(3),
-          q2CutoffGap: +(q2Cutoff - fastest).toFixed(3),
-        } : {}),
-      };
-    })
-    .filter(Boolean);
-}
-
-// Teammate gap measured from QUALIFYING best laps, not race medians.
-// Race-pace teammate gaps are dominated by traffic/pit-stop variance —
-// qualifying is the clean head-to-head (same car, same track, push lap).
-//
-// For each team: take each driver's best clean qualifying lap, compare.
-// "commonLaps" here is repurposed as min(quali laps completed) so users
-// can sense the data quality (e.g. 3 quali laps = Q1 elimination).
-function aggregateTeammateGapTrend(races) {
-  return races
-    .map(r => {
-      // Use qualiLaps when present; fall back to race laps if a session
-      // genuinely has no qualifying data (e.g. cancelled qualifying).
-      const lapsForGap = r.qualiLaps?.length ? r.qualiLaps : r.laps;
-      if (!lapsForGap?.length) return null;
-      const threshold = computeSlowLapThreshold(lapsForGap);
-      if (!isFinite(threshold)) return null;
-
-      const teamDrivers = {};
-      for (const d of r.drivers) {
-        const t = d.team_name || "Unknown";
-        (teamDrivers[t] ||= []).push(d);
-      }
-      const byDriver = {};
-      for (const l of lapsForGap) {
-        if (!isCleanLap(l, threshold)) continue;
-        (byDriver[l.driver_number] ||= []).push(l.lap_duration);
-      }
-
-      const teamRows = [];
-      for (const [team, ds] of Object.entries(teamDrivers)) {
-        if (ds.length < 2) continue;
-        const [d1, d2] = ds.slice(0, 2);
-        const t1 = byDriver[d1.driver_number] || [];
-        const t2 = byDriver[d2.driver_number] || [];
-        // Require 2+ clean push laps from each teammate. With only 1
-        // clean lap the "best" might be an aborted lap rather than
-        // a true representative of pace.
-        if (t1.length < 2 || t2.length < 2) continue;
-        const best1 = Math.min(...t1);
-        const best2 = Math.min(...t2);
-        const d1Faster = best1 <= best2;
-        teamRows.push({
-          team,
-          faster: d1Faster ? d1.name_acronym : d2.name_acronym,
-          slower: d1Faster ? d2.name_acronym : d1.name_acronym,
-          gap: +Math.abs(best1 - best2).toFixed(3),
-          commonLaps: Math.min(t1.length, t2.length),
-        });
-      }
-      if (!teamRows.length) return null;
-      return {
-        meetingKey: r.meta.meetingKey,
-        slug: r.meta.slug,
-        meetingName: r.meta.meetingName,
-        dateStart: r.meta.dateStart,
-        round: r.meta.round,
-        teams: teamRows.sort((a, b) => b.gap - a.gap),
-      };
-    })
-    .filter(Boolean);
-}
-
-function aggregateTireDegByCompound(races) {
-  return races
-    .map(r => {
-      const threshold = computeSlowLapThreshold(r.laps);
-      if (!isFinite(threshold)) return null;
-      const totalLaps = r.laps.reduce((m, l) => Math.max(m, l.lap_number), 0);
-      if (totalLaps < 5) return null;
-      const fc = fuelCorrPerLap(totalLaps);
-      const lapLookup = {};
-      for (const l of r.laps) lapLookup[l.driver_number + "-" + l.lap_number] = l;
-
-      const byCompound = {};
-      for (const st of r.stints) {
-        const deg = stintDegradation(st, lapLookup, threshold, fc);
-        if (deg == null) continue;
-        const c = (st.compound || "UNKNOWN").toUpperCase();
-        (byCompound[c] ||= []).push(deg);
-      }
-      const compounds = Object.entries(byCompound)
-        .filter(([, vals]) => vals.length > 0)
-        .map(([compound, vals]) => ({
-          compound,
-          medianDeg: +median(vals).toFixed(4),
-          stints: vals.length,
-        }))
-        .sort((a, b) => a.compound.localeCompare(b.compound));
-      if (!compounds.length) return null;
-      return {
-        meetingKey: r.meta.meetingKey,
-        slug: r.meta.slug,
-        meetingName: r.meta.meetingName,
-        dateStart: r.meta.dateStart,
-        round: r.meta.round,
-        compounds,
-      };
-    })
-    .filter(Boolean);
-}
-
-// ---------------------------------------------------------------------------
-// Corner / straight balance (telemetry pass)
-// ---------------------------------------------------------------------------
-
-/** Extra slack fetched past the flag so the lap's last sample isn't clipped;
- *  compareLapSegments trims back to the exact lap. */
 const TELEMETRY_TAIL_MS = 2000;
 /** Telemetry endpoints rate-limit harder than the session ones. */
 const TELEMETRY_DELAY_MS = 900;
@@ -394,30 +101,22 @@ async function fetchLapTelemetry(sk, driverNumber, lap) {
   return merged;
 }
 
-/** Each team's fastest clean qualifying lap, as {team, driver, lap}. */
+/** Each team's fastest qualifying lap, as {team, driver, lap}, under the
+ *  engine's one definition of an eligible best lap (timed, not a pit-out,
+ *  not lap 1, not under a red flag). */
 function bestQualiLapPerTeam(race) {
-  const laps = race.qualiLaps;
-  if (!laps?.length) return [];
-  const threshold = computeSlowLapThreshold(laps);
-  if (!isFinite(threshold)) return [];
-
-  const teamOf = {};
-  const acronymOf = {};
-  for (const d of race.drivers) {
-    teamOf[d.driver_number] = d.team_name || "Unknown";
-    acronymOf[d.driver_number] = d.name_acronym || String(d.driver_number);
-  }
-
+  const model = qualiModel(race);
+  if (!model) return [];
   const best = {};
-  for (const l of laps) {
-    if (!isCleanLap(l, threshold)) continue;
-    // Segmentation needs a start timestamp and a duration to pin the window.
-    if (!l.date_start || !l.lap_duration) continue;
-    const team = teamOf[l.driver_number];
-    if (!team) continue;
-    const cur = best[team];
-    if (!cur || l.lap_duration < cur.lap.lap_duration) {
-      best[team] = { team, driver: acronymOf[l.driver_number], driverNumber: l.driver_number, lap: l };
+  for (const d of model.drivers) {
+    for (const l of d.laps) {
+      if (!eligibleForBest(l)) continue;
+      // Segmentation needs a start timestamp and a duration to pin the window.
+      if (!l.date_start || !l.lap_duration) continue;
+      const cur = best[d.team];
+      if (!cur || l.lap_duration < cur.lap.lap_duration) {
+        best[d.team] = { team: d.team, driver: d.driver.name_acronym || String(d.driver.driver_number), driverNumber: d.driver.driver_number, lap: l };
+      }
     }
   }
   return Object.values(best).sort((a, b) => a.lap.lap_duration - b.lap.lap_duration);
@@ -576,12 +275,21 @@ async function loadRaceData(year, race, round) {
   // Sprint weekends — qualifying happens for the Sunday race, sprintqualifying
   // sets the sprint grid. We use the main qualifying for teammate-gap
   // analysis; sprintqualifying could be a future per-session breakdown.
-  const [raceDrivers, qualiDrivers, laps, stints, qualiLaps] = await Promise.all([
+  const [raceDrivers, qualiDrivers, laps, stints, qualiLaps, qualiStints, pits, raceControl, results, intervals, position, weather] = await Promise.all([
     fetchEndpoint("drivers", sk),
     qualiSk ? fetchEndpoint("drivers", qualiSk) : Promise.resolve(null),
     fetchEndpoint("laps", sk),
     fetchEndpoint("stints", sk),
     qualiSk ? fetchEndpoint("laps", qualiSk) : Promise.resolve(null),
+    qualiSk ? fetchEndpoint("stints", qualiSk) : Promise.resolve(null),
+    // The engine uses these to exclude safety-car laps, traffic and retired
+    // cars' trailing laps. Each is optional — a miss just gates those steps.
+    fetchEndpoint("pit", sk),
+    fetchEndpoint("race_control", sk),
+    fetchEndpoint("session_result", sk),
+    fetchEndpoint("intervals", sk),
+    fetchEndpoint("position", sk),
+    fetchEndpoint("weather", sk),
   ]);
   // Prefer the race-session lineup; fall back to qualifying when the race
   // hasn't been run yet (mid-weekend builds, qualifying done but no race).
@@ -606,6 +314,17 @@ async function loadRaceData(year, race, round) {
     laps: laps || [],
     qualiLaps: qualiLaps || [],
     stints: stints || [],
+    qualiDrivers: qualiDrivers || [],
+    qualiStints: qualiStints || [],
+    pits: pits || [],
+    raceControl: raceControl || [],
+    results: results || [],
+    intervals: intervals || [],
+    position: position || [],
+    weather: weather || [],
+    raceSessionKey: sk,
+    qualiSessionKey: qualiSk || undefined,
+    sprint: false,
   };
 }
 

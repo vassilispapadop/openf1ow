@@ -26,6 +26,6 @@
   },
   "include": ["src"],
   // The Worker is its own project (tsconfig.worker.json) with Workers types
-  // instead of the DOM.
-  "exclude": ["src/server"]
+  // instead of the DOM; tests are another (tsconfig.test.json) with Node's.
+  "exclude": ["src/server", "src/**/*.test.ts", "src/**/*.test.tsx", "src/**/__tests__", "src/test"]
 }

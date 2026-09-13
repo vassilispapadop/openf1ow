@@ -1,0 +1,25 @@
+{
+  "sessionKey": 11249,
+  "slug": "suzuka-2026-quali",
+  "recordedAt": "2026-09-13T08:16:14.454Z",
+  "source": "https://www.openf1ow.com/api/f1",
+  "sessionName": "Qualifying",
+  "sessionType": "Qualifying",
+  "dateStart": "2026-03-28T06:00:00+00:00",
+  "dateEnd": "2026-03-28T07:00:00+00:00",
+  "counts": {
+    "session": 1,
+    "meeting": 1,
+    "drivers": 22,
+    "laps": 324,
+    "stints": 98,
+    "pit": 98,
+    "position": 950,
+    "intervals": 0,
+    "race_control": 26,
+    "session_result": 22,
+    "weather": 75,
+    "starting_grid": 22,
+    "overtakes": 0
+  }
+}

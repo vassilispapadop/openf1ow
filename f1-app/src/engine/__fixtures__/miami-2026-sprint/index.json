@@ -1,0 +1,25 @@
+{
+  "sessionKey": 11275,
+  "slug": "miami-2026-sprint",
+  "recordedAt": "2026-09-13T08:17:13.630Z",
+  "source": "https://www.openf1ow.com/api/f1",
+  "sessionName": "Sprint",
+  "sessionType": "Race",
+  "dateStart": "2026-05-02T16:00:00+00:00",
+  "dateEnd": "2026-05-02T17:00:00+00:00",
+  "counts": {
+    "session": 1,
+    "meeting": 1,
+    "drivers": 22,
+    "laps": 381,
+    "stints": 23,
+    "pit": 1,
+    "position": 164,
+    "intervals": 1401,
+    "race_control": 84,
+    "session_result": 22,
+    "weather": 80,
+    "starting_grid": 0,
+    "overtakes": 72
+  }
+}
