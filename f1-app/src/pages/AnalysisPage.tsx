@@ -6,6 +6,7 @@ import { classifySession } from "../lib/sessionAnalysis";
 import RaceAnalysis from "../RaceAnalysis";
 import QualifyingAnalysis from "../components/session/QualifyingAnalysis";
 import PracticeAnalysis from "../components/session/PracticeAnalysis";
+import { SessionModelProvider } from "../lib/useSessionModel";
 
 const VIEW_KEYS = new Set<string>(ANALYSIS_VIEWS.map(v => v.key));
 const isViewKey = (s: string | undefined): s is ViewKey => !!s && VIEW_KEYS.has(s);
@@ -45,24 +46,14 @@ export default function AnalysisPage() {
   // session-appropriate views instead.
   const kind = classifySession(session?.session_type, session?.session_name);
 
+  let content: React.ReactNode;
   if (kind === "qualifying") {
-    return (
-      <div className="fade-in-up">
-        <QualifyingAnalysis sessionKey={sk} drivers={drivers} sessionName={session?.session_name} />
-      </div>
-    );
-  }
-  if (kind === "practice") {
-    return (
-      <div className="fade-in-up">
-        <PracticeAnalysis sessionKey={sk} drivers={drivers} sessionName={session?.session_name} />
-      </div>
-    );
-  }
-
-  // Race / Sprint — full analysis stack.
-  return (
-    <div className="fade-in-up">
+    content = <QualifyingAnalysis sessionKey={sk} drivers={drivers} sessionName={session?.session_name} />;
+  } else if (kind === "practice") {
+    content = <PracticeAnalysis sessionKey={sk} drivers={drivers} sessionName={session?.session_name} />;
+  } else {
+    // Race / Sprint — full analysis stack.
+    content = (
       <RaceAnalysis
         sessionKey={sk}
         drivers={drivers}
@@ -73,6 +64,13 @@ export default function AnalysisPage() {
         subTab={view}
         onSubTabChange={onSubTabChange}
       />
-    </div>
+    );
+  }
+
+  // One engine model per session, shared by every card on the page.
+  return (
+    <SessionModelProvider sessionKey={sk}>
+      <div className="fade-in-up">{content}</div>
+    </SessionModelProvider>
   );
 }

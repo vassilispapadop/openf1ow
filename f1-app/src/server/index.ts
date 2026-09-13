@@ -1,5 +1,6 @@
 import { handleF1Request, normalizeKey } from "./r2-cache";
 import { handleAdminRequest } from "./admin";
+import { handleBundleRequest } from "./bundle";
 import { handleRecapRequest, handleInsightsRequest, buildRaceContentBlock } from "./recap";
 import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
 import { handleShareImageUpload, handleShareImageRead } from "./share-image";
@@ -475,6 +476,11 @@ export default {
     // OpenF1 API proxy — serve from R2 cache (must be before OG/SPA handlers)
     if (url.pathname.startsWith("/api/f1/")) {
       return handleF1Request(request, env, ctx);
+    }
+    // Everything the analytics engine needs for one session, in one response.
+    if (url.pathname.startsWith("/api/session/")) {
+      const r = await handleBundleRequest(request, env, ctx);
+      if (r) return r;
     }
     // Operator endpoints (bearer secret; 404 when unauthorised).
     if (url.pathname.startsWith("/api/admin/")) {

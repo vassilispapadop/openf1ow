@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import AIAnalysis from "./components/AIAnalysis";
 import RaceReplay from "./components/RaceReplay";
 import type { Driver, Lap, Stint, Pit, Weather } from "./lib/types";
@@ -8,13 +8,12 @@ import {
 } from "./lib/raceUtils";
 import { F, M, C, sty } from "./lib/styles";
 import { buildFullSummary } from "./lib/buildAnalysisSummary";
-import { api } from "./lib/api";
 import { ft3, podiumColor } from "./lib/format";
 import { TC, ANALYSIS_VIEWS, type ViewKey } from "./lib/constants";
 import Pill from "./components/Pill";
 import ScatterPlot from "./components/analysis/ScatterPlot";
 import type { ScatterPoint } from "./components/analysis/useTooltip";
-import { PendingData, isRateLimited } from "./components/analysis/PendingData";
+import { PendingData } from "./components/analysis/PendingData";
 import LapEvolutionChart from "./components/analysis/LapEvolutionChart";
 import RacePaceRanking from "./components/analysis/RacePaceRanking";
 import StintDegradation from "./components/analysis/StintDegradation";
@@ -29,6 +28,9 @@ import SuperClipping from "./components/analysis/SuperClipping";
 import HeadlineInsights from "./components/analysis/HeadlineInsights";
 import StickyTabBar from "./components/shell/StickyTabBar";
 import { Section, Segmented } from "./ui";
+import { useSessionModel } from "./lib/useSessionModel";
+
+const EMPTY_LAPS: Lap[] = [];
 
 const VIEW_OPTIONS = [{ key: "list", label: "List" }, { key: "graph", label: "Graph" }] as const;
 
@@ -42,30 +44,18 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   subTab: ViewKey;
   onSubTabChange: (tab: ViewKey) => void;
 }) {
-  const [allLaps, setAllLaps] = useState<Lap[]>([]);
-  const [allStints, setAllStints] = useState<Stint[]>([]);
-  const [allPits, setAllPits] = useState<Pit[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  // >0 = rate-limited by the data source (transient, common during/after a live
-  // session); the number is the attempt count that drives capped auto-retry.
-  const [pending, setPending] = useState(0);
-  const [loaded, setLoaded] = useState(false);
+  // Everything comes from the engine's SessionModel (one bundle fetch per
+  // session); the legacy cards still take raw laps/stints/pits, and an
+  // EnrichedLap is a Lap, so they read straight off the model.
+  const { model, status, error: modelError, pendingCount, retry } = useSessionModel();
+  const allLaps: Lap[] = model?.laps ?? EMPTY_LAPS;
+  const allStints: Stint[] = useMemo(() => (model ? model.drivers.flatMap(d => d.stints) : []), [model]);
+  const allPits: Pit[] = useMemo(() => (model ? model.drivers.flatMap(d => d.pits) : []), [model]);
   // One list|graph toggle per card — the old single state flipped three
   // unrelated sections at once, across tab boundaries.
   const [paceView, setPaceView] = useState<"list" | "graph">("graph");
   const [degView, setDegView] = useState<"list" | "graph">("graph");
   const [teamView, setTeamView] = useState<"list" | "graph">("graph");
-  const [progress, setProgress] = useState("");
-
-  useEffect(() => {
-    setAllLaps([]);
-    setAllStints([]);
-    setAllPits([]);
-    setLoaded(false);
-    setLoading(false);
-    setError("");
-  }, [sessionKey]);
 
   const sharedThreshold = useMemo(() => computeSlowLapThreshold(allLaps), [allLaps]);
   const sharedLapMap = useMemo(() => {
@@ -161,105 +151,24 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
     });
   }, [drivers, allPits]);
 
-  const fetchAll = useCallback(async () => {
-    if (!sessionKey || !drivers.length) return;
-    setLoading(true);
-    setError("");
-    setProgress("Fetching lap data…");
-
-    try {
-      const [laps, stints, pits] = await Promise.all([
-        api("/laps?session_key=" + sessionKey),
-        api("/stints?session_key=" + sessionKey).catch(() => []),
-        api("/pit?session_key=" + sessionKey).catch(() => []),
-      ]);
-      setAllLaps(laps);
-      setAllStints(stints);
-      setAllPits(pits);
-      setLoaded(true);
-      setPending(0);
-      setProgress("");
-    } catch (e: any) {
-      // A rate-limit is expected right after a live session (data not published
-      // yet) — treat it as a transient "pending" state, not a hard error.
-      if (isRateLimited(e)) {
-        setPending(p => p + 1);
-        setError("");
-      } else {
-        setError(e.message);
-        setPending(0);
-      }
-      setProgress("");
-    }
-    setLoading(false);
-  }, [sessionKey, drivers]);
-
-  useEffect(() => {
-    if (sessionKey && drivers.length && !loaded && !loading) fetchAll();
-  }, [sessionKey, drivers]);
-
-  // Auto-retry a rate-limited load a few times, then leave it to the user.
-  useEffect(() => {
-    if (pending === 0 || pending > 4 || loaded) return;
-    const id = setTimeout(() => fetchAll(), 12000);
-    return () => clearTimeout(id);
-  }, [pending, loaded, fetchAll]);
-
-  if (pending > 0 && !loaded) {
-    return (
-      <PendingData
-        onRetry={() => { setPending(0); fetchAll(); }}
-        checking={loading}
-        exhausted={pending > 4}
-      />
-    );
+  if (status === "pending") {
+    return <PendingData onRetry={retry} checking={false} exhausted={pendingCount > 4} />;
   }
-
-  if (!loaded && !loading) {
+  if (status === "idle" || status === "loading" || !model) {
     return (
       <div style={sty.card}>
-        <div style={{ textAlign: "center", padding: "28px 20px" }}>
-          <h3 style={{ ...sty.sectionHead, marginBottom: 8 }}>Race analysis</h3>
-          <p style={{ color: C.textDim, fontSize: 13, margin: "0 0 18px", lineHeight: 1.55 }}>
-            Pace, tires, teammate battles, pit stops and more — across every driver.
-          </p>
-          <button onClick={fetchAll} style={{
-            background: C.accent,
-            color: "#fff",
-            border: "none",
-            borderRadius: 10,
-            padding: "10px 24px",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-            fontFamily: F,
-            transition: "opacity 0.2s ease",
-          }}>
-            Load race analysis
-          </button>
-        </div>
+        <div style={{ textAlign: "center", padding: 36, color: C.textDim, fontSize: 13 }}>Loading session data…</div>
       </div>
     );
   }
-
-  if (loading) {
-    return (
-      <div style={sty.card}>
-        <div style={{ textAlign: "center", padding: 36, color: C.textDim, fontSize: 13 }}>
-          {progress || "Loading…"}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
+  if (status === "error") {
     return (
       <div style={sty.err}>
-        <span style={{ flex: 1 }}>{error}</span>
-        <button onClick={() => { setError(""); setLoaded(false); }} style={{
+        <span style={{ flex: 1 }}>{modelError}</span>
+        <button onClick={retry} style={{
           background: "none", border: "none", color: "inherit",
-          cursor: "pointer", fontSize: 16, lineHeight: 1, padding: 4,
-        }}>×</button>
+          cursor: "pointer", fontSize: 13, fontWeight: 600, padding: 4,
+        }}>Retry</button>
       </div>
     );
   }
