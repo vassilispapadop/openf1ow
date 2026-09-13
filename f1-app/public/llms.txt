@@ -12,10 +12,13 @@
 
 OpenF1ow's analysis isn't raw lap times. The core calculations are:
 
-- **Clean-lap pace**: Median lap time after filtering out outlaps, in-laps, and any lap >1.07× the field median (slow-lap threshold). This excludes safety-car laps and traffic-affected laps.
-- **Fuel-corrected tyre degradation**: Linear slope of lap times within each stint, with each lap's time adjusted by `(lap_number − 1) × FUEL_CORRECTION` where `FUEL_CORRECTION = 0.055 s/kg/lap × (110 kg / total_race_laps)`. The first two laps of each stint are skipped to remove tyre warm-up. The result is the *true* tyre wear rate, not the apparent one (which gets faster as fuel burns off).
-- **Dirty-air time loss**: Per-driver median lap time when within 1.5 seconds of the car ahead, vs. when in clean air. Quantifies how much following another car costs in lap time.
-- **Constructor pace gap**: Median of each team's two drivers' median paces, then gap-to-fastest computed across teams. Removes single-driver outliers.
+- **Clean laps**: a lap counts when it has a time and none of: lap 1, pit in/out, safety car, VSC, red flag, ≥ 20 % under a sector yellow, after a retirement, or > 3 MAD above its own stint's median (fuel-corrected). Every analysis states its minimum sample and gates off explicitly rather than reporting a silent zero.
+- **Race pace**: median clean lap corrected to race-end fuel load; the fuel effect is fitted per race from same-compound equal-tyre-age lap pairs (else 0.055 s/kg; 110 kg start for a Grand Prix, 40 kg for a sprint), with a 1 000-sample bootstrap 95 % interval. *True pace* also requires clear air and normalises tyre age with each stint's fitted degradation.
+- **Traffic / dirty air**: from the timing feed's intervals at lap start (never lap timestamps); dirty air is < 1.5 s to the car ahead, cost measured against the same stint's clear-air median.
+- **Tyre degradation**: per-stint OLS of fuel-corrected time on tyre age (clean clear-air laps from tyre age 2, ≥ 5 laps) with 95 % interval, R² and a Theil–Sen cross-check; slopes are not clamped; a two-segment fit (ΔBIC > 6) flags cliffs.
+- **Teammates**: paired laps (same lap, both clean, same traffic state), fuel-corrected, median with bootstrap interval and paired sign test; all drivers on a team considered.
+- **Constructor pace gap**: every driver's clean laps pooled per team with a bootstrap interval; gap to the fastest team.
+- **Qualifying / practice**: Q1/Q2/Q3 from gaps in running; push laps within 3 % of a driver's own best; track evolution as a fixed-effects regression of push-lap time on session time.
 
 ## Sample race recap URLs
 
@@ -27,7 +30,7 @@ OpenF1ow's analysis isn't raw lap times. The core calculations are:
 
 ## Data shape
 
-Each recap page contains: final top-10 classification (position, driver, team, gap, status), top-3 race pace ranking with median lap times, biggest gainers (positions gained from lap 1 to finish), and per-race date + circuit. Season trend artifacts at `/api/season-trends/{year}` return the same metrics aggregated across the year as JSON.
+Each recap page contains: final top-10 classification (position, driver, team, gap, status), top-3 race pace ranking with clean-lap median times and fuel-corrected gaps, biggest gainers (grid to finish), and per-race date + circuit. Per-session engine output (verdicts + compact tables) is at `/api/session/{session_key}/insights`. Season trend artifacts at `/api/season-trends/{year}` return the same metrics aggregated across the year as JSON.
 
 ## Source code
 
