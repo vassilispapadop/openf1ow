@@ -6,7 +6,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { fetchSessionBundle } from "./api";
 import { isRateLimited } from "../components/analysis/PendingData";
-import { buildSessionModel, type SessionModel, type SessionInputs } from "../engine/index.ts";
+import { buildSessionModel, type SessionModel } from "../engine/index.ts";
+import { inputsFromBundle } from "../engine/bundle.ts";
 
 export type ModelStatus = "idle" | "loading" | "pending" | "error" | "ready";
 
@@ -31,25 +32,6 @@ const Ctx = createContext<Value | null>(null);
 
 const MAX_AUTO_RETRIES = 4;
 const RETRY_MS = 12_000;
-
-/** Map the Worker's bundle shape onto the engine's inputs. */
-export function inputsFromBundle(b: any): SessionInputs {
-  return {
-    session: b.session,
-    meeting: b.meeting ?? null,
-    drivers: b.drivers ?? [],
-    laps: b.laps ?? [],
-    stints: b.stints ?? null,
-    pits: b.pit ?? null,
-    intervals: b.intervals ?? null,
-    position: b.position ?? null,
-    raceControl: b.race_control ?? null,
-    results: b.session_result ?? null,
-    weather: b.weather ?? null,
-    startingGrid: b.starting_grid ?? null,
-    overtakes: b.overtakes ?? null,
-  };
-}
 
 export function SessionModelProvider({ sessionKey, children }: { sessionKey: string | number | null | undefined; children: ReactNode }) {
   const [bundle, setBundle] = useState<any | null>(null);

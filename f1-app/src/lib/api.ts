@@ -106,3 +106,16 @@ export async function fetchSessionBundle(sessionKey: string | number, retries = 
   }
   throw lastError ?? new Error("Failed to fetch: " + path);
 }
+
+/** The engine's verdicts and facts for a session, computed by the Worker
+ *  (and stored once the session has settled). Small; safe to call from the
+ *  home page for the latest race. */
+export async function fetchInsights(sessionKey: string | number) {
+  const path = `/api/session/${sessionKey}/insights`;
+  if (apiCache[path]) return apiCache[path];
+  const r = await fetch(path);
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${path}`);
+  const data = await r.json();
+  if (r.headers.get("X-Session-State") === "settled") apiCache[path] = data;
+  return data;
+}

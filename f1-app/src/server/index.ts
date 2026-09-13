@@ -1,6 +1,7 @@
 import { handleF1Request, normalizeKey } from "./r2-cache";
 import { handleAdminRequest } from "./admin";
 import { handleBundleRequest } from "./bundle";
+import { handleSessionInsightsRequest } from "./insights";
 import { handleRecapRequest, handleInsightsRequest, buildRaceContentBlock } from "./recap";
 import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
 import { handleShareImageUpload, handleShareImageRead } from "./share-image";
@@ -423,6 +424,18 @@ function buildPrompt(payload: any): string {
     : "";
   const body = { ...payload };
   delete body.raceMeta;
+
+  // Engine facts (schemaVersion 1): the verdicts are already computed with
+  // their confidence and sample — the narrative should lead with them and
+  // expand, not re-derive. Tables follow for supporting numbers.
+  if (body.schemaVersion === 1 && Array.isArray(body.verdicts)) {
+    const verdicts = body.verdicts
+      .filter((v: any) => v.id !== "data_quality")
+      .map((v: any) => `- [${v.confidence}] ${v.headline} ${v.detail} (${(v.numbers ?? []).map((n: any) => `${n.label}: ${n.value}`).join("; ")})`)
+      .join("\n");
+    const warnings = Array.isArray(body.warnings) && body.warnings.length ? `\n\nData notes: ${body.warnings.join(" ")}` : "";
+    return `Write the race analysis from the pre-computed findings and tables below. The findings come from a statistical engine (clean-lap filtering, fuel correction, fitted degradation, real timing gaps) — treat them as established facts, lead with the highest-impact ones, and cite their numbers. Do not invent figures that are not in the data.${header ? "\n\n" + header : ""}\n\n## Findings\n${verdicts}${warnings}\n\n## Tables\n${JSON.stringify(body.tables)}`;
+  }
   return `Analyze this Formula 1 race using the data below. The data has been pre-computed from telemetry — trust the numbers.${header ? "\n\n" + header : ""}\n\n${JSON.stringify(compactSummary(body))}`;
 }
 
@@ -479,7 +492,7 @@ export default {
     }
     // Everything the analytics engine needs for one session, in one response.
     if (url.pathname.startsWith("/api/session/")) {
-      const r = await handleBundleRequest(request, env, ctx);
+      const r = (await handleBundleRequest(request, env, ctx)) ?? (await handleSessionInsightsRequest(request, env, ctx));
       if (r) return r;
     }
     // Operator endpoints (bearer secret; 404 when unauthorised).

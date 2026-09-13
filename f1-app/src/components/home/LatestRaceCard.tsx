@@ -4,7 +4,7 @@ import { shareUrl, canShareUrl } from "../../lib/share";
 import { fd } from "../../lib/format";
 import { loadRaceIndex } from "../../lib/raceIndex";
 import { loadSeasonTrends } from "../../lib/seasonClient";
-import { api } from "../../lib/api";
+import { api, fetchInsights } from "../../lib/api";
 import { paths } from "../../lib/constants";
 import type { ConstructorPaceRace } from "../../lib/seasonUtils";
 
@@ -20,6 +20,7 @@ interface LatestRace {
   fastestTeam?: string;
   fastestTeamGap?: string;
   poleTeam?: string;          // P1 in the constructor-pace ranking, if available
+  verdicts?: { id: string; headline: string; confidence: string; tab: string }[];
 }
 
 export default function LatestRaceCard({ year }: { year: number }) {
@@ -70,8 +71,21 @@ export default function LatestRaceCard({ year }: { year: number }) {
         c => c.slug === latest.slug,
       );
 
+      // The engine's top findings for the race, from the Worker-side run.
+      let verdicts: LatestRace["verdicts"] = undefined;
+      if (latest.sessions?.race) {
+        try {
+          const ins = await fetchInsights(latest.sessions.race);
+          verdicts = (ins?.verdicts ?? [])
+            .filter((v: any) => v.id !== "data_quality" && v.id !== "race_winner")
+            .slice(0, 3)
+            .map((v: any) => ({ id: v.id, headline: v.headline, confidence: v.confidence, tab: v.evidence?.tab ?? "overview" }));
+        } catch { /* card still renders without them */ }
+      }
+
       if (cancelled) return;
       setRace({
+        verdicts,
         year,
         slug: latest.slug,
         meetingKey: latest.meetingKey,
@@ -143,6 +157,17 @@ export default function LatestRaceCard({ year }: { year: number }) {
           </>
         )}
       </div>
+      {race.verdicts && race.verdicts.length > 0 && (
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "grid", gap: 8 }}>
+          {race.verdicts.map(v => (
+            <li key={v.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, color: C.text, lineHeight: 1.45 }}>
+              <span style={{ width: 3, alignSelf: "stretch", borderRadius: 2, background: C.accent, flexShrink: 0, minHeight: 16 }} aria-hidden="true" />
+              <a href={race.raceSk ? paths.analysis(race.year, String(race.meetingKey), String(race.raceSk), v.tab as any) : analysisHref}
+                style={{ color: "inherit", textDecoration: "none" }}>{v.headline}</a>
+            </li>
+          ))}
+        </ul>
+      )}
       <div style={{
         display: "flex",
         gap: 8,

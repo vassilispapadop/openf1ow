@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { buildFullSummary, type RaceSummaryInput } from "../lib/buildAnalysisSummary";
+import { useSessionModel } from "../lib/useSessionModel";
+import { buildFacts } from "../engine/index.ts";
 import { F, M, sty } from "../lib/styles";
 
 // Simple markdown-to-JSX renderer for headers, bold, lists
@@ -73,7 +74,8 @@ interface AIAnalysisProps {
   raceMeta?: { meetingName?: string; circuit?: string; country?: string; year?: number; sessionName?: string };
 }
 
-export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, raceControl, results, raceMeta }: AIAnalysisProps) {
+export default function AIAnalysis({ allLaps, raceMeta }: AIAnalysisProps) {
+  const { model } = useSessionModel();
   const [analysis, setAnalysis] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -114,10 +116,10 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
     chunkRef.current = "";
 
     try {
-      const summary = buildFullSummary({
-        allLaps, drivers, stints, pits, weather, raceControl, results,
-      } as RaceSummaryInput);
-      const payload = raceMeta ? { ...summary, raceMeta } : summary;
+      // The same facts the verdicts and the export are built from.
+      if (!model) throw new Error("Session data not loaded yet.");
+      const facts = buildFacts(model);
+      const payload = raceMeta ? { ...facts, raceMeta } : facts;
 
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -183,7 +185,7 @@ export default function AIAnalysis({ allLaps, drivers, stints, pits, weather, ra
       setError(e.message || "Failed to generate analysis");
     }
     setLoading(false);
-  }, [allLaps, drivers, stints, pits, weather, raceControl, results]);
+  }, [model, raceMeta]);
 
   // Initial state — no analysis yet
   if (!analysis && !loading && !error) {
