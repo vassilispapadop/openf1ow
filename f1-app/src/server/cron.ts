@@ -76,7 +76,12 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
   report.picked = { session_key: sk, session_name: row.session_name, pass };
 
   // Second pass: drop what the first pass cached so corrections come through.
-  if (pass === 2) await purgeSession(sk, env);
+  if (pass === 2) {
+    await purgeSession(sk, env);
+    const m = await readDone(env.F1_DATA, sk);
+    delete m.intervalsAttemptedAt;
+    await env.F1_DATA.put(`meta/done/${sk}.json`, JSON.stringify(m), { httpMetadata: { contentType: "application/json" } });
+  }
 
   report.warmed = await warmSession(sk, env, ctx, STANDARD_ENDPOINTS);
   // Paywall still up (401) or throttled (429): leave the marker unwritten so
@@ -85,7 +90,19 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
   if (blocked) { report.skipped = "upstream blocked — will retry"; return report; }
 
   const isRace = row.session_type === "Race";
-  if (isRace) report.intervals = await deriveIntervals(sk, env, ctx);
+  const marker = await readDone(env.F1_DATA, sk);
+  const putMarker = () => env.F1_DATA.put(`meta/done/${sk}.json`, JSON.stringify(marker), { httpMetadata: { contentType: "application/json" } });
+  if (isRace) {
+    // Best effort: the parse can exceed the free plan's CPU allowance, and a
+    // killed tick cannot be caught — so record the attempt first and never
+    // try twice. scripts/derive-intervals.mjs covers what the Worker cannot.
+    if (marker.intervalsAttemptedAt) report.intervals = "skipped (attempted before)";
+    else {
+      marker.intervalsAttemptedAt = new Date(now).toISOString();
+      await putMarker();
+      report.intervals = await deriveIntervals(sk, env, ctx);
+    }
+  }
 
   const ins = await computeInsights(sk, env, ctx);
   report.insights = `${ins.status} ${ins.cached ? "HIT" : "computed"} (${ins.state})`;
@@ -100,8 +117,7 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
     }
   }
 
-  const marker = await readDone(env.F1_DATA, sk);
   if (pass === 1) marker.pass1At = new Date(now).toISOString(); else marker.pass2At = new Date(now).toISOString();
-  await env.F1_DATA.put(`meta/done/${sk}.json`, JSON.stringify(marker), { httpMetadata: { contentType: "application/json" } });
+  await putMarker();
   return report;
 }

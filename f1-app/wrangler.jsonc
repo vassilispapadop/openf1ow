@@ -44,11 +44,6 @@
   "triggers": {
     "crons": ["*/15 * * * *"]
   },
-  // The cron parses a multi-MB intervals feed and runs the engine; requests
-  // stay well under the default and are unaffected by this ceiling.
-  "limits": {
-    "cpu_ms": 60000
-  },
   // Public Worker variables (safe to commit — these aren't secrets).
   // GA_ID is the Google Analytics 4 measurement ID; the recap/insights
   // renderers inject the gtag snippet when this is set.

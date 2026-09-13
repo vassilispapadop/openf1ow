@@ -8,7 +8,7 @@ export const SECOND_PASS_DELAY_MS = 48 * 3_600_000;
 export const HORIZON_MS = 7 * 86_400_000;
 
 export interface SessionRow { session_key: number; meeting_key: number; session_name: string; session_type: string; date_start: string; date_end: string }
-export interface DoneMarker { pass1At?: string; pass2At?: string }
+export interface DoneMarker { pass1At?: string; pass2At?: string; intervalsAttemptedAt?: string }
 
 /** Which session (and pass) the next tick should work on: the oldest that
  *  ended more than FIRST_PASS_DELAY ago, within the horizon, and either has
