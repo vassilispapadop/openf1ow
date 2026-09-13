@@ -20,27 +20,34 @@ function PageviewTracker() {
   return null;
 }
 
+/**
+ * The route table, as a Route element tree. Exported so the route-inventory
+ * test can run every public URL through the real table — shared links, the
+ * sitemap and SEO all depend on these paths never changing.
+ */
+export const appRoutes = (
+  <Route element={<SessionLayout />}>
+    <Route index element={<HomePage />} />
+    <Route path=":year" element={<HomePage />} />
+    {/* Static "trends" segment must come before :meetingKey or it
+        would be matched as a meeting key. React Router 7's ranker
+        prefers static over dynamic, but listing it first is clearer. */}
+    <Route path=":year/trends" element={<SeasonTrendsPage />} />
+    <Route path=":year/:meetingKey" element={<HomePage />} />
+    <Route path=":year/:meetingKey/:sessionKey" element={<Navigate to={`analysis/${DEFAULT_ANALYSIS_TAB}`} replace />} />
+    <Route path=":year/:meetingKey/:sessionKey/analysis" element={<Navigate to={DEFAULT_ANALYSIS_TAB} replace />} />
+    <Route path=":year/:meetingKey/:sessionKey/analysis/:subTab" element={<AnalysisPage />} />
+    <Route path=":year/:meetingKey/:sessionKey/driver/:driverNumber" element={<Navigate to={DEFAULT_DRIVER_TAB} replace />} />
+    <Route path=":year/:meetingKey/:sessionKey/driver/:driverNumber/:tab" element={<DriverPage />} />
+  </Route>
+);
+
 export default function App() {
   return (
     <>
       <LegacyRedirect />
       <PageviewTracker />
-      <Routes>
-        <Route element={<SessionLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path=":year" element={<HomePage />} />
-          {/* Static "trends" segment must come before :meetingKey or it
-              would be matched as a meeting key. React Router 7's ranker
-              prefers static over dynamic, but listing it first is clearer. */}
-          <Route path=":year/trends" element={<SeasonTrendsPage />} />
-          <Route path=":year/:meetingKey" element={<HomePage />} />
-          <Route path=":year/:meetingKey/:sessionKey" element={<Navigate to={`analysis/${DEFAULT_ANALYSIS_TAB}`} replace />} />
-          <Route path=":year/:meetingKey/:sessionKey/analysis" element={<Navigate to={DEFAULT_ANALYSIS_TAB} replace />} />
-          <Route path=":year/:meetingKey/:sessionKey/analysis/:subTab" element={<AnalysisPage />} />
-          <Route path=":year/:meetingKey/:sessionKey/driver/:driverNumber" element={<Navigate to={DEFAULT_DRIVER_TAB} replace />} />
-          <Route path=":year/:meetingKey/:sessionKey/driver/:driverNumber/:tab" element={<DriverPage />} />
-        </Route>
-      </Routes>
+      <Routes>{appRoutes}</Routes>
     </>
   );
 }

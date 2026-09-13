@@ -1,6 +1,18 @@
 import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { DEFAULT_YEAR, DEFAULT_ANALYSIS_TAB, DEFAULT_DRIVER_TAB, paths } from "../lib/constants";
+import {
+  DEFAULT_YEAR, DEFAULT_ANALYSIS_TAB, DEFAULT_DRIVER_TAB, ANALYSIS_VIEWS, TAB_REDIRECT, paths, type ViewKey,
+} from "../lib/constants";
+
+const VIEW_KEYS = new Set<string>(ANALYSIS_VIEWS.map(v => v.key));
+
+/** Legacy `?subTab=` values were the old tab slugs; map them onto a live view
+ *  (or the default) rather than emitting a path the router can't serve. */
+function toViewKey(raw: string | null): ViewKey {
+  if (!raw) return DEFAULT_ANALYSIS_TAB;
+  if (VIEW_KEYS.has(raw)) return raw as ViewKey;
+  return TAB_REDIRECT[raw] ?? DEFAULT_ANALYSIS_TAB;
+}
 
 export default function LegacyRedirect() {
   const navigate = useNavigate();
@@ -15,7 +27,7 @@ export default function LegacyRedirect() {
     const sk = sp.get("sk");
     const dn = sp.get("dn");
     const view = sp.get("view");
-    const subTab = sp.get("subTab") || DEFAULT_ANALYSIS_TAB;
+    const subTab = toViewKey(sp.get("subTab"));
     const tab = sp.get("tab") || DEFAULT_DRIVER_TAB;
 
     if (sk) {

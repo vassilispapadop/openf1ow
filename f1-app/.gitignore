@@ -34,3 +34,6 @@ scripts/.cache-trends
 !.dev.vars.example
 .env*
 !.env.example
+
+# visual-regression captures from scripts/screens.mjs (review locally, do not commit)
+screenshots/

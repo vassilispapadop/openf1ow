@@ -1,11 +1,13 @@
 {
   "compilerOptions": {
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.worker.tsbuildinfo",
     "target": "ES2023",
-    "useDefineForClassFields": true,
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "lib": ["ES2023"],
     "module": "ESNext",
-    "types": ["vite/client"],
+    // Workers runtime globals (R2Bucket, ExecutionContext, caches.default…).
+    // The app project only knows the DOM, which is why src/server never
+    // type-checked before this file existed.
+    "types": ["@cloudflare/workers-types"],
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -24,8 +26,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"],
-  // The Worker is its own project (tsconfig.worker.json) with Workers types
-  // instead of the DOM.
-  "exclude": ["src/server"]
+  "include": ["src/server"]
 }

@@ -1,0 +1,23 @@
+[
+  {
+    "path": "/",
+    "resourceSizes": [
+      { "resourceType": "script", "budget": 250 },
+      { "resourceType": "total", "budget": 600 }
+    ],
+    "timings": [
+      { "metric": "largest-contentful-paint", "budget": 2500 },
+      { "metric": "interactive", "budget": 3500 }
+    ]
+  },
+  {
+    "path": "/*/analysis/*",
+    "resourceSizes": [
+      { "resourceType": "script", "budget": 400 },
+      { "resourceType": "total", "budget": 900 }
+    ],
+    "timings": [
+      { "metric": "largest-contentful-paint", "budget": 3000 }
+    ]
+  }
+]

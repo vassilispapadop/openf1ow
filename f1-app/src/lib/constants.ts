@@ -103,7 +103,9 @@ export const TAB_REDIRECT: Record<string, ViewKey> = {
 export const paths = {
   home: () => "/",
   meeting: (year: number, mk: string) => `/${year}/${mk}`,
-  analysis: (year: number, mk: string, sk: string, subTab = DEFAULT_ANALYSIS_TAB) =>
+  // Annotated: a bare `= DEFAULT_ANALYSIS_TAB` default narrows the parameter to
+  // the literal "overview", which rejects every other view key.
+  analysis: (year: number, mk: string, sk: string, subTab: ViewKey = DEFAULT_ANALYSIS_TAB) =>
     `/${year}/${mk}/${sk}/analysis/${subTab}`,
   driver: (year: number, mk: string, sk: string, dn: string, tab = DEFAULT_DRIVER_TAB) =>
     `/${year}/${mk}/${sk}/driver/${dn}/${tab}`,
