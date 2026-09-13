@@ -54,6 +54,8 @@ export interface LineChartProps {
   onHoverX?: (x: number | null) => void;
   legend?: boolean | { columns?: number; compact?: boolean; hint?: boolean };
   rankTooltip?: boolean;         // rank all series at hover x (default true)
+  /** Order of the ranked hover list: "asc" (lowest first — gaps, times) or "desc" (highest first — speeds). */
+  rankOrder?: "asc" | "desc";
   ariaLabel?: string;
   className?: string;
   children?: (sc: import("./core/Frame.tsx").FrameScales) => ReactNode;   // extra marks
@@ -61,7 +63,7 @@ export interface LineChartProps {
 
 export default function LineChart({
   series, height = 360, x, y, curve = "monotone", showDots, endDots = true, endLabels, bands, marks, tipTitle, format,
-  focus, hidden: hiddenIn, onHiddenChange, hovered: hoveredIn, onHover, onSelect, hoverX: hoverXIn, onHoverX, legend = true, rankTooltip = true,
+  focus, hidden: hiddenIn, onHiddenChange, hovered: hoveredIn, onHover, onSelect, hoverX: hoverXIn, onHoverX, legend = true, rankTooltip = true, rankOrder = "asc",
   ariaLabel, className, children,
 }: LineChartProps) {
   const [hiddenLocal, setHiddenLocal] = useState<Set<string>>(new Set());
@@ -110,9 +112,9 @@ export default function LineChart({
       const p = sr.points.find(pt => pt.x === snappedX);
       if (p) out.push({ sr, p });
     }
-    out.sort((a, b) => (y.invert ? a.p.y - b.p.y : a.p.y - b.p.y));
+    out.sort((a, b) => (rankOrder === "desc" ? b.p.y - a.p.y : a.p.y - b.p.y));
     return out;
-  }, [snappedX, series, y.invert]);
+  }, [snappedX, series, rankOrder]);
 
   const onPointerX = useCallback((dx: number | null, e: React.PointerEvent<SVGSVGElement>) => {
     setHoverX(dx);
@@ -121,7 +123,7 @@ export default function LineChart({
     if (sx == null) { tip.hide(); return; }
     const rs: { sr: Series; p: SeriesPoint }[] = [];
     for (const sr of series) { const p = sr.points.find(pt => pt.x === sx); if (p) rs.push({ sr, p }); }
-    rs.sort((a, b) => a.p.y - b.p.y);
+    rs.sort((a, b) => (rankOrder === "desc" ? b.p.y - a.p.y : a.p.y - b.p.y));
     tip.show(e, (
       <>
         <TipTitle>{tipTitle ? tipTitle(sx) : (x.format ? x.format(sx) : String(sx))}</TipTitle>
@@ -130,7 +132,7 @@ export default function LineChart({
         ))}
       </>
     ));
-  }, [setHoverX, rankTooltip, xs, series, tipTitle, x.format, fmt, hidden, tip]);
+  }, [setHoverX, rankTooltip, rankOrder, xs, series, tipTitle, x.format, fmt, hidden, tip]);
 
   const onLeave = useCallback(() => { setHoverX(null); tip.hide(); }, [setHoverX, tip]);
 

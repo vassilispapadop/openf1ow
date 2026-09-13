@@ -7,6 +7,7 @@ import ModelGate from "../insights/ModelGate";
 import AnalysisTabBar from "../shell/AnalysisTabBar";
 import Verdicts, { KpiRow } from "../insights/Verdicts";
 import TopSpeedsCard from "../insights/TopSpeedsCard";
+import SuperClipping from "../analysis/SuperClipping";
 import {
   BestLapsCard, SectorBestsCard, SessionEvolutionCard, TrackEvolutionCard, RunPlanCard, LongRunsCard, CompoundProgramCard,
   TeammateSingleLapCard, HeadlineLapTrackCards, sessionIntro,
@@ -68,6 +69,7 @@ export default function PracticeAnalysis({ sessionKey, sessionName, subTab, onSu
               <Verdicts area="track" onOpenTab={onSubTabChange} />
               <TrackEvolutionCard />
               <HeadlineLapTrackCards sessionKey={sessionKey} />
+              <SuperClipping sessionKey={sessionKey} allLaps={model.laps} drivers={model.drivers.map(d => d.driver)} />
             </>
           )}
         </div>

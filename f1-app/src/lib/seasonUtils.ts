@@ -473,6 +473,32 @@ export function aggregateTopSpeedByRace(races: RaceData[]): TopSpeedRace[] {
 // it needs per-lap car_data and location, which only the offline trends script
 // fetches. buildSeasonTrends therefore leaves it out.
 
+// ---------------------------------------------------------------------------
+// Super clipping (throttle-limited straights)
+// ---------------------------------------------------------------------------
+// From the same qualifying telemetry as the corner/straight split: on each
+// team's fastest lap, stretches where the driver is at full throttle yet the
+// car keeps losing speed outside DRS zones — the engine clipping its
+// deployment. Built by the offline trends script only.
+
+export interface ClippingPoint {
+  team: string;
+  driver: string;
+  clipEvents: number;        // separate clipping stretches on the lap
+  clipMeters: number;        // total distance spent clipping
+  speedLost: number;         // km/h, summed over the events
+  worstDrop: number;         // km/h, the single worst event
+}
+
+export interface ClippingRace {
+  meetingKey: number;
+  slug: string;
+  meetingName: string;
+  dateStart: string;
+  round: number;
+  teams: ClippingPoint[];    // by speed lost, worst first
+}
+
 export interface CornerStraightPoint {
   team: string;
   driver: string;           // name_acronym of whoever set the team's lap
@@ -515,6 +541,7 @@ export interface SeasonTrends {
   conversion?: ConversionRace[];         // optional — artifacts since 2026-09
   tyreLife?: TyreLifeRace[];             // optional — artifacts since 2026-09
   topSpeed?: TopSpeedRace[];             // optional — artifacts since 2026-09
+  superClipping?: ClippingRace[];        // optional — telemetry-derived, artifacts since 2026-09
 }
 
 export function buildSeasonTrends(year: number, races: RaceData[]): SeasonTrends {

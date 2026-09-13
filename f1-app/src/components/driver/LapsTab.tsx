@@ -82,7 +82,7 @@ export default function LapsTab({ d, best, comparisons, selLap, onLoadTel, onAdd
           format={v => Math.round(v) + " km/h"}
           tipTitle={l => `Lap ${l}`}
           legend={{ compact: true, columns: 3 }}
-          rankTooltip={false}
+          rankOrder="desc"
           ariaLabel="Speed trap and intermediate speeds by lap"
         />
       </Section>

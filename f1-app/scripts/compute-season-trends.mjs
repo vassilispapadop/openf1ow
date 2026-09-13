@@ -19,6 +19,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { compareLapSegments } from "../src/engine/telemetry/lapSegments.ts";
 import { mergeDistance } from "../src/engine/telemetry/telemetry.ts";
+import { buildDrsZones, detectClipping } from "../src/engine/telemetry/clipping.ts";
 import { eligibleForBest } from "../src/engine/index.ts";
 import { buildSeasonTrends, qualiModel } from "../src/lib/seasonUtils.ts";
 
@@ -140,6 +141,20 @@ async function cornerStraightForRace(race) {
   }
   if (traces.length < 2) return null;
 
+  // Super clipping on the same laps: full throttle yet losing speed, outside
+  // the DRS zones any of these laps used.
+  const drsZones = buildDrsZones(traces.map(t => t.data));
+  const clipping = traces.map(t => {
+    const events = detectClipping(t.data, drsZones);
+    return {
+      team: t.label, driver: t.driver,
+      clipEvents: events.length,
+      clipMeters: Math.round(events.reduce((s, e) => s + Math.max(0, (e.endDistance ?? e.distance) - e.distance), 0)),
+      speedLost: Math.round(events.reduce((s, e) => s + e.speedDrop, 0) * 10) / 10,
+      worstDrop: Math.round(events.reduce((m, e) => Math.max(m, e.speedDrop), 0) * 10) / 10,
+    };
+  }).sort((a, b) => b.speedLost - a.speedLost);
+
   const cmp = compareLapSegments(traces);
   if (!cmp) return null;
 
@@ -184,6 +199,7 @@ async function cornerStraightForRace(race) {
     straightDistance: Math.round(cmp.straightDistance),
     trackDistance: Math.round(cmp.trackDistance),
     teams,
+    clipping,
   };
 }
 
@@ -197,11 +213,14 @@ function round3(v) {
 async function existingCornerStraight(year) {
   try {
     const res = await fetch(`https://www.openf1ow.com/api/season-trends/${year}`);
-    if (!res.ok) return [];
+    if (!res.ok) return { cornerStraight: [], superClipping: [] };
     const prev = await res.json();
-    return Array.isArray(prev?.cornerStraight) ? prev.cornerStraight : [];
+    return {
+      cornerStraight: Array.isArray(prev?.cornerStraight) ? prev.cornerStraight : [],
+      superClipping: Array.isArray(prev?.superClipping) ? prev.superClipping : [],
+    };
   } catch {
-    return [];
+    return { cornerStraight: [], superClipping: [] };
   }
 }
 
@@ -376,11 +395,16 @@ async function processYear(year, allRaces) {
     return;
   }
 
-  const cornerStraight = skipCorners
-    ? await existingCornerStraight(year)
-    : await aggregateCornerStraightByRace(racesData);
+  let cornerStraight, superClipping;
   if (skipCorners) {
+    ({ cornerStraight, superClipping } = await existingCornerStraight(year));
     console.log(`  [corners] skipped — carrying over ${cornerStraight.length} previously published races`);
+  } else {
+    const rows = await aggregateCornerStraightByRace(racesData);
+    // The clipping rows ride along on the corner rows; split them out here so
+    // each section of the artifact has one shape.
+    superClipping = rows.filter(r => r.clipping?.length).map(({ meetingKey, slug, meetingName, dateStart, round, clipping }) => ({ meetingKey, slug, meetingName, dateStart, round, teams: clipping }));
+    cornerStraight = rows.map(({ clipping: _c, ...rest }) => rest);
   }
 
   // Every engine-backed series comes from one builder (src/lib/seasonUtils.ts),
@@ -389,8 +413,9 @@ async function processYear(year, allRaces) {
   // only this script fetches.
   const trends = buildSeasonTrends(year, racesData);
   if (cornerStraight.length) trends.cornerStraight = cornerStraight;
+  if (superClipping.length) trends.superClipping = superClipping;
 
-  console.log(`  built trends: cp=${trends.constructorPace.length} cq=${trends.constructorQualifying?.length ?? 0} tg=${trends.teammateGap.length} td=${trends.tireDeg.length} tl=${trends.tyreLife?.length ?? 0} cv=${trends.conversion?.length ?? 0} ts=${trends.topSpeed?.length ?? 0} cs=${cornerStraight.length}`);
+  console.log(`  built trends: cp=${trends.constructorPace.length} cq=${trends.constructorQualifying?.length ?? 0} tg=${trends.teammateGap.length} td=${trends.tireDeg.length} tl=${trends.tyreLife?.length ?? 0} cv=${trends.conversion?.length ?? 0} ts=${trends.topSpeed?.length ?? 0} cs=${cornerStraight.length} clip=${superClipping.length}`);
   uploadToR2(year, trends);
 }
 

@@ -7,6 +7,7 @@ import ModelGate from "../insights/ModelGate";
 import AnalysisTabBar from "../shell/AnalysisTabBar";
 import Verdicts, { KpiRow } from "../insights/Verdicts";
 import TopSpeedsCard from "../insights/TopSpeedsCard";
+import SuperClipping from "../analysis/SuperClipping";
 import {
   PoleHero, BestLapsCard, SectorBestsCard, SessionEvolutionCard, TrackEvolutionCard, RunPlanCard, StartTyresCard,
   TeammateSingleLapCard, HeadlineLapTrackCards, sessionIntro,
@@ -67,6 +68,7 @@ export default function QualifyingAnalysis({ sessionKey, sessionName, subTab, on
               <Verdicts area="track" onOpenTab={onSubTabChange} />
               <TrackEvolutionCard />
               <HeadlineLapTrackCards sessionKey={sessionKey} />
+              <SuperClipping sessionKey={sessionKey} allLaps={model.laps} drivers={model.drivers.map(d => d.driver)} />
             </>
           )}
         </div>

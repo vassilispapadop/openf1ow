@@ -19,6 +19,7 @@ export const SEASON_SECTIONS = {
   tyreLife: "tyre-life",
   conversion: "conversion",
   topSpeed: "top-speed",
+  superClipping: "super-clipping",
 } as const;
 
 export default function SeasonTrendsPage() {
@@ -195,6 +196,21 @@ export default function SeasonTrendsPage() {
           share={{ meta: `${year} top speeds`, filename: `openf1ow-top-speed-${year}` }}
         >
           <SeasonTrendChart trends={trends} metric="topSpeed" />
+        </Section>
+      )}
+
+      {trends.superClipping && trends.superClipping.length > 0 && (
+        <Section
+          id={SEASON_SECTIONS.superClipping}
+          title="Super clipping by team"
+          hint="Where a car runs out of electrical deployment on the straights: full throttle, yet losing speed, outside the DRS zones. Measured on each team's fastest qualifying lap, round by round."
+          method={{
+            summary: "A clipping event is a run of ≥ 2 samples at 100 % throttle above 150 km/h where speed keeps falling (≥ 2 km/h in total), outside zones where any driver had DRS eligible or open (± 200 m). Speed lost = sum of the drops over the lap; metres = distance spent clipping.",
+            caveats: ["Only the team's single fastest qualifying lap is analysed, so a lap in a tow or with a lift reads differently from a clean one."],
+          }}
+          share={{ meta: `${year} super clipping`, filename: `openf1ow-super-clipping-${year}` }}
+        >
+          <SeasonTrendChart trends={trends} metric="clipping" />
         </Section>
       )}
 
