@@ -28,8 +28,6 @@ function deltaColor(v: number): string {
   return v < 0 ? C.pos : C.neg;
 }
 
-const KINDS: SectionKind[] = ["corner", "curve", "straight"];
-
 /** Diverging bars: how much of a lap's deficit came from each kind of section.
  *  Bars grow from a shared centre line, left when the lap was quicker there. */
 function SplitBars({ t, scale }: { t: SegmentTotals; scale: number }) {
@@ -96,6 +94,9 @@ export default function SegmentComparison({ traces }: Props) {
     <div style={{ fontFamily: F }}>
       <div style={{ fontSize: 11, color: C.textMute, marginBottom: 12 }}>
         {cmp.cornerCount} corner sections ({Math.round(cmp.cornerDistance).toLocaleString()} m)
+        {cmp.curveCount > 0 && (
+          <>{" · "}{cmp.curveCount} fast curves ({Math.round(cmp.curveDistance).toLocaleString()} m)</>
+        )}
         {" · "}
         {cmp.straightCount} straights ({Math.round(cmp.straightDistance).toLocaleString()} m)
         {" · "}
@@ -139,9 +140,10 @@ export default function SegmentComparison({ traces }: Props) {
                 </span>
               </span>
             </div>
-            <SplitBar t={t} scale={cardScale(t)} />
+            <SplitBars t={t} scale={cardScale(t)} />
             <div style={{ fontSize: 10.5, color: C.textMute, marginTop: 9 }}>
               fastest through {t.cornersWon}/{cmp.cornerCount} corners
+              {cmp.curveCount > 0 && <>{" · "}{t.curvesWon}/{cmp.curveCount} fast curves</>}
               {" · "}
               {t.straightsWon}/{cmp.straightCount} straights
             </div>
@@ -166,7 +168,7 @@ export default function SegmentComparison({ traces }: Props) {
           </thead>
           <tbody>
             {segments.map((s, i) => {
-              const kindColor = KIND_COLOR[s.kind];
+              const kindColor = SECTION_COLORS[s.kind];
               // How much the winner of this section took out of the slowest
               // lap through it, drawn in the winner's colour.
               const best = s.timings.reduce((m, t) => (t.time < m.time ? t : m), s.timings[0]);
@@ -233,15 +235,17 @@ export default function SegmentComparison({ traces }: Props) {
 
       <p style={{ fontSize: 11, color: C.textMute, margin: "12px 4px 0", lineHeight: 1.5 }}>
         Sections come from the shape of the track, not from the driving: a{" "}
-        <strong style={{ color: KIND_COLOR.corner }}>corner</strong> is where the racing line's radius drops below
-        250 m — turns closer than 60 m apart, so chicanes and esses, count as one section — and everything else is
-        a <strong style={{ color: KIND_COLOR.straight }}>straight</strong>, braking and acceleration zones
-        included. That means a corner taken flat still counts as a corner. Every lap is cut at the same track
-        positions and timed over its own start-to-line window, so the section times add up to the lap time and the
-        corner and straight deltas add up to the lap-time gap exactly. Turn numbers are counted from the
-        telemetry and won't always match the official circuit numbering, which splits some flowing complexes into
-        several numbered turns. Car data samples at ~4 Hz, so an individual section gap carries around a tenth of
-        noise even though the totals don't.
+        <strong style={{ color: SECTION_COLORS.corner }}>corner</strong> is where the racing line's radius drops below
+        250 m — turns closer than 60 m apart, so chicanes and esses, count as one section. A{" "}
+        <strong style={{ color: SECTION_COLORS.curve }}>fast curve</strong> is a wider bend (radius up to 600 m) that
+        still loads the car at 1.6 g or more — Eau Rouge, Curva Grande, Blanchimont — where drag and power decide the
+        time rather than grip. Everything else is a{" "}
+        <strong style={{ color: SECTION_COLORS.straight }}>straight</strong>, braking and acceleration zones
+        included. Every lap is cut at the same track positions and timed over its own start-to-line window, so the
+        section times add up to the lap time and the corner, curve and straight deltas add up to the lap-time gap
+        exactly. Turn numbers are counted from the telemetry and won't always match the official circuit numbering,
+        which splits some flowing complexes into several numbered turns. Car data samples at ~4 Hz, so an individual
+        section gap carries around a tenth of noise even though the totals don't.
       </p>
     </div>
   );
