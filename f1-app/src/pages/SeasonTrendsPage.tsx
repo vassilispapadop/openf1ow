@@ -3,12 +3,8 @@ import { useParams } from "react-router-dom";
 import { F, C, sty } from "../lib/styles";
 import { loadSeasonTrends } from "../lib/seasonClient";
 import type { SeasonTrends } from "../lib/seasonUtils";
-import ConstructorPaceEvolution from "../components/season/ConstructorPaceEvolution";
-import ConstructorQualifyingEvolution from "../components/season/ConstructorQualifyingEvolution";
-import TeammateGapEvolution from "../components/season/TeammateGapEvolution";
-import TireDegByCompound from "../components/season/TireDegByCompound";
 import CornerStraightBalance from "../components/season/CornerStraightBalance";
-import CornerStraightEvolution from "../components/season/CornerStraightEvolution";
+import SeasonTrendChart from "../components/season/SeasonTrendChart";
 import Spinner from "../components/Spinner";
 import { Section } from "../ui";
 
@@ -104,7 +100,7 @@ export default function SeasonTrendsPage() {
         }}
         share={{ meta: `${year} constructor pace`, filename: `openf1ow-constructor-pace-${year}` }}
       >
-        <ConstructorPaceEvolution races={trends.constructorPace} />
+        <SeasonTrendChart trends={trends} metric="race" />
       </Section>
 
       {trends.constructorQualifying && trends.constructorQualifying.length > 0 && (
@@ -118,7 +114,7 @@ export default function SeasonTrendsPage() {
           }}
           share={{ meta: `${year} constructor qualifying`, filename: `openf1ow-constructor-qualifying-${year}` }}
         >
-          <ConstructorQualifyingEvolution races={trends.constructorQualifying} />
+          <SeasonTrendChart trends={trends} metric="quali" />
         </Section>
       )}
 
@@ -132,7 +128,7 @@ export default function SeasonTrendsPage() {
         }}
         share={{ meta: `${year} teammate gaps`, filename: `openf1ow-teammate-gap-${year}` }}
       >
-        <TeammateGapEvolution races={trends.teammateGap} />
+        <SeasonTrendChart trends={trends} metric="teammate" />
       </Section>
 
       {hasCorners && (
@@ -142,7 +138,7 @@ export default function SeasonTrendsPage() {
           hint="The same chart shape as constructor qualifying, but on one part of the lap at a time. Switch between corners, fast curves and straights to see which way a team's development went — the axis is signed, so a line can sit above the reference."
           share={{ meta: `${year} corner & straight evolution`, filename: `openf1ow-corner-straight-evolution-${year}` }}
         >
-          <CornerStraightEvolution races={trends.cornerStraight!} />
+          <SeasonTrendChart trends={trends} metric="corners" />
         </Section>
       )}
 
@@ -167,7 +163,7 @@ export default function SeasonTrendsPage() {
         }}
         share={{ meta: `${year} tyre degradation`, filename: `openf1ow-tyre-deg-${year}` }}
       >
-        <TireDegByCompound races={trends.tireDeg} />
+        <SeasonTrendChart trends={trends} metric="tyre" />
       </Section>
 
       <footer style={{

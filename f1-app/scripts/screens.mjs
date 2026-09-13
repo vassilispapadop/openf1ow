@@ -25,7 +25,8 @@ const flag = name => { const i = args.indexOf(name); return i >= 0 ? args[i + 1]
 
 // Route inventory, one per page shape. Uses a settled 2026 weekend so the data
 // is stable; swap keys if a session is missing from the index.
-const YEAR = 2026, MK = "1294", SK = "11369", QSK = "11365", DN = "1";
+// Suzuka 2026: a settled weekend with race, qualifying and telemetry all published.
+const YEAR = 2026, MK = "1281", SK = "11253", QSK = "11249", DN = "1";
 export const ROUTES = [
   "/",
   `/${YEAR}/trends`,

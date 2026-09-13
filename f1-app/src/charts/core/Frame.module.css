@@ -1,0 +1,34 @@
+.wrap { position: relative; }
+.svg { display: block; overflow: visible; }
+.grid { stroke: var(--chart-grid); stroke-width: 1; }
+.axis { stroke: var(--chart-axis); stroke-width: 1; }
+.zeroRef { stroke: rgba(46, 213, 115, 0.35); stroke-width: 1.2; }
+.zeroPlain { stroke: var(--chart-grid-strong); stroke-width: 1; stroke-dasharray: 3 4; }
+.tick {
+  font-family: var(--mono);
+  font-size: 10px;
+  fill: var(--chart-tick);
+}
+.zeroTick {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  fill: rgba(46, 213, 115, 0.85);
+}
+.axisLabel {
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  fill: var(--text-faint);
+}
+.bandLabel {
+  font-family: var(--font);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--text-mute);
+}
+.crosshair { stroke: var(--chart-crosshair); stroke-width: 1; stroke-dasharray: 3 4; pointer-events: none; }

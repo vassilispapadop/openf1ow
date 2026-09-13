@@ -1,0 +1,26 @@
+.root { position: relative; width: 100%; font-family: var(--font); }
+.rank {
+  display: inline-block;
+  width: 14px;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.markLabel {
+  font-family: var(--font);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--text-mute);
+}
+.endLabel {
+  font-family: var(--font);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--text-dim);
+  paint-order: stroke;
+  stroke: var(--chart-halo);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+}
