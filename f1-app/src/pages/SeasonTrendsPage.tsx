@@ -16,6 +16,8 @@ export const SEASON_SECTIONS = {
   cornerStraightEvolution: "corner-straight-evolution",
   cornerStraightBalance: "corner-straight-balance",
   tyreDeg: "tyre-deg",
+  tyreLife: "tyre-life",
+  conversion: "conversion",
 } as const;
 
 export default function SeasonTrendsPage() {
@@ -165,6 +167,35 @@ export default function SeasonTrendsPage() {
       >
         <SeasonTrendChart trends={trends} metric="tyre" />
       </Section>
+
+      {trends.tyreLife && trends.tyreLife.length > 0 && (
+        <Section
+          id={SEASON_SECTIONS.tyreLife}
+          title="Tyre life by compound"
+          hint="How far each compound was pushed, race by race: the 90th-percentile stint length, and the tyre age at which the pooled degradation curve fell off a cliff when it did."
+          method={{
+            summary: "Per compound: residuals of fuel-corrected lap time against each stint's own intercept, binned by tyre age across every stint with a usable fit (≥ 3 stints per bin). Cliff = first bin whose median rises more than 0.3 s over the two before it. p90 stint length is over every stint on the compound.",
+            caveats: ["Stint length is a strategic choice as much as a tyre property — a one-stop race stretches every compound."],
+          }}
+          share={{ meta: `${year} tyre life`, filename: `openf1ow-tyre-life-${year}` }}
+        >
+          <SeasonTrendChart trends={trends} metric="tyreLife" />
+        </Section>
+      )}
+
+      {trends.conversion && trends.conversion.length > 0 && (
+        <Section
+          id={SEASON_SECTIONS.conversion}
+          title="Grid → finish conversion"
+          hint="Which teams turn Saturday into Sunday. Mean places gained from the grid to the flag by each team's classified drivers, every race."
+          method={{
+            summary: "Grid from the starting-grid feed (else the qualifying classification, else the position feed before the start); finish from the race classification. Retirements are left out, so a team that lost a car does not read as a gain for the other.",
+          }}
+          share={{ meta: `${year} grid to finish`, filename: `openf1ow-conversion-${year}` }}
+        >
+          <SeasonTrendChart trends={trends} metric="conversion" />
+        </Section>
+      )}
 
       <footer style={{
         marginTop: 24,

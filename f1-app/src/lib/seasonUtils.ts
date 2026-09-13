@@ -14,6 +14,7 @@ import type {
   Driver, Lap, Stint, Pit, RaceControlMsg, SessionResultRow, Interval, PositionRow, Weather, SessionInfo,
 } from "../engine/types/raw.ts";
 import {
+  conversionAnalysis, tyreLife,
   buildSessionModel, paceRanking, teammateComparisons, compoundSummary, bestLapsByDriver, eligibleForBest,
   type SessionModel,
 } from "../engine/index.ts";
@@ -327,6 +328,90 @@ export function aggregateTireDegByCompound(races: RaceData[]): TireDegRace[] {
 }
 
 // ---------------------------------------------------------------------------
+// Grid → finish conversion
+// ---------------------------------------------------------------------------
+// Did a team turn its grid slots into results? Per race: the mean places its
+// classified drivers gained from grid to flag, and the mean of "pace rank −
+// finish" (positive = finished better than the car's race pace said it should).
+
+export interface ConversionPoint {
+  team: string;
+  drivers: number;             // classified drivers counted
+  meanGridToFinish: number;    // places gained (positive) per driver
+  meanPaceToFinish: number | null;
+}
+
+export interface ConversionRace {
+  meetingKey: number;
+  slug: string;
+  meetingName: string;
+  dateStart: string;
+  round: number;
+  teams: ConversionPoint[];
+}
+
+export function aggregateConversionByRace(races: RaceData[]): ConversionRace[] {
+  return races
+    .map(r => {
+      const cv = conversionAnalysis(raceModel(r));
+      if (!cv.ok) return null;
+      const byTeam: Record<string, { g: number[]; p: number[] }> = {};
+      for (const row of cv.value.rows) {
+        if (row.gridToFinish == null) continue;
+        const t = (byTeam[row.team] ||= { g: [], p: [] });
+        t.g.push(row.gridToFinish);
+        if (row.paceToFinish != null) t.p.push(row.paceToFinish);
+      }
+      const teams: ConversionPoint[] = Object.entries(byTeam).map(([team, t]) => ({
+        team, drivers: t.g.length,
+        meanGridToFinish: +(t.g.reduce((a, b) => a + b, 0) / t.g.length).toFixed(2),
+        meanPaceToFinish: t.p.length ? +(t.p.reduce((a, b) => a + b, 0) / t.p.length).toFixed(2) : null,
+      }));
+      if (!teams.length) return null;
+      return { ...meta(r), teams: teams.sort((a, b) => b.meanGridToFinish - a.meanGridToFinish) };
+    })
+    .filter((x): x is ConversionRace => !!x);
+}
+
+// ---------------------------------------------------------------------------
+// Tyre life by compound
+// ---------------------------------------------------------------------------
+// How long each compound was run and where it fell away, from the pooled
+// residual curves (see engine/analyses/tyreLife).
+
+export interface TyreLifePoint {
+  compound: string;
+  p90StintLength: number;      // laps
+  cliffAge: number | null;     // tyre age where the pooled curve steps up, if it did
+  pooledSlope: number | null;  // s/lap
+  stints: number;
+}
+
+export interface TyreLifeRace {
+  meetingKey: number;
+  slug: string;
+  meetingName: string;
+  dateStart: string;
+  round: number;
+  compounds: TyreLifePoint[];
+}
+
+export function aggregateTyreLifeByCompound(races: RaceData[]): TyreLifeRace[] {
+  return races
+    .map(r => {
+      const tl = tyreLife(raceModel(r));
+      if (!tl.ok) return null;
+      const compounds: TyreLifePoint[] = tl.value.map(c => ({
+        compound: c.compound, p90StintLength: c.p90StintLength, cliffAge: c.cliffAge,
+        pooledSlope: c.pooledSlope != null ? +c.pooledSlope.toFixed(4) : null, stints: c.stints,
+      })).sort((a, b) => a.compound.localeCompare(b.compound));
+      if (!compounds.length) return null;
+      return { ...meta(r), compounds };
+    })
+    .filter((x): x is TyreLifeRace => !!x);
+}
+
+// ---------------------------------------------------------------------------
 // Corner / straight balance
 // ---------------------------------------------------------------------------
 // Where each team finds (or loses) its lap time: cornering vs straight-line
@@ -381,6 +466,8 @@ export interface SeasonTrends {
   teammateGap: TeammateGapRace[];
   tireDeg: TireDegRace[];
   cornerStraight?: CornerStraightRace[]; // optional — telemetry-derived, only in artifacts built with it
+  conversion?: ConversionRace[];         // optional — artifacts since 2026-09
+  tyreLife?: TyreLifeRace[];             // optional — artifacts since 2026-09
 }
 
 export function buildSeasonTrends(year: number, races: RaceData[]): SeasonTrends {
@@ -392,5 +479,7 @@ export function buildSeasonTrends(year: number, races: RaceData[]): SeasonTrends
     constructorQualifying: aggregateConstructorQualifyingByRace(races),
     teammateGap: aggregateTeammateGapTrend(races),
     tireDeg: aggregateTireDegByCompound(races),
+    conversion: aggregateConversionByRace(races),
+    tyreLife: aggregateTyreLifeByCompound(races),
   };
 }

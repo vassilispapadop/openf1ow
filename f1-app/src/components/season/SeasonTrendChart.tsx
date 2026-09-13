@@ -10,9 +10,9 @@ import { fmt, shortMeetingName } from "../../charts/core/scales";
 import { Segmented } from "../../ui";
 import { C } from "../../lib/styles";
 import { TEAM_COLORS, TEAM_FALLBACK_COLORS, TC } from "../../lib/constants";
-import type { SeasonTrends, TireDegRace, CornerStraightRace } from "../../lib/seasonUtils";
+import type { SeasonTrends, TireDegRace, CornerStraightRace, TyreLifeRace } from "../../lib/seasonUtils";
 
-export type SeasonMetric = "race" | "quali" | "teammate" | "tyre" | "corners" | "curves" | "straights";
+export type SeasonMetric = "race" | "quali" | "teammate" | "tyre" | "tyreLife" | "conversion" | "corners" | "curves" | "straights";
 type Unit = "s" | "%";
 
 const TOP_N = 3;
@@ -63,7 +63,7 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
     let zeroLabel: string | undefined;
     let invert = true;
     let includeZero = true;
-    let zeroLine: "reference" | "plain" | false = "reference";
+    let zeroLine: "reference" | "plain" | false = "reference" as "reference" | "plain" | false;
 
     if (metric === "race") {
       const races = trends.constructorPace;
@@ -103,6 +103,33 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
       invert = false;
       zeroLine = "plain";
       zeroLabel = undefined;
+    } else if (metric === "conversion") {
+      const races = trends.conversion ?? [];
+      rounds = races.map(r => ({ round: r.round, meetingName: r.meetingName }));
+      series = teamSeries(races, (_r, t) => t.meanGridToFinish, pts => -mean(pts));
+      yFormat = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(1) + " places";
+      yTicksFmt = v => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(0);
+      invert = false;
+      includeZero = true;
+      zeroLine = "plain";
+      zeroLabel = "held position";
+    } else if (metric === "tyreLife") {
+      const races = (trends.tyreLife ?? []) as TyreLifeRace[];
+      rounds = races.map(r => ({ round: r.round, meetingName: r.meetingName }));
+      const byC: Record<string, { x: number; y: number }[]> = {};
+      for (const r of races) for (const c of r.compounds) (byC[c.compound] ||= []).push({ x: r.round, y: c.p90StintLength });
+      series = Object.entries(byC).map(([compound, pts]) => ({
+        key: compound, label: compound, color: TC[compound] ?? C.textDim, points: pts.sort((a, b) => a.x - b.x), rank: -mean(pts.map(p => p.y)),
+      })).sort((a, b) => a.rank - b.rank);
+      // Cliff ages as dashed companions where the pooled curve stepped up.
+      const cliffs: Record<string, { x: number; y: number }[]> = {};
+      for (const r of races) for (const c of r.compounds) if (c.cliffAge != null) (cliffs[c.compound] ||= []).push({ x: r.round, y: c.cliffAge });
+      extra = Object.entries(cliffs).map(([compound, pts]) => ({ key: compound + "-cliff", label: compound + " cliff", color: TC[compound] ?? C.textDim, dash: true, points: pts.sort((a, b) => a.x - b.x), rank: Infinity }));
+      yFormat = v => Math.round(v) + " laps";
+      yTicksFmt = v => String(Math.round(v));
+      invert = false;
+      includeZero = true;
+      zeroLine = false as const;
     } else if (metric === "tyre") {
       const races = trends.tireDeg;
       rounds = races.map(r => ({ round: r.round, meetingName: r.meetingName }));
@@ -174,6 +201,8 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
         {metric === "quali" && "Each line is the faster of each team's drivers in qualifying, against the fastest team of that race. Dashed lines are the 15th- and 10th-best laps — the approximate Q1 and Q2 elimination boundaries."}
         {metric === "teammate" && "Positive: the driver who was quicker at their first race together is still ahead; below the dashed line the other teammate has taken over. Gaps are medians of paired laps in the same traffic state."}
         {metric === "tyre" && "Median slope of fuel-corrected lap time against tyre age per compound, race by race. Negative means the compound was still coming in."}
+        {metric === "tyreLife" && "Solid: the 90th-percentile stint length on each compound that race — how long teams were prepared to run it. Dashed: the tyre age where the pooled degradation curve stepped up by 0.3 s or more, when it did."}
+        {metric === "conversion" && "Mean places gained from grid to flag by each team's classified drivers. Above the line the team converted better than its grid slots; strategy, incidents and others' misfortune all land here."}
         {isCs && "A team's gap through that part of the lap on its fastest qualifying lap, against the fastest team of the weekend. Above the reference line means quicker there — which a team can manage while still losing the lap, since the corner, curve and straight gaps add up to the total."}
       </p>
     </div>

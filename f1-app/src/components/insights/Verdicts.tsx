@@ -10,6 +10,7 @@ import { Section, Badge, StatTile, Segmented } from "../../ui";
 import { C, F } from "../../lib/styles";
 import { podiumColor } from "../../lib/format";
 import type { ViewKey } from "../../lib/constants";
+import { useSelection } from "../../contexts/SelectionContext";
 
 const AREA_LABEL: Record<VerdictArea, string> = { overview: "Session", pace: "Pace", strategy: "Strategy", battles: "Battles", track: "Track" };
 const CONF_TONE = { high: "pos", medium: "warn", low: "mute" } as const;
@@ -51,6 +52,7 @@ const KPI_ACCENT: Record<NonNullable<NonNullable<Verdict["kpi"]>["accent"]>, str
 export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictArea; limit?: number; onOpenTab?: (tab: ViewKey) => void }) {
   const verdicts = useVerdicts();
   const navigate = useNavigate();
+  const sel = useSelection();
   const [filter, setFilter] = useState<VerdictArea | "all">("all");
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -64,6 +66,9 @@ export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictAre
 
   const areas = Array.from(new Set(verdicts.map(v => v.area))) as VerdictArea[];
   const openEvidence = (v: Verdict) => {
+    // The evidence opens with the verdict's drivers selected, so every card
+    // on the target tab is already focused on them.
+    if (v.evidence.drivers?.length) sel.select(v.evidence.drivers);
     if (onOpenTab) onOpenTab(v.evidence.tab as ViewKey);
     // Section flashes on #hash; set after the tab has mounted.
     setTimeout(() => {
