@@ -7,6 +7,7 @@ import { startAnalysis, conversionAnalysis, SECTION_IDS, type StartRow, type Con
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, Badge, type Column } from "../../ui";
 import { C } from "../../lib/styles";
+import { useSelection } from "../../contexts/SelectionContext";
 
 const drv = (d: { name_acronym: string; team_colour: string }) => (
   <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -17,6 +18,7 @@ const signed = (v: number | null) => (v == null ? "—" : <span style={{ color: 
 
 export function StartCard() {
   const { model } = useSessionModel();
+  const sel = useSelection();
   const result = useMemo(() => (model ? startAnalysis(model) : null), [model]);
   if (!model || !result) return null;
   const columns: Column<StartRow>[] = [
@@ -45,7 +47,7 @@ export function StartCard() {
                 {v.incidents.slice(0, 4).map((m, i) => <Badge key={i} tone="warn" size="sm">L{m.lap ?? "?"} · {m.message.toLowerCase()}</Badge>)}
               </div>
             )}
-            <Table columns={columns} rows={v.rows} rowKey={r => r.driver.driver_number} compact defaultSort={{ key: "g1", dir: "desc" }} maxHeight={460} />
+            <Table columns={columns} rows={v.rows} rowKey={r => r.driver.driver_number} compact defaultSort={{ key: "g1", dir: "desc" }} maxHeight={460} highlightKeys={sel.selected} dimOthers onRowClick={r => sel.toggle(r.driver.driver_number)} onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)} />
           </>
         )}
       </Gate>
@@ -55,6 +57,7 @@ export function StartCard() {
 
 export function GridFinishCard() {
   const { model } = useSessionModel();
+  const sel = useSelection();
   const result = useMemo(() => (model ? conversionAnalysis(model) : null), [model]);
   if (!model || !result) return null;
   const columns: Column<ConversionRow>[] = [
@@ -74,7 +77,7 @@ export function GridFinishCard() {
       share={{ meta: "grid, pace and result", filename: "openf1ow-conversion" }}
     >
       <Gate result={result} what="classification">
-        {v => <Table columns={columns} rows={v.rows} rowKey={r => r.driver.driver_number} compact maxHeight={520} />}
+        {v => <Table columns={columns} rows={v.rows} rowKey={r => r.driver.driver_number} compact maxHeight={520} highlightKeys={sel.selected} dimOthers onRowClick={r => sel.toggle(r.driver.driver_number)} onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)} />}
       </Gate>
     </Section>
   );

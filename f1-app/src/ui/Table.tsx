@@ -26,6 +26,7 @@ export interface TableProps<Row> {
   maxHeight?: number | string;
   compact?: boolean;
   highlightKey?: string | number | null;
+  highlightKeys?: ReadonlySet<string | number> | null;
   dimOthers?: boolean;
   onRowClick?: (row: Row) => void;
   onRowHover?: (row: Row | null) => void;
@@ -37,7 +38,7 @@ export interface TableProps<Row> {
 const HIDE: Record<480 | 640 | 900, string> = { 480: s.hide480, 640: s.hide640, 900: s.hide900 };
 
 export default function Table<Row>({
-  columns, rows, rowKey, defaultSort, maxHeight, compact, highlightKey, dimOthers, onRowClick, onRowHover, rowStyle, caption, className,
+  columns, rows, rowKey, defaultSort, maxHeight, compact, highlightKey, highlightKeys, dimOthers, onRowClick, onRowHover, rowStyle, caption, className,
 }: TableProps<Row>) {
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(defaultSort ?? null);
 
@@ -81,11 +82,12 @@ export default function Table<Row>({
         <tbody>
           {sorted.map((row, i) => {
             const k = rowKey(row);
-            const hl = highlightKey != null && k === highlightKey;
+            const anyHl = highlightKey != null || (highlightKeys != null && highlightKeys.size > 0);
+            const hl = (highlightKey != null && k === highlightKey) || (highlightKeys?.has(k) ?? false);
             return (
               <tr
                 key={k}
-                className={[s.tr, onRowClick && s.clickable, hl && s.highlight, dimOthers && highlightKey != null && !hl && s.dim].filter(Boolean).join(" ")}
+                className={[s.tr, onRowClick && s.clickable, hl && s.highlight, dimOthers && anyHl && !hl && s.dim].filter(Boolean).join(" ")}
                 style={rowStyle?.(row, i)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 onMouseEnter={onRowHover ? () => onRowHover(row) : undefined}

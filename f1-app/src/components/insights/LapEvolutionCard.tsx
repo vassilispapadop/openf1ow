@@ -10,12 +10,14 @@ import LineChart, { type Series } from "../../charts/LineChart";
 import { fmt } from "../../charts/core/scales";
 import { Section } from "../../ui";
 import { isSecondDriverOfTeam } from "./DeltaTraceCard";
+import { useSelection } from "../../contexts/SelectionContext";
 
 const BAND_COLOR: Record<string, string> = { SC: "rgba(255,181,71,0.10)", VSC: "rgba(255,181,71,0.06)", RED: "rgba(255,84,114,0.12)" };
 const CAP = 1.08;
 
 export default function LapEvolutionCard() {
   const { model } = useSessionModel();
+  const sel = useSelection();
   const built = useMemo(() => {
     if (!model || model.kind !== "race") return null;
     const timed = model.laps.filter(l => l.lap_duration && l.lap_duration > 0 && !hasFlag(l.flags, LapFlag.PIT_IN | LapFlag.PIT_OUT | LapFlag.LAP1));
@@ -56,7 +58,10 @@ export default function LapEvolutionCard() {
         x={{ domain: [1, built.totalLaps], format: l => `Lap ${l}`, label: "Lap" }}
         y={{ domain: built.domain, format: y => fmt.lapTime(y), zeroLine: false, targetTicks: 6 }}
         bands={built.bands}
-        focus={built.focus}
+        focus={sel.focusKeys ?? built.focus}
+        hovered={sel.hoveredKey}
+        onHover={k => sel.setHovered(k ? Number(k) : null)}
+        onSelect={k => sel.toggle(Number(k))}
         format={y => fmt.lapTime(y)}
         tipTitle={l => `Lap ${l}`}
         endDots={false}

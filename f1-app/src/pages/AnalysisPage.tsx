@@ -7,6 +7,7 @@ import RaceAnalysis from "../RaceAnalysis";
 import QualifyingAnalysis from "../components/session/QualifyingAnalysis";
 import PracticeAnalysis from "../components/session/PracticeAnalysis";
 import { SessionModelProvider } from "../lib/useSessionModel";
+import { SelectionProvider } from "../contexts/SelectionContext";
 
 const VIEW_KEYS = new Set<string>(ANALYSIS_VIEWS.map(v => v.key));
 const isViewKey = (s: string | undefined): s is ViewKey => !!s && VIEW_KEYS.has(s);
@@ -70,7 +71,9 @@ export default function AnalysisPage() {
   // One engine model per session, shared by every card on the page.
   return (
     <SessionModelProvider sessionKey={sk}>
-      <div className="fade-in-up">{content}</div>
+      <SelectionProvider resetKey={sk}>
+        <div className="fade-in-up">{content}</div>
+      </SelectionProvider>
     </SessionModelProvider>
   );
 }

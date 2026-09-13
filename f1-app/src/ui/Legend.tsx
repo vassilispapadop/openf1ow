@@ -33,10 +33,11 @@ export interface LegendProps {
   columns?: number;
   compact?: boolean;
   hint?: boolean;             // show the "hover · click · alt-click" hint row
+  clickLabel?: string;        // what a click does ("hides" | "selects")
   className?: string;
 }
 
-export default function Legend({ items, hidden, hovered, focus, onHover, onToggle, onIsolate, onFollow, columns, compact, hint, className }: LegendProps) {
+export default function Legend({ items, hidden, hovered, focus, onHover, onToggle, onIsolate, onFollow, columns, compact, hint, clickLabel = "hides", className }: LegendProps) {
   const pressTimer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
@@ -99,7 +100,7 @@ export default function Legend({ items, hidden, hovered, focus, onHover, onToggl
       })}
       {hint && (onToggle || onIsolate) && (
         <span className={s.hintRow}>
-          hover highlights · click hides{onIsolate ? " · alt-click or long-press isolates" : ""}
+          hover highlights · click {clickLabel}{onIsolate ? " · alt-click or long-press isolates" : ""}
         </span>
       )}
     </div>

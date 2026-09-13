@@ -13,14 +13,17 @@ import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, Badge, Segmented, type Column } from "../../ui";
 import { TC } from "../../lib/constants";
 import { C } from "../../lib/styles";
+import { useSelection } from "../../contexts/SelectionContext";
 
 const BAND_COLOR: Record<string, string> = { SC: "rgba(255,181,71,0.12)", VSC: "rgba(255,181,71,0.07)", RED: "rgba(255,84,114,0.14)" };
 
 export function StrategyTimelineCard() {
   const { model } = useSessionModel();
   const result = useMemo(() => (model ? strategyTimeline(model) : null), [model]);
+  const sel = useSelection();
   const [hl, setHl] = useState<string | null>(null);
   if (!model || !result) return null;
+  const highlight = sel.hoveredKey ?? hl;
   return (
     <Section
       id={SECTION_IDS.strategyTimeline}
@@ -37,14 +40,14 @@ export function StrategyTimelineCard() {
             </div>
             <Timeline
               xDomain={[1, v.totalLaps]}
-              highlightKey={hl}
-              onRowHover={setHl}
+              highlightKey={highlight}
+              onRowHover={k => { setHl(k); sel.setHovered(k ? Number(k) : null); }}
               bands={v.bands.map(b => ({ from: b.fromLap - 0.5, to: b.toLap + 0.5, color: BAND_COLOR[b.kind], label: b.kind }))}
               rows={v.rows.map<TimelineRow>(r => ({
                 key: String(r.driver.driver_number),
                 label: r.driver.name_acronym,
                 sub: r.finish != null ? `P${r.finish}` : r.status === "retired" ? "DNF" : "",
-                dim: r.status !== "finished",
+                dim: r.status !== "finished" || (sel.selected.size > 0 && !sel.selected.has(r.driver.driver_number)),
                 end: r.retiredLap,
                 spans: r.stints.map(s => ({
                   from: s.fromLap, to: s.toLap, color: TC[s.compound] ?? "#888", label: s.compound[0],

@@ -10,11 +10,13 @@ import LineChart, { type Series } from "../../charts/LineChart";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate } from "../../ui";
 import { C } from "../../lib/styles";
+import { useSelection } from "../../contexts/SelectionContext";
 
 const BAND_COLOR: Record<string, string> = { SC: "rgba(255,181,71,0.10)", VSC: "rgba(255,181,71,0.06)", RED: "rgba(255,84,114,0.12)" };
 
 export default function DeltaTraceCard() {
   const { model } = useSessionModel();
+  const sel = useSelection();
   const [refSel, setRefSel] = useState<string>("winner");
   const ref = useMemo<DeltaReference>(() => (refSel === "winner" ? { kind: "winner" } : refSel === "leader" ? { kind: "leader" } : { kind: "driver", driverNumber: Number(refSel) }), [refSel]);
   const result = useMemo(() => (model ? deltaTrace(model, ref) : null), [model, ref]);
@@ -60,7 +62,10 @@ export default function DeltaTraceCard() {
             x={{ domain: [1, v.totalLaps], format: l => `Lap ${l}`, label: "Lap" }}
             y={{ format: y => fmt.signedSec(y, 1), invert: true, includeZero: true, zeroLine: "reference", zeroLabel: v.reference.label, targetTicks: 6 }}
             bands={v.bands.map(b => ({ from: b.fromLap - 0.5, to: b.toLap + 0.5, color: BAND_COLOR[b.kind], label: b.kind }))}
-            focus={top}
+            focus={sel.focusKeys ?? top}
+            hovered={sel.hoveredKey}
+            onHover={k => sel.setHovered(k ? Number(k) : null)}
+            onSelect={k => sel.toggle(Number(k))}
             format={y => fmt.signedSec(y)}
             tipTitle={l => `Lap ${l} · vs ${v.reference.label}`}
             endLabels

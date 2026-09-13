@@ -47,6 +47,8 @@ export interface LineChartProps {
   onHiddenChange?: (next: Set<string>) => void;
   hovered?: string | null;
   onHover?: (key: string | null) => void;
+  /** When given, a legend click selects (toggles focus) instead of hiding; alt-click still isolates. */
+  onSelect?: (key: string) => void;
   /** Controlled hover x (for synced charts); else internal. */
   hoverX?: number | null;
   onHoverX?: (x: number | null) => void;
@@ -59,7 +61,7 @@ export interface LineChartProps {
 
 export default function LineChart({
   series, height = 360, x, y, curve = "monotone", showDots, endDots = true, endLabels, bands, marks, tipTitle, format,
-  focus, hidden: hiddenIn, onHiddenChange, hovered: hoveredIn, onHover, hoverX: hoverXIn, onHoverX, legend = true, rankTooltip = true,
+  focus, hidden: hiddenIn, onHiddenChange, hovered: hoveredIn, onHover, onSelect, hoverX: hoverXIn, onHoverX, legend = true, rankTooltip = true,
   ariaLabel, className, children,
 }: LineChartProps) {
   const [hiddenLocal, setHiddenLocal] = useState<Set<string>>(new Set());
@@ -242,11 +244,12 @@ export default function LineChart({
           hovered={hovered}
           focus={focus ?? null}
           onHover={setHovered}
-          onToggle={toggleHidden}
+          onToggle={onSelect ?? toggleHidden}
           onIsolate={isolate}
           columns={legendOpts.columns}
           compact={legendOpts.compact}
           hint={legendOpts.hint}
+          clickLabel={onSelect ? "selects" : "hides"}
         />
       )}
       {tip.el}

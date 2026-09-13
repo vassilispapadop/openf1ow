@@ -8,9 +8,11 @@ import { paceRanking, truePaceRanking, SECTION_IDS, type PaceRow } from "../../e
 import { Section, Segmented, Table, Gate, Badge, type Column } from "../../ui";
 import { fmt } from "../../charts/core/scales";
 import { C } from "../../lib/styles";
+import { useSelection } from "../../contexts/SelectionContext";
 
 export default function TruePaceCard() {
   const { model } = useSessionModel();
+  const sel = useSelection();
   const [mode, setMode] = useState<"raw" | "true">("raw");
   const result = useMemo(() => (model ? (mode === "raw" ? paceRanking(model) : truePaceRanking(model)) : null), [model, mode]);
   if (!model || !result) return null;
@@ -63,6 +65,10 @@ export default function TruePaceCard() {
               rows={v.ranked.map((r, i) => ({ ...r, rank: i + 1 }))}
               rowKey={r => r.driver.driver_number}
               compact
+              highlightKeys={sel.selected}
+              dimOthers
+              onRowClick={r => sel.toggle(r.driver.driver_number)}
+              onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)}
             />
             {v.rows.some(g => !g.ok) && (
               <p style={{ fontSize: 11, color: C.textFaint, margin: "10px 4px 0" }}>

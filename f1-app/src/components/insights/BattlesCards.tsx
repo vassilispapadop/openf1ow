@@ -10,6 +10,7 @@ import {
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, Badge, Segmented, type Column } from "../../ui";
 import { C } from "../../lib/styles";
+import { useSelection } from "../../contexts/SelectionContext";
 
 const drv = (d: { name_acronym: string; team_colour: string }) => (
   <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
@@ -49,6 +50,7 @@ export function TeammatesCard() {
 
 export function OvertakesCard() {
   const { model } = useSessionModel();
+  const sel = useSelection();
   const result = useMemo(() => (model ? overtakeAnalysis(model) : null), [model]);
   if (!model || !result) return null;
   const columns: Column<DriverOvertakes>[] = [
@@ -76,7 +78,7 @@ export function OvertakesCard() {
               ))}
               {v.source === "position" && <Badge tone="warn" size="sm">inferred from positions</Badge>}
             </div>
-            <Table columns={columns} rows={v.byDriver.filter(r => r.made || r.suffered)} rowKey={r => r.driver.driver_number} compact defaultSort={{ key: "net", dir: "desc" }} />
+            <Table columns={columns} rows={v.byDriver.filter(r => r.made || r.suffered)} rowKey={r => r.driver.driver_number} compact defaultSort={{ key: "net", dir: "desc" }} highlightKeys={sel.selected} dimOthers onRowClick={r => sel.toggle(r.driver.driver_number)} onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)} />
           </>
         )}
       </Gate>
@@ -86,6 +88,7 @@ export function OvertakesCard() {
 
 export function SCImpactCard() {
   const { model } = useSessionModel();
+  const sel = useSelection();
   const result = useMemo(() => (model ? neutralisationImpact(model) : null), [model]);
   const [idx, setIdx] = useState(0);
   if (!model || !result) return null;
@@ -117,7 +120,7 @@ export function SCImpactCard() {
               <p style={{ fontSize: 12, color: C.textDim, margin: "0 0 10px" }}>
                 <b style={{ color: C.text }}>{w.window.kind}</b> laps {w.window.lapStart}–{w.window.lapEnd} · {((w.window.tEnd - w.window.tStart) / 60000).toFixed(1)} min · {w.rows.filter(r => r.pittedUnder).length} car(s) pitted under it.
               </p>
-              <Table columns={columns} rows={w.rows} rowKey={r => r.driver.driver_number} compact defaultSort={{ key: "gained", dir: "desc" }} maxHeight={420} />
+              <Table columns={columns} rows={w.rows} rowKey={r => r.driver.driver_number} compact defaultSort={{ key: "gained", dir: "desc" }} maxHeight={420} highlightKeys={sel.selected} dimOthers onRowClick={r => sel.toggle(r.driver.driver_number)} onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)} />
             </>
           );
         }}
@@ -128,6 +131,7 @@ export function SCImpactCard() {
 
 export function DirtyAirCard() {
   const { model } = useSessionModel();
+  const sel = useSelection();
   const result = useMemo(() => (model ? dirtyAirAnalysis(model) : null), [model]);
   if (!model || !result) return null;
   const columns: Column<DriverTraffic>[] = [
@@ -156,7 +160,7 @@ export function DirtyAirCard() {
                 {v.costByGap.map(b => <span key={b.bin}><b style={{ color: C.text, fontFamily: "var(--mono)" }}>{fmt.signedSec(b.medianLoss, 2)}</b> at {b.bin} <span style={{ color: C.textFaint }}>(n={b.n})</span></span>)}
               </div>
             )}
-            <Table columns={columns} rows={v.drivers} rowKey={r => r.driver.driver_number} compact maxHeight={480} />
+            <Table columns={columns} rows={v.drivers} rowKey={r => r.driver.driver_number} compact maxHeight={480} highlightKeys={sel.selected} dimOthers onRowClick={r => sel.toggle(r.driver.driver_number)} onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)} />
           </>
         )}
       </Gate>

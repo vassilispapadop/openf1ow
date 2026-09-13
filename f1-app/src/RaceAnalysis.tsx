@@ -24,6 +24,7 @@ import SuperClipping from "./components/analysis/SuperClipping";
 import StickyTabBar from "./components/shell/StickyTabBar";
 import { Section, Segmented } from "./ui";
 import { useSessionModel } from "./lib/useSessionModel";
+import { useSelection } from "./contexts/SelectionContext";
 import { buildFacts } from "./engine/index.ts";
 import Verdicts, { KpiRow } from "./components/insights/Verdicts";
 import TruePaceCard from "./components/insights/TruePaceCard";
@@ -51,6 +52,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   // session); the legacy cards still take raw laps/stints/pits, and an
   // EnrichedLap is a Lap, so they read straight off the model.
   const { model, status, error: modelError, pendingCount, retry } = useSessionModel();
+  const sel = useSelection();
   const allLaps: Lap[] = model?.laps ?? EMPTY_LAPS;
   const allStints: Stint[] = useMemo(() => (model ? model.drivers.flatMap(d => d.stints) : []), [model]);
   const allPits: Pit[] = useMemo(() => (model ? model.drivers.flatMap(d => d.pits) : []), [model]);
@@ -154,6 +156,20 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             value={subTab}
             onChange={onSubTabChange}
           />
+          {sel.selected.size > 0 && model && (
+            <div style={{ display: "inline-flex", gap: 4, alignItems: "center", flexWrap: "wrap" }} aria-label="Selected drivers">
+              {[...sel.selected].map(dn => {
+                const d = model.byDriver[dn];
+                return d ? (
+                  <Pill key={dn} size="sm" active onClick={() => sel.toggle(dn)} title="Remove from selection">
+                    <span style={{ width: 8, height: 8, borderRadius: 2, background: "#" + (d.driver.team_colour || "666") }} />
+                    {d.driver.name_acronym} ×
+                  </Pill>
+                ) : null;
+              })}
+              <Pill size="sm" onClick={sel.clear} title="Clear selection">clear</Pill>
+            </div>
+          )}
           <Pill size="sm" onClick={exportJson} title="Download race analysis data as JSON">
             Export JSON
           </Pill>
