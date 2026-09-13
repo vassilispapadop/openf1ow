@@ -8,7 +8,7 @@ import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils
 import ScatterPlot from "./ScatterPlot";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
-import ViewToggle from "./ViewToggle";
+import { Segmented } from "../../ui";
 import { detectClipping, buildDrsZones, THROTTLE_THRESHOLD, MIN_SPEED_DROP, type ClipEvent } from "../../lib/clipping";
 import { mergeDistance } from "../../lib/telemetry";
 
@@ -211,7 +211,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
           ))}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ViewToggle mode={viewMode} onChange={setViewMode} />
+          <Segmented size="sm" role="radiogroup" ariaLabel="List or graph" options={[{ key: "list", label: "List" }, { key: "graph", label: "Graph" }]} value={viewMode} onChange={setViewMode} />
           <ShareButton domRef={contentRef} filename="openf1ow-super-clipping" />
         </div>
       </div>
