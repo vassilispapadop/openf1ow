@@ -83,72 +83,52 @@ async function getSessionData<T>(F1_DATA: R2Bucket, endpoint: string, sessionKey
 // Light analysis — top pace, biggest gainer
 // ---------------------------------------------------------------------------
 
-import type { Driver, Lap } from "../lib/types";
-import { paceByDriver } from "../lib/raceUtils";
+import type { Driver } from "../lib/types";
 import { ft3 } from "../lib/format";
+import { computeInsights } from "./insights";
 
 interface SessionResult { position?: number; driver_number?: number; full_name?: string; gap_to_leader?: string | number; status?: string; }
-// Per-lap position record from /position. The "grid" is the first record
-// per driver after sorting by date — that's the position they crossed
-// the lights-out line at, before any on-track shuffling in the race.
-interface PositionRecord { driver_number?: number; position?: number; date?: string; }
 
 interface PaceRow { driver: string; team: string; teamColour: string; medianPace: string; gap: string; }
 
-function buildPaceRanking(laps: Lap[], drivers: Driver[]): PaceRow[] {
-  const rows = paceByDriver(laps, drivers).sort((a, b) => a.medianPace - b.medianPace);
-  const fastest = rows[0]?.medianPace ?? 0;
-  return rows.map(r => ({
-    driver: r.driver.name_acronym,
-    team: r.driver.team_name || "",
-    teamColour: r.driver.team_colour || "888",
-    medianPace: ft3(r.medianPace),
-    gap: r.medianPace === fastest ? "—" : "+" + (r.medianPace - fastest).toFixed(3) + "s",
+// The engine's race-pace table (insights/{sk}.v1.json) — the same numbers the
+// analysis page shows: clean-lap median, fuel-corrected gap.
+interface InsightsPaceRow { rank: number; driver: string; team: string; median: number; gap: number; n: number }
+interface InsightsResultRow { pos: number | null; driver: string; team: string; grid: number | null; status: string }
+interface InsightsTables { pace?: InsightsPaceRow[]; results?: InsightsResultRow[] }
+
+async function loadInsightsTables(F1_DATA: R2Bucket, sk: number, ctx: ExecutionContext | undefined): Promise<InsightsTables> {
+  try {
+    const r = await computeInsights(sk, { F1_DATA }, ctx ?? { waitUntil: () => {}, passThroughOnException: () => {}, props: {} } as unknown as ExecutionContext);
+    if (r.status !== 200) return {};
+    return (JSON.parse(r.body) as { tables?: InsightsTables }).tables ?? {};
+  } catch { return {}; }
+}
+
+function buildPaceRanking(pace: InsightsPaceRow[], drivers: Driver[]): PaceRow[] {
+  const colour: Record<string, string> = {};
+  for (const d of drivers) colour[d.name_acronym] = d.team_colour || "888";
+  return pace.map(r => ({
+    driver: r.driver,
+    team: r.team,
+    teamColour: colour[r.driver] || "888",
+    medianPace: ft3(r.median),
+    gap: r.gap === 0 ? "—" : "+" + r.gap.toFixed(3) + "s",
   }));
 }
 
 interface GainerRow { driver: string; team: string; from: number; to: number; gained: number; }
 
-// Earliest position record per driver = grid position. /position records
-// are emitted from before lights-out onward; sorting by date and taking
-// the first per driver gives the grid order. Falls back to {} when the
-// position endpoint has no data — caller shows nothing rather than wrong
-// numbers.
-function gridFromPositions(positions: PositionRecord[] | null): Record<number, number> {
-  if (!positions?.length) return {};
-  const sorted = [...positions].sort((a, b) => (a.date || "").localeCompare(b.date || ""));
-  const grid: Record<number, number> = {};
-  for (const p of sorted) {
-    if (p.driver_number != null && p.position != null && grid[p.driver_number] == null) {
-      grid[p.driver_number] = p.position;
-    }
-  }
-  return grid;
-}
-
-function buildBiggestGainers(results: SessionResult[], drivers: Driver[], grid: Record<number, number>): GainerRow[] {
-  const drvByNum: Record<number, Driver> = {};
-  drivers.forEach(d => { drvByNum[d.driver_number] = d; });
-
-  const finals: Record<number, number> = {};
-  for (const r of results) {
-    if (r.driver_number != null && r.position != null && r.status === "Finished") {
-      finals[r.driver_number] = r.position;
-    }
-  }
-
+/** Grid → finish from the engine's classification (grid from the starting-grid
+ *  feed, else qualifying, else the position feed before the start). */
+function buildBiggestGainers(results: InsightsResultRow[]): GainerRow[] {
   const rows: GainerRow[] = [];
-  for (const dn of Object.keys(finals).map(Number)) {
-    const start = grid[dn];
-    const finish = finals[dn];
-    if (!start || !finish) continue;
-    const gained = start - finish;
+  for (const r of results) {
+    if (r.status !== "finished" || r.pos == null || r.grid == null) continue;
+    const gained = r.grid - r.pos;
     if (gained <= 0) continue;
-    const d = drvByNum[dn];
-    if (!d) continue;
-    rows.push({ driver: d.name_acronym, team: d.team_name || "", from: start, to: finish, gained });
+    rows.push({ driver: r.driver, team: r.team, from: r.grid, to: r.pos, gained });
   }
-
   return rows.sort((a, b) => b.gained - a.gained).slice(0, 5);
 }
 
@@ -583,8 +563,9 @@ export async function handleRecapRequest(opts: {
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   F1_DATA: R2Bucket;
   gaId?: string;
+  ctx?: ExecutionContext;
 }): Promise<Response | null> {
-  const { url, ASSETS, F1_DATA, gaId } = opts;
+  const { url, ASSETS, F1_DATA, gaId, ctx } = opts;
   // /recap/2026/imola
   const m = url.pathname.match(/^\/recap\/(\d{4})\/([a-z0-9-]+)\/?$/);
   if (!m) return null;
@@ -597,28 +578,22 @@ export async function handleRecapRequest(opts: {
 
   const raceSk = race.sessions.race;
   let drivers: Driver[] = [];
-  let laps: Lap[] = [];
   let results: SessionResult[] = [];
-  let positions: PositionRecord[] = [];
+  let tables: InsightsTables = {};
 
   if (raceSk) {
-    const [d, l, r, p] = await Promise.all([
+    const [d, r, t] = await Promise.all([
       getSessionData<Driver[]>(F1_DATA, "drivers", raceSk),
-      getSessionData<Lap[]>(F1_DATA, "laps", raceSk),
       getSessionData<SessionResult[]>(F1_DATA, "session_result", raceSk),
-      getSessionData<PositionRecord[]>(F1_DATA, "position", raceSk),
+      loadInsightsTables(F1_DATA, raceSk, ctx),
     ]);
     drivers = d ?? [];
-    laps = l ?? [];
     results = r ?? [];
-    positions = p ?? [];
+    tables = t;
   }
 
-  const pace = laps.length && drivers.length ? buildPaceRanking(laps, drivers) : [];
-  const grid = gridFromPositions(positions);
-  const gainers = results.length && drivers.length && Object.keys(grid).length
-    ? buildBiggestGainers(results, drivers, grid)
-    : [];
+  const pace = tables.pace?.length ? buildPaceRanking(tables.pace, drivers) : [];
+  const gainers = tables.results?.length ? buildBiggestGainers(tables.results) : [];
 
   const html = renderRecapHtml({
     race,

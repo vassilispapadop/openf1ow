@@ -517,7 +517,7 @@ export default {
 
     // Worker-rendered SEO pages: /recap/:year/:slug and /insights[/:year]
     if (url.pathname.startsWith("/recap/") && env.ASSETS) {
-      const r = await handleRecapRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA, gaId: env.GA_ID });
+      const r = await handleRecapRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA, gaId: env.GA_ID, ctx });
       if (r) return r;
     }
     if ((url.pathname === "/insights" || url.pathname.startsWith("/insights/")) && env.ASSETS) {
@@ -538,7 +538,7 @@ export default {
     }
     // PNG share cards for race recaps (Twitter/Slack/Discord preview)
     if (url.pathname.startsWith("/share/race/") && env.ASSETS) {
-      const r = await handleShareRaceRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA });
+      const r = await handleShareRaceRequest({ url, ASSETS: env.ASSETS, F1_DATA: env.F1_DATA, ctx });
       if (r) return r;
     }
     if (url.pathname.startsWith("/share/driver/") && env.ASSETS) {

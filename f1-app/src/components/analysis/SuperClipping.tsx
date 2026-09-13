@@ -4,7 +4,8 @@ import { F, M, sty } from "../../lib/styles";
 import { podiumColor, rowBg } from "../../lib/format";
 import { api } from "../../lib/api";
 import BoxPlotChart from "./BoxPlotChart";
-import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils";
+import { median } from "../../engine/stats.ts";
+import type { EnrichedLap } from "../../engine/index.ts";
 import ScatterPlot from "./ScatterPlot";
 import type { ScatterPoint } from "./useTooltip";
 import ShareButton from "../ShareButton";
@@ -36,7 +37,6 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
   const [viewMode, setViewMode] = useState<"list" | "graph">("graph");
   const contentRef = useRef<HTMLDivElement>(null);
 
-  const threshold = useMemo(() => computeSlowLapThreshold(allLaps), [allLaps]);
 
   const drvMap = useMemo(() => {
     const m: Record<number, Driver> = {};
@@ -66,8 +66,8 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
       const drv = drvMap[dn];
       if (!drv) continue;
       const cleanLaps = lapsByDriver[dn]
-        .filter(l => isCleanLap(l, threshold))
-        // isCleanLap guarantees lap_duration > 0, so the non-null assertion is safe.
+        // The engine's clean flag: no lap 1, pit laps, neutralisations or per-stint outliers.
+        .filter(l => (l as EnrichedLap).clean)
         .sort((a, b) => a.lap_duration! - b.lap_duration!)
         .slice(0, sampleLaps);
 
@@ -117,7 +117,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
     setResults(allResults);
     setLoading(false);
     setProgress("");
-  }, [sessionKey, allLaps, drivers, drvMap, threshold, sampleLaps]);
+  }, [sessionKey, allLaps, drivers, drvMap, sampleLaps]);
 
   useEffect(() => {
     // Guard against overlapping analyze() calls when deps change mid-flight

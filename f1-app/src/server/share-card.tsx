@@ -11,9 +11,9 @@
 
 import { ImageResponse, loadGoogleFont } from "workers-og";
 import { loadRaceIndex, findRace } from "./recap";
-import type { Driver, Lap } from "../lib/types";
-import { paceByDriver } from "../lib/raceUtils";
+import type { Driver } from "../lib/types";
 import { ft3 } from "../lib/format";
+import { computeInsights } from "./insights";
 
 interface PaceRow { driver: string; team: string; teamColour?: string; medianPace: string; gap: string; }
 
@@ -122,6 +122,7 @@ async function loadRaceData(opts: {
   origin: string;
   year: string;
   slug: string;
+  ctx?: ExecutionContext;
 }): Promise<RaceData | null> {
   const idx = await loadRaceIndex(opts.ASSETS, opts.origin);
   if (!idx) return null;
@@ -133,21 +134,24 @@ async function loadRaceData(opts: {
   let winner: RaceData["winner"] = null;
 
   if (raceSk) {
-    const [drivers, laps, results] = await Promise.all([
+    const [drivers, results, insights] = await Promise.all([
       fetchSession<Driver[]>(opts.F1_DATA, "drivers", raceSk),
-      fetchSession<Lap[]>(opts.F1_DATA, "laps", raceSk),
       fetchSession<{ position?: number; driver_number?: number }[]>(opts.F1_DATA, "session_result", raceSk),
+      // The engine's race-pace table — identical to the analysis page.
+      computeInsights(raceSk, { F1_DATA: opts.F1_DATA }, opts.ctx ?? ({ waitUntil: () => {}, passThroughOnException: () => {}, props: {} } as unknown as ExecutionContext))
+        .then(r => (r.status === 200 ? (JSON.parse(r.body) as { tables?: { pace?: { driver: string; team: string; median: number; gap: number }[] } }).tables?.pace ?? [] : []))
+        .catch(() => [] as { driver: string; team: string; median: number; gap: number }[]),
     ]);
 
-    if (drivers && laps) {
-      const rows = paceByDriver(laps, drivers).sort((a, b) => a.medianPace - b.medianPace);
-      const fastest = rows[0]?.medianPace ?? 0;
-      topPace = rows.slice(0, 3).map(r => ({
-        driver: r.driver.name_acronym,
-        team: r.driver.team_name || "",
-        teamColour: r.driver.team_colour,
-        medianPace: ft3(r.medianPace),
-        gap: r.medianPace === fastest ? "—" : "+" + (r.medianPace - fastest).toFixed(3),
+    if (drivers && insights.length) {
+      const colour: Record<string, string | undefined> = {};
+      for (const d of drivers) colour[d.name_acronym] = d.team_colour;
+      topPace = insights.slice(0, 3).map(r => ({
+        driver: r.driver,
+        team: r.team,
+        teamColour: colour[r.driver],
+        medianPace: ft3(r.median),
+        gap: r.gap === 0 ? "—" : "+" + r.gap.toFixed(3),
       }));
     }
 
@@ -359,6 +363,7 @@ export async function handleShareRaceRequest(opts: {
   url: URL;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   F1_DATA: R2Bucket;
+  ctx?: ExecutionContext;
 }): Promise<Response | null> {
   // Accept both /share/race/2024/imola and /share/race/2024/imola.png
   const m = opts.url.pathname.match(/^\/share\/race\/(\d{4})\/([a-z0-9-]+?)(?:\.png)?\/?$/);
@@ -371,6 +376,7 @@ export async function handleShareRaceRequest(opts: {
     origin: opts.url.origin,
     year,
     slug,
+    ctx: opts.ctx,
   });
   if (!data) return new Response("Race not found", { status: 404 });
 

@@ -3,7 +3,8 @@ import type { Driver, Lap, Weather } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { initCanvas, drawWatermark } from "../../lib/canvas";
 import { ft3, ft1, ftn, rowBg } from "../../lib/format";
-import { computeSlowLapThreshold, isCleanLap, median } from "../../lib/raceUtils";
+import { median } from "../../engine/stats.ts";
+import type { EnrichedLap } from "../../engine/index.ts";
 import useTooltip from "./useTooltip";
 import ShareButton from "../ShareButton";
 
@@ -39,9 +40,8 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
     };
 
     // Group laps into track temp buckets and compute avg pace per bucket
-    const threshold = computeSlowLapThreshold(allLaps);
     const buckets: Record<number, number[]> = {};
-    const cleanLaps = allLaps.filter(l => isCleanLap(l, threshold) && l.date_start);
+    const cleanLaps = allLaps.filter(l => (l as EnrichedLap).clean && l.date_start);
     cleanLaps.forEach(l => {
       const w = findWeather(l.date_start);
       const bucket = Math.round(w.track_temperature);
