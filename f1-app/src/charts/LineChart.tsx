@@ -58,7 +58,7 @@ export interface LineChartProps {
 }
 
 export default function LineChart({
-  series, height = 360, x, y, curve = "smooth", showDots, endDots = true, endLabels, bands, marks, tipTitle, format,
+  series, height = 360, x, y, curve = "monotone", showDots, endDots = true, endLabels, bands, marks, tipTitle, format,
   focus, hidden: hiddenIn, onHiddenChange, hovered: hoveredIn, onHover, hoverX: hoverXIn, onHoverX, legend = true, rankTooltip = true,
   ariaLabel, className, children,
 }: LineChartProps) {

@@ -1,4 +1,5 @@
 import { handleF1Request, normalizeKey } from "./r2-cache";
+import { handleAdminRequest } from "./admin";
 import { handleRecapRequest, handleInsightsRequest, buildRaceContentBlock } from "./recap";
 import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
 import { handleShareImageUpload, handleShareImageRead } from "./share-image";
@@ -9,6 +10,8 @@ import { handleSlugRedirect } from "./slug-redirect";
 interface Env {
   GROQ_API_KEY: string;
   GROQ_MODEL?: string;
+  // Bearer secret for /api/admin/* (purge / refresh a session's cache).
+  ADMIN_TOKEN?: string;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   F1_DATA: R2Bucket;
   // Google Analytics 4 measurement ID (G-XXXXXXXXXX). Optional — when unset,
@@ -472,6 +475,11 @@ export default {
     // OpenF1 API proxy — serve from R2 cache (must be before OG/SPA handlers)
     if (url.pathname.startsWith("/api/f1/")) {
       return handleF1Request(request, env, ctx);
+    }
+    // Operator endpoints (bearer secret; 404 when unauthorised).
+    if (url.pathname.startsWith("/api/admin/")) {
+      const r = await handleAdminRequest(request, env, ctx);
+      if (r) return r;
     }
 
     // Season trends artifact — precomputed by scripts/compute-season-trends.mjs

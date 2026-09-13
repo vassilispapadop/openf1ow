@@ -1,14 +1,29 @@
+// Read-through cache for the OpenF1 API.
+//
+//   1. Cloudflare edge cache (caches.default) — fastest; skips R2, parse, upstream
+//   2. R2 — persistent, shared across edge nodes
+//   3. OpenF1 origin (single-flight + retry), with stale-R2 fallback on failure
+//
+// How long something may be cached depends on where its session is in its
+// life (session-state.ts): live data is served from R2 without touching the
+// paywalled upstream, recent data refreshes every 15 minutes, settled data is
+// immutable. A "forever" object is only trusted if it was fetched after the
+// session settled — that floor lazily un-poisons the partial live snapshots
+// the old "session_key= ⇒ forever" rule had frozen, with no migration.
+
+import { getSessionWindow, classifyState, settledAt, type SessionState } from "./session-state";
+
 const OPENF1 = "https://api.openf1.org/v1";
 const CURRENT_YEAR = new Date().getFullYear();
 
-// TTLs in milliseconds
-const TTL_FOREVER = Infinity;
+export const TTL_FOREVER = Infinity;
 const TTL_1H = 3_600_000;
+const TTL_15M = 900_000;
 const TTL_5M = 300_000;
+const TTL_1M = 60_000;
 
-interface Env {
+export interface CacheEnv {
   F1_DATA: R2Bucket;
-  // Optional Workers Analytics Engine dataset for long-term usage history.
   ANALYTICS?: { writeDataPoint: (event: AnalyticsEngineDataPoint) => void };
 }
 
@@ -18,14 +33,21 @@ interface AnalyticsEngineDataPoint {
   indexes?: string[];
 }
 
-/** Telemetry endpoints that are stored as full-session blobs in R2 */
+/** Telemetry endpoints that are stored as full-session blobs in R2. */
 const TELEMETRY_ENDPOINTS = ["car_data", "location"];
 
+/** Everything the proxy will forward. Anything else is a 404 before any
+ *  upstream call, so scanners and typos can't spend the OpenF1 budget. */
+export const ENDPOINT_ALLOWLIST = new Set([
+  "meetings", "sessions", "drivers", "laps", "stints", "pit", "position", "weather",
+  "race_control", "session_result", "intervals", "car_data", "location",
+  "overtakes", "starting_grid", "team_radio", "championship_drivers", "championship_teams",
+]);
+
 /**
- * Normalize an OpenF1 API path into a stable R2 key.
- * Strips leading slash and sorts query params alphabetically.
- * For telemetry endpoints, strips date filters so the key matches
- * the full-session blob stored by the scraper.
+ * Normalize an OpenF1 API path into a stable R2 key: strip the leading slash,
+ * sort query params. For telemetry, strip date filters so the key matches
+ * the full-session blob the scraper writes.
  */
 export function normalizeKey(path: string): string {
   const [base, qs] = path.split("?");
@@ -39,31 +61,20 @@ export function normalizeKey(path: string): string {
   return clean + "?" + sorted.map(([k, v]) => `${k}=${v}`).join("&");
 }
 
-/**
- * Edge cache key: a canonical URL that keeps ALL query params (including the
- * date filters that normalizeKey strips for telemetry). This keeps each
- * client-visible date slice as a distinct edge-cache entry, so the expensive
- * JSON parse + slice happens once per (session, date-range) per edge node and
- * is then served straight from cache — instead of re-parsing the multi-MB
- * full-session blob on every request (the cause of the `exceededResources`
- * 503s on /api/f1/car_data and /api/f1/location).
- */
-function edgeCacheKey(apiPath: string): Request {
+/** Edge cache key: the real canonical URL with ALL params (including the
+ *  date filters normalizeKey strips), so each client-visible telemetry slice
+ *  is its own edge entry and Purge-by-URL can reach it. */
+function edgeCacheKey(origin: string, apiPath: string): Request {
   const [base, qs] = apiPath.split("?");
   const clean = base.replace(/^\//, "");
   let canon = clean;
   if (qs) {
-    const params = [...new URLSearchParams(qs).entries()].sort((a, b) =>
-      a[0].localeCompare(b[0]),
-    );
+    const params = [...new URLSearchParams(qs).entries()].sort((a, b) => a[0].localeCompare(b[0]));
     canon += "?" + params.map(([k, v]) => `${k}=${v}`).join("&");
   }
-  return new Request("https://f1-edge-cache.openf1ow/" + canon);
+  return new Request(`${origin}/api/f1/${canon}`);
 }
 
-/**
- * Extract date filter bounds from query params for telemetry slicing.
- */
 function getDateFilters(url: URL): { gte?: string; lte?: string } | null {
   const params = url.searchParams;
   const gte = params.get("date>=") || params.get("date>") || undefined;
@@ -72,9 +83,6 @@ function getDateFilters(url: URL): { gte?: string; lte?: string } | null {
   return { gte, lte };
 }
 
-/**
- * Filter a telemetry array by date range.
- */
 function sliceByDate(data: any[], filters: { gte?: string; lte?: string }): any[] {
   return data.filter((item: any) => {
     if (!item.date) return true;
@@ -84,212 +92,224 @@ function sliceByDate(data: any[], filters: { gte?: string; lte?: string }): any[
   });
 }
 
-/**
- * Determine TTL for a given R2 key based on its content type.
- * Historical data never expires; current-season data has short TTLs.
- */
-function getTTL(key: string): number {
-  // Meetings list for past years: never refetch
-  const yearMatch = key.match(/year=(\d+)/);
-  if (yearMatch && Number(yearMatch[1]) < CURRENT_YEAR) return TTL_FOREVER;
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  // Current-year meetings list: refresh hourly
-  if (key.startsWith("meetings")) return TTL_1H;
+/** In-isolate single-flight with one retry on 429/5xx. */
+const inflight = new Map<string, Promise<{ ok: boolean; status: number; body: string }>>();
 
-  // Sessions list: refresh hourly
-  if (key.startsWith("sessions")) return TTL_1H;
-
-  // All session-keyed data (completed sessions): never expires
-  if (key.includes("session_key=")) return TTL_FOREVER;
-
-  return TTL_5M;
-}
-
-/**
- * Edge cache lifetime (seconds), derived from the same TTL policy as R2.
- * Immutable historical data is cached at the edge for a week; live data
- * inherits its short R2 TTL so race-weekend freshness is unchanged.
- */
-function edgeMaxAge(key: string): number {
-  const ttl = getTTL(key);
-  if (ttl === TTL_FOREVER) return 604_800; // 1 week
-  return Math.floor(ttl / 1000);
-}
-
-/**
- * Check if cached R2 object is still fresh based on its custom metadata.
- */
-function isFresh(obj: R2Object): boolean {
-  const ttl = getTTL(obj.key);
-  if (ttl === Infinity) return true;
-  // Use custom metadata if set by Worker, otherwise fall back to R2 upload time
-  const ts = obj.customMetadata?.fetchedAt
-    ? Number(obj.customMetadata.fetchedAt)
-    : obj.uploaded.getTime();
-  return Date.now() - ts < ttl;
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-/**
- * In-isolate single-flight: collapse concurrent identical upstream fetches
- * into one request. A burst of cache misses (e.g. everyone opening the same
- * live session) would otherwise fan out into many parallel calls to OpenF1
- * and get rate-limited (429). One retry with backoff smooths transient 429/5xx.
- */
-const inflight = new Map<
-  string,
-  Promise<{ ok: boolean; status: number; body: string }>
->();
-
-async function fetchUpstreamOnce(
-  fetchPath: string,
-): Promise<{ ok: boolean; status: number; body: string }> {
+export async function fetchUpstreamOnce(fetchPath: string): Promise<{ ok: boolean; status: number; body: string }> {
   const existing = inflight.get(fetchPath);
   if (existing) return existing;
-
   const p = (async () => {
     let lastErr: unknown;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
         const res = await fetch(OPENF1 + fetchPath);
-        // Back off once on rate-limit / upstream error, then accept the result.
         if ((res.status === 429 || res.status >= 500) && attempt === 0) {
-          await sleep(400);
+          await sleep(400 + Math.random() * 300);
           continue;
         }
         return { ok: res.ok, status: res.status, body: await res.text() };
       } catch (e) {
         lastErr = e;
-        if (attempt === 0) {
-          await sleep(400);
-          continue;
-        }
+        if (attempt === 0) { await sleep(400); continue; }
       }
     }
     throw lastErr ?? new Error("upstream fetch failed");
   })();
-
   inflight.set(fetchPath, p);
-  try {
-    return await p;
-  } finally {
-    inflight.delete(fetchPath);
-  }
+  try { return await p; } finally { inflight.delete(fetchPath); }
 }
 
-/**
- * Main handler: transparent read-through cache for the OpenF1 API.
- *
- *   1. Cloudflare edge cache (caches.default) — fastest; skips R2, parse, upstream
- *   2. R2 read-through cache — persistent, shared across edge nodes
- *   3. OpenF1 origin (single-flight + retry), with stale-R2 fallback on failure
- */
-export async function handleF1Request(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext,
-): Promise<Response> {
-  const url = new URL(request.url);
-  // /api/f1/meetings?year=2024 → /meetings?year=2024
-  const apiPath = url.pathname.replace(/^\/api\/f1/, "") + url.search;
+// ---------------------------------------------------------------------------
+// TTL policy
+// ---------------------------------------------------------------------------
+
+export interface KeyPolicy {
+  ttl: number;           // ms; TTL_FOREVER for immutable
+  edgeMaxAge: number;    // seconds
+  state: SessionState | "static";
+  settledAt: number | null;   // forever objects must have been fetched after this
+  sk: number | null;
+}
+
+const PURGE_MEMO_MS = 60_000;
+const purgeMemo = new Map<number, { epoch: number; at: number }>();
+
+async function purgeEpoch(bucket: R2Bucket, sk: number): Promise<number> {
+  const m = purgeMemo.get(sk);
+  if (m && Date.now() - m.at < PURGE_MEMO_MS) return m.epoch;
+  let epoch = 0;
+  try {
+    const obj = await bucket.get(`meta/purge/${sk}.json`);
+    if (obj) epoch = Number((JSON.parse(await obj.text()) as { epoch?: number }).epoch) || 0;
+  } catch { /* none */ }
+  purgeMemo.set(sk, { epoch, at: Date.now() });
+  return epoch;
+}
+
+export async function policyFor(key: string, env: CacheEnv): Promise<KeyPolicy> {
+  const yearMatch = key.match(/year=(\d+)/);
+  if (yearMatch && Number(yearMatch[1]) < CURRENT_YEAR) {
+    return { ttl: TTL_FOREVER, edgeMaxAge: 604_800, state: "static", settledAt: null, sk: null };
+  }
+  if (key.startsWith("meetings") || key.startsWith("sessions")) {
+    return { ttl: TTL_1H, edgeMaxAge: 300, state: "static", settledAt: null, sk: null };
+  }
+  const skMatch = key.match(/session_key=(\d+)/);
+  if (skMatch) {
+    const sk = Number(skMatch[1]);
+    const w = await getSessionWindow(sk, env.F1_DATA, fetchUpstreamOnce);
+    const state = classifyState(w);
+    switch (state) {
+      case "upcoming": return { ttl: TTL_5M, edgeMaxAge: 60, state, settledAt: null, sk };
+      case "live": return { ttl: TTL_1M, edgeMaxAge: 30, state, settledAt: null, sk };
+      case "recent": return { ttl: TTL_15M, edgeMaxAge: 300, state, settledAt: null, sk };
+      case "settled": return { ttl: TTL_FOREVER, edgeMaxAge: 604_800, state, settledAt: w ? settledAt(w) : null, sk };
+      default: return { ttl: TTL_15M, edgeMaxAge: 300, state: "unknown", settledAt: null, sk };
+    }
+  }
+  // championship_* by meeting_key, and anything else: treat as recent.
+  return { ttl: TTL_15M, edgeMaxAge: 300, state: "unknown", settledAt: null, sk: null };
+}
+
+async function isFresh(obj: R2Object, pol: KeyPolicy, env: CacheEnv): Promise<boolean> {
+  const fetchedAt = obj.customMetadata?.fetchedAt ? Number(obj.customMetadata.fetchedAt) : obj.uploaded.getTime();
+  if (pol.ttl === TTL_FOREVER) {
+    if (pol.settledAt != null && fetchedAt < pol.settledAt) return false;      // frozen live snapshot
+    if (pol.sk != null && fetchedAt < await purgeEpoch(env.F1_DATA, pol.sk)) return false;
+    return true;
+  }
+  return Date.now() - fetchedAt < pol.ttl;
+}
+
+// ---------------------------------------------------------------------------
+// Resolver — shared by the /api/f1 proxy, the bundle route, recap, cards, cron
+// ---------------------------------------------------------------------------
+
+export interface Resolved {
+  status: number;
+  body: string;
+  xcache: "HIT" | "MISS" | "STALE" | "ERROR";
+  policy: KeyPolicy;
+  fetchedAt: number | null;
+  upstreamCalls: number;
+}
+
+/** Resolve one OpenF1 resource (path with query) through R2 and, when
+ *  allowed by its session state, upstream. Never slices telemetry — callers
+ *  that want a date window do that on the returned full body. */
+export async function resolveResource(apiPath: string, env: CacheEnv, ctx: ExecutionContext | null): Promise<Resolved> {
   const key = normalizeKey(apiPath);
-
-  const endpoint = url.pathname.replace(/^\/api\/f1\//, "");
+  const endpoint = key.split("?")[0];
   const isTelemetry = TELEMETRY_ENDPOINTS.includes(endpoint);
-  const dateFilters = isTelemetry ? getDateFilters(url) : null;
+  const policy = await policyFor(key, env);
+  let upstreamCalls = 0;
 
-  const cache = caches.default;
-  const ck = edgeCacheKey(apiPath);
+  const cached = await env.F1_DATA.get(key);
+  const cachedAt = cached ? (cached.customMetadata?.fetchedAt ? Number(cached.customMetadata.fetchedAt) : cached.uploaded.getTime()) : null;
 
-  const record = (status: string) =>
+  if (cached && await isFresh(cached, policy, env)) {
+    return { status: 200, body: await cached.text(), xcache: "HIT", policy, fetchedAt: cachedAt, upstreamCalls };
+  }
+
+  // Live: the upstream is paywalled — serve what we have rather than pay for
+  // a 401. With nothing cached, one call so the client sees the paywall body.
+  if (policy.state === "live" && cached) {
+    return { status: 200, body: await cached.text(), xcache: "STALE", policy, fetchedAt: cachedAt, upstreamCalls };
+  }
+
+  const fetchPath = isTelemetry ? "/" + key : apiPath;
+  let upstream: { ok: boolean; status: number; body: string } | null = null;
+  try { upstreamCalls++; upstream = await fetchUpstreamOnce(fetchPath); } catch { upstream = null; }
+
+  if (upstream && upstream.ok) {
+    const persist = env.F1_DATA.put(key, upstream.body, {
+      httpMetadata: { contentType: "application/json" },
+      customMetadata: { fetchedAt: String(Date.now()) },
+    });
+    if (ctx) ctx.waitUntil(persist); else await persist;
+    return { status: 200, body: upstream.body, xcache: "MISS", policy, fetchedAt: Date.now(), upstreamCalls };
+  }
+
+  // OpenF1 says 404 for an empty result. Once the session is settled that
+  // emptiness is final — store [] so the next reader doesn't pay for it.
+  if (upstream && upstream.status === 404 && policy.state === "settled") {
+    const persist = env.F1_DATA.put(key, "[]", {
+      httpMetadata: { contentType: "application/json" },
+      customMetadata: { fetchedAt: String(Date.now()), empty: "1" },
+    });
+    if (ctx) ctx.waitUntil(persist); else await persist;
+    return { status: 200, body: "[]", xcache: "MISS", policy, fetchedAt: Date.now(), upstreamCalls };
+  }
+
+  if (cached) {
+    return { status: 200, body: await cached.text(), xcache: "STALE", policy, fetchedAt: cachedAt, upstreamCalls };
+  }
+  // Pass the upstream status and body through: the client keys the live
+  // paywall off a 401 whose detail mentions "Live F1 session", and treats a
+  // 429 as "pending".
+  const status = upstream?.status ?? 502;
+  const body = upstream?.body && (status === 401 || status === 429) ? upstream.body : JSON.stringify({ error: "OpenF1 API unavailable" });
+  return { status, body, xcache: "ERROR", policy, fetchedAt: null, upstreamCalls };
+}
+
+// ---------------------------------------------------------------------------
+// HTTP handler for /api/f1/*
+// ---------------------------------------------------------------------------
+
+export async function handleF1Request(request: Request, env: CacheEnv, ctx: ExecutionContext): Promise<Response> {
+  const url = new URL(request.url);
+  const apiPath = url.pathname.replace(/^\/api\/f1/, "") + url.search;
+  const endpoint = url.pathname.replace(/^\/api\/f1\//, "").split("/")[0];
+
+  const record = (status: string, state: string, upstreamCalls = 0) =>
     env.ANALYTICS?.writeDataPoint?.({
-      blobs: [endpoint, status],
-      doubles: [1],
+      blobs: [endpoint, status, state],
+      doubles: [1, upstreamCalls],
       indexes: [endpoint],
     });
 
-  // 1. Edge cache — returns immediately, no R2 read or JSON work.
+  if (!ENDPOINT_ALLOWLIST.has(endpoint)) {
+    record("blocked", "static");
+    return new Response(JSON.stringify({ error: "Unknown endpoint" }), { status: 404, headers: { "Content-Type": "application/json" } });
+  }
+
+  const cache = caches.default;
+  const ck = edgeCacheKey(url.origin, apiPath);
   const edged = await cache.match(ck);
   if (edged) {
-    record("edge");
+    record("edge", edged.headers.get("X-Session-State") ?? "");
     return edged;
   }
 
-  // Build a cacheable response, store it at the edge, and record the outcome.
-  const finalize = (body: string, xcache: string): Response => {
-    const maxAge = edgeMaxAge(key);
-    const resp = new Response(body, {
-      headers: {
-        "Content-Type": "application/json",
-        // Short browser TTL keeps clients revalidating; long s-maxage lets the
-        // Cloudflare edge absorb the load; SWR avoids origin stampedes.
-        "Cache-Control": `public, max-age=60, s-maxage=${maxAge}, stale-while-revalidate=86400`,
-        "X-Cache": xcache,
-      },
-    });
-    ctx.waitUntil(cache.put(ck, resp.clone()));
-    record(xcache.toLowerCase());
-    return resp;
+  const isTelemetry = TELEMETRY_ENDPOINTS.includes(endpoint);
+  const dateFilters = isTelemetry ? getDateFilters(url) : null;
+
+  const r = await resolveResource(apiPath, env, ctx);
+  let body = r.body;
+  if (r.status === 200 && dateFilters) {
+    try { body = JSON.stringify(sliceByDate(JSON.parse(body), dateFilters)); } catch { /* leave as is */ }
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Cache": r.xcache,
+    "X-Session-State": String(r.policy.state),
+    "X-Upstream-Calls": String(r.upstreamCalls),
   };
+  record(r.xcache.toLowerCase(), String(r.policy.state), r.upstreamCalls);
 
-  // 2. R2 read-through.
-  const cached = await env.F1_DATA.get(key);
-  if (cached && isFresh(cached)) {
-    let body = await cached.text();
-    if (dateFilters) {
-      body = JSON.stringify(sliceByDate(JSON.parse(body), dateFilters));
-    }
-    return finalize(body, "HIT");
+  if (r.xcache === "ERROR") {
+    return new Response(body, { status: r.status, headers });
   }
-
-  // 3. Origin fetch — single-flight + retry. For telemetry, fetch the full
-  // session (no date filter) so we cache the complete blob and slice later.
-  const fetchPath = isTelemetry ? "/" + key : apiPath;
-  let upstream: { ok: boolean; status: number; body: string } | null = null;
-  try {
-    upstream = await fetchUpstreamOnce(fetchPath);
-  } catch {
-    upstream = null;
+  if (r.xcache === "STALE") {
+    headers["Cache-Control"] = "public, max-age=60, s-maxage=30";
+    return new Response(body, { status: 200, headers });
   }
-
-  // 4. On any upstream failure, always prefer stale R2 over erroring.
-  if (!upstream || !upstream.ok) {
-    if (cached) {
-      let body = await cached.text();
-      if (dateFilters) {
-        body = JSON.stringify(sliceByDate(JSON.parse(body), dateFilters));
-      }
-      record("stale");
-      // Don't poison the edge cache with a long TTL for stale/error data.
-      return new Response(body, {
-        headers: {
-          "Content-Type": "application/json",
-          "Cache-Control": "public, max-age=60",
-          "X-Cache": "STALE",
-        },
-      });
-    }
-    record("error");
-    const status = upstream?.status ?? 502;
-    return new Response(
-      JSON.stringify({ error: "OpenF1 API unavailable" }),
-      { status, headers: { "Content-Type": "application/json" } },
-    );
-  }
-
-  // 5. Success — persist full blob to R2 (non-blocking), return (sliced) body.
-  const fullBody = upstream.body;
-  ctx.waitUntil(
-    env.F1_DATA.put(key, fullBody, {
-      httpMetadata: { contentType: "application/json" },
-      customMetadata: { fetchedAt: String(Date.now()) },
-    }),
-  );
-
-  let responseBody = fullBody;
-  if (dateFilters) {
-    responseBody = JSON.stringify(sliceByDate(JSON.parse(fullBody), dateFilters));
-  }
-  return finalize(responseBody, "MISS");
+  const swr = r.policy.ttl === TTL_FOREVER ? ", stale-while-revalidate=86400" : "";
+  headers["Cache-Control"] = `public, max-age=60, s-maxage=${r.policy.edgeMaxAge}${swr}`;
+  const resp = new Response(body, { status: 200, headers });
+  ctx.waitUntil(cache.put(ck, resp.clone()));
+  return resp;
 }
