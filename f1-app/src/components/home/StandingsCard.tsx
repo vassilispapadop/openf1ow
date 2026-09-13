@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/api";
 import { findLatestRace } from "../../lib/latestRace";
+import { loadRaceIndex } from "../../lib/raceIndex";
 import { Section, Segmented, Table, EmptyState, type Column } from "../../ui";
 import { C } from "../../lib/styles";
 import { podiumColor } from "../../lib/format";
@@ -29,13 +30,15 @@ export default function StandingsCard({ year }: { year: number }) {
       const latest = await findLatestRace(year);
       if (!latest) { if (!cancelled) setData({ state: "none", reason: "No completed race this season yet." }); return; }
       const mk = latest.meetingKey;
+      const idx = await loadRaceIndex();
+      const firstMk = idx?.byYear[String(year)]?.slice().sort((a, b) => (a.dateStart || "").localeCompare(b.dateStart || ""))[0]?.meetingKey;
       const [d, t, info, season] = await Promise.all([
         api(`/championship_drivers?meeting_key=${mk}`).catch(() => []) as Promise<DriverRow[]>,
         api(`/championship_teams?meeting_key=${mk}`).catch(() => []) as Promise<TeamRow[]>,
         latest.raceSk ? (api(`/drivers?session_key=${latest.raceSk}`).catch(() => []) as Promise<DriverInfo[]>) : Promise.resolve([] as DriverInfo[]),
         // Drivers who scored earlier in the year but missed the latest race
         // (a reserve, an injury) are named from the season's first race.
-        api(`/drivers?meeting_key=${mk}`).catch(() => []) as Promise<DriverInfo[]>,
+        firstMk && firstMk !== mk ? (api(`/drivers?meeting_key=${firstMk}`).catch(() => []) as Promise<DriverInfo[]>) : Promise.resolve([] as DriverInfo[]),
       ]);
       if (cancelled) return;
       if (!Array.isArray(d) || !d.length) { setData({ state: "none", reason: `Standings after the ${latest.meetingName} have not been published by the data source yet.` }); return; }
