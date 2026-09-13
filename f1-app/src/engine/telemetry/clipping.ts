@@ -1,4 +1,4 @@
-import { DRS_OPEN, DRS_ELIGIBLE } from "../../lib/constants";
+import { DRS_OPEN, DRS_ELIGIBLE } from "./drs.ts";
 
 export interface ClipEvent {
   distance: number;

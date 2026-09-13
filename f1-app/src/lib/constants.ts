@@ -7,11 +7,8 @@ export const TC: Record<string, string> = {
   WET: "#0072C6",
 };
 
-/** DRS status values that indicate the flap is open */
-export const DRS_OPEN = [10, 12, 14];
-
-/** DRS status value indicating eligibility (within 1s) */
-export const DRS_ELIGIBLE = 8;
+/** DRS status codes live with the engine (telemetry/drs.ts); re-exported for the app. */
+export { DRS_OPEN, DRS_ELIGIBLE } from "../engine/telemetry/drs.ts";
 
 /** The three ways a stretch of track is classified, shared by every view that
  *  draws them so the colours and wording never drift apart. Corner = limited by
