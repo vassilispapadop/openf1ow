@@ -20,11 +20,16 @@
 //   3. Build one shared reference profile — corner boundaries have to fall at
 //      identical track positions for every trace or the times aren't
 //      comparable.
-//   4. Classify each point of the lap from the track's own GEOMETRY: corner
-//      where the racing line's radius drops below CORNER_RADIUS_M, straight
-//      where it doesn't. Curvature comes from the (x, y) fixes, so it says
-//      what the circuit does rather than what a driver did on it — Copse and
-//      Maggotts/Becketts are corners whether or not anyone lifted.
+//   4. Classify each point of the lap from GEOMETRY: corner where the radius
+//      drops below CORNER_RADIUS_M, straight where it doesn't. Curvature is
+//      measured on the reference lap's racing line, not on a track centreline
+//      we don't have — so it is not strictly a property of the circuit, and a
+//      driver who straight-lines a chicane does change it. In practice the
+//      lines converge: recomputing the split from each of the eleven candidate
+//      reference laps in turn moves corner share by only 1-3 percentage points
+//      at every 2026 circuit. Radius is used rather than lateral g because
+//      v^2/R dips at the apex, where speed falls faster than radius does, and
+//      that splits one corner into several runs (Suzuka: 21 turns becomes 30).
 //   5. Merge curvature runs that sit close together (chicanes, esses) into one
 //      section and call everything left over a straight.
 //
@@ -72,8 +77,15 @@ export interface SegmentTiming {
   fastest: boolean;    // quickest through this section
 }
 
+/** Corner: tight enough that the car is limited by cornering grip — braking,
+ *  turning, traction. Curve: the track turns, but with a radius wide enough
+ *  that a modern car carries it at or near full throttle, so what matters
+ *  there is drag and power rather than grip (Curva Grande, Eau Rouge,
+ *  Blanchimont). Straight: not turning meaningfully. */
+export type SectionKind = "corner" | "curve" | "straight";
+
 export interface TrackSegment {
-  kind: "corner" | "straight";
+  kind: SectionKind;
   name: string;        // "T3", "T6–T7", "S2"
   startDist: number;   // metres from the line
   endDist: number;
@@ -90,11 +102,15 @@ export interface SegmentTotals {
   color: string;
   isBaseline: boolean;
   cornerTime: number;
+  curveTime: number;
   straightTime: number;
   cornerDelta: number;
+  curveDelta: number;
   straightDelta: number;
+  /** cornerDelta + curveDelta + straightDelta, which is exactly the lap gap. */
   totalDelta: number;
   cornersWon: number;
+  curvesWon: number;
   straightsWon: number;
 }
 
@@ -110,8 +126,10 @@ export interface SegmentComparison {
   totals: SegmentTotals[];
   baselineLabel: string;
   cornerCount: number;
+  curveCount: number;
   straightCount: number;
   cornerDistance: number;
+  curveDistance: number;
   straightDistance: number;
   trackDistance: number;
 }
@@ -134,9 +152,17 @@ const ZONE_FRAC = 0.5;
 const FULL_THROTTLE = 95;
 /** Brake % that counts as "on the brakes" — the corner-entry boundary. */
 const BRAKING = 5;
-/** Turn radius at or below which the track counts as cornering. See the
+/** Turn radius at or below which the car is limited by cornering grip. See the
  *  calibration note at the top of the file. */
 const CORNER_RADIUS_M = 250;
+/** Above CORNER_RADIUS_M the track can still be turning hard enough to matter.
+ *  Lateral load is what separates a fast sweeper from a lazy kink at the same
+ *  radius — Eau Rouge sits at ~370 m and pulls 2.0 g, a slow wide bend at the
+ *  same radius pulls a fraction of that. Measured noise on known straights is
+ *  0.05 g median and 0.24 g at p99, so 1.6 g clears it by an order of
+ *  magnitude. The radius cap stops the rule reaching onto genuine straights. */
+const CURVE_MIN_G = 1.6;
+const CURVE_MAX_RADIUS_M = 600;
 /** Baseline either side of a point when measuring heading change. Long enough
  *  to ride over position-fix jitter, short enough to resolve a chicane. */
 const CURVATURE_WINDOW_M = 20;
@@ -147,8 +173,6 @@ const MIN_CORNER_M = 25;
  *  the 2026 calendar, against 4.0 at 90 m and 4.8 at 130 m — merge harder and
  *  the short straights between chicane elements get eaten by the corners. */
 const MERGE_GAP_M = 60;
-/** Gaps shorter than this aren't a straight — absorb them into the corner. */
-const MIN_STRAIGHT_M = 70;
 /** Position fixes are decimetres — mirrors LOC_TO_METERS in lib/telemetry.ts. */
 const LOC_TO_METERS = 10;
 /** How far either side of the predicted position to look when matching a
@@ -435,40 +459,87 @@ function radiusProfile(x: number[], y: number[], stepM: number): number[] {
   return radius;
 }
 
-/** Corner zones straight off the track geometry. Returns null when the
+/** Classify every grid point as corner, curve or straight from the reference
+ *  line's geometry and the speed carried through it. Returns null when the
  *  position fixes are unusable, so the caller can fall back. */
-function findCornerZonesGeometric(
+function classifyGeometric(
   x: number[],
   y: number[],
+  speed: number[],
   step: number,
-): { start: number; end: number; apexes: number }[] | null {
+): SectionKind[] | null {
   if (!x.some((v, i) => v !== 0 || y[i] !== 0)) return null;
   const radius = radiusProfile(x, y, step);
   if (!radius.some(r => isFinite(r))) return null;
 
-  const runs: { start: number; end: number; apexes: number }[] = [];
-  let start = -1;
-  for (let i = 0; i < radius.length; i++) {
-    const tight = radius[i] <= CORNER_RADIUS_M;
-    if (tight && start < 0) start = i;
-    else if (!tight && start >= 0) { runs.push({ start, end: i - 1, apexes: 1 }); start = -1; }
-  }
-  if (start >= 0) runs.push({ start, end: radius.length - 1, apexes: 1 });
+  return radius.map((r, i) => {
+    if (r <= CORNER_RADIUS_M) return "corner";
+    if (r > CURVE_MAX_RADIUS_M || !isFinite(r)) return "straight";
+    const v = speed[i] / 3.6;                       // km/h -> m/s
+    const g = (v * v / r) / 9.81;
+    return g >= CURVE_MIN_G ? "curve" : "straight";
+  });
+}
 
+/** Runs of one kind, with slivers absorbed into their neighbours and corner
+ *  runs split by a very short straight (a chicane) rejoined into one section.
+ *  `turns` counts how many distinct turns a section swallowed, for naming. */
+function buildRuns(kinds: SectionKind[], step: number): { kind: SectionKind; start: number; end: number; turns: number }[] {
   const minLen = Math.max(1, Math.round(MIN_CORNER_M / step));
-  const kept = runs.filter(r => r.end - r.start >= minLen);
-  if (!kept.length) return null;
+  const k = [...kinds];
 
-  // Chicanes and esses read as separate curvature runs a few tens of metres
-  // apart; they're one section, but each element is still a turn.
-  const gap = Math.max(1, Math.round(MERGE_GAP_M / step));
-  const merged: typeof kept = [];
-  for (const r of kept) {
-    const prev = merged[merged.length - 1];
-    if (prev && r.start - prev.end <= gap) { prev.end = r.end; prev.apexes += r.apexes; }
-    else merged.push({ ...r });
+  // Despeckle: a run too short to be real becomes whatever its longer
+  // neighbour is. Repeat until stable, since absorbing one run can leave
+  // another short.
+  for (let pass = 0; pass < 4; pass++) {
+    const runs = runsOf(k);
+    let changed = false;
+    for (let i = 0; i < runs.length; i++) {
+      const r = runs[i];
+      if (r.end - r.start + 1 >= minLen) continue;
+      const prev = runs[i - 1], next = runs[i + 1];
+      const take = !prev ? next : !next ? prev
+        : (prev.end - prev.start) >= (next.end - next.start) ? prev : next;
+      if (!take) continue;
+      for (let j = r.start; j <= r.end; j++) k[j] = take.kind;
+      changed = true;
+    }
+    if (!changed) break;
   }
-  return merged;
+
+  const runs = runsOf(k).map(r => ({ ...r, turns: 1 }));
+
+  // Chicanes and esses arrive as corner / short straight / corner. Rejoin them
+  // so they read as one section, while still counting as two turns.
+  const gap = Math.max(1, Math.round(MERGE_GAP_M / step));
+  const out: typeof runs = [];
+  for (const r of runs) {
+    const prev = out[out.length - 1];
+    const bridge = out[out.length - 1];
+    if (
+      prev && r.kind === "corner" && out.length >= 2 &&
+      out[out.length - 2].kind === "corner" &&
+      bridge.kind !== "corner" && bridge.end - bridge.start + 1 <= gap
+    ) {
+      out.pop();                                   // drop the bridging run
+      const target = out[out.length - 1];
+      target.end = r.end;
+      target.turns += r.turns;
+      continue;
+    }
+    out.push({ ...r });
+  }
+  return out;
+}
+
+function runsOf(kinds: SectionKind[]): { kind: SectionKind; start: number; end: number }[] {
+  const runs: { kind: SectionKind; start: number; end: number }[] = [];
+  for (let i = 0; i < kinds.length; i++) {
+    const last = runs[runs.length - 1];
+    if (last && last.kind === kinds[i]) last.end = i;
+    else runs.push({ kind: kinds[i], start: i, end: i });
+  }
+  return runs;
 }
 
 /** Corner zones as [startIdx, endIdx] index pairs on the grid, plus how many
@@ -661,62 +732,53 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
     return { trace: p.trace, r: resample(p, fractions) };
   });
 
-  // Geometry first: it describes the circuit rather than the driving, so the
-  // split is identical however many cars are in the comparison and can be
-  // checked against a circuit map. The reference line is whichever trace has
-  // the most usable position fixes.
+  // Geometry first: sections come from the reference lap's racing line, so the
+  // split holds however many cars are being compared and can be checked
+  // against a circuit map. Fall back to reading the driving only when there
+  // are no usable position fixes.
   const geoRef = sampled.reduce((best, cur) =>
     countPositioned(cur.r) > countPositioned(best.r) ? cur : best);
-  let zones = findCornerZonesGeometric(geoRef.r.x, geoRef.r.y, step);
-  const fromGeometry = zones != null;
+  let kinds = classifyGeometric(geoRef.r.x, geoRef.r.y, geoRef.r.speed, step);
+  const fromGeometry = kinds != null;
 
-  if (!zones) {
+  if (!kinds) {
     // No usable position fixes — read the corners off the driving instead.
+    // That route can't tell a flat-out curve from a straight, so it only ever
+    // produces two kinds.
     const profile = fractions.map((_, i) =>
       sampled.reduce((sum, t) => sum + t.r.speed[i], 0) / sampled.length);
     const brakeMax = fractions.map((_, i) => Math.max(...sampled.map(t => t.r.brake[i])));
     const throttleMin = fractions.map((_, i) => Math.min(...sampled.map(t => t.r.throttle[i])));
-    zones = findCornerZonesFromDriving(profile, brakeMax, throttleMin, step);
+    const zones = findCornerZonesFromDriving(profile, brakeMax, throttleMin, step);
+    if (!zones.length) return null;
+    kinds = new Array<SectionKind>(GRID_POINTS).fill("straight");
+    for (const z of zones) for (let i = z.start; i <= z.end; i++) kinds[i] = "corner";
   }
-  if (!zones.length) return null;
 
-  // Interleave corners with the straights between them.
-  type Raw = { kind: "corner" | "straight"; start: number; end: number; apexes: number };
-  const raw: Raw[] = [];
-  let cursor = 0;
-  const minStraight = Math.max(1, Math.round(MIN_STRAIGHT_M / step));
-  for (const z of zones) {
-    if (z.start - cursor >= minStraight) {
-      raw.push({ kind: "straight", start: cursor, end: z.start, apexes: 0 });
-      raw.push({ kind: "corner", start: z.start, end: z.end, apexes: z.apexes });
-    } else {
-      // Too short to be a straight — hand it to the corner.
-      raw.push({ kind: "corner", start: cursor, end: z.end, apexes: z.apexes });
-    }
-    cursor = z.end;
-  }
-  const lastIdx = GRID_POINTS - 1;
-  if (lastIdx - cursor >= minStraight) {
-    raw.push({ kind: "straight", start: cursor, end: lastIdx, apexes: 0 });
-  } else if (raw.length) {
-    raw[raw.length - 1].end = lastIdx;
-  }
+  const raw = buildRuns(kinds, step);
   if (raw.length < 2) return null;
+  // Sections share their boundaries: each ends where the next begins. Leaving
+  // a one-step gap would drop that step's distance from the totals and its
+  // time from the sums.
+  for (let i = 0; i < raw.length - 1; i++) raw[i].end = raw[i + 1].start;
+  raw[raw.length - 1].end = GRID_POINTS - 1;
 
   // Baseline = the quickest lap; everything else reads as ± against it.
   const lapTimes = prepared.map(p => p.lapTime);
   const baselineIdx = lapTimes.indexOf(Math.min(...lapTimes));
 
+  // Corners and curves both get turn numbers — a flat-out curve is still a
+  // numbered turn on the official map — and straights are numbered separately.
   let turnNo = 0;
   let straightNo = 0;
   const segments: TrackSegment[] = raw.map(r => {
     let name: string;
-    if (r.kind === "corner") {
-      const first = turnNo + 1;
-      turnNo += Math.max(1, r.apexes);
-      name = first === turnNo ? "T" + first : "T" + first + "–" + turnNo;
-    } else {
+    if (r.kind === "straight") {
       name = "S" + ++straightNo;
+    } else {
+      const first = turnNo + 1;
+      turnNo += Math.max(1, r.turns);
+      name = first === turnNo ? "T" + first : "T" + first + "\u2013" + turnNo;
     }
 
     const times = sampled.map(s => s.r.elapsed[r.end] - s.r.elapsed[r.start]);
@@ -754,36 +816,35 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
   });
 
   const totals: SegmentTotals[] = sampled.map((s, i) => {
-    let cornerTime = 0, straightTime = 0, cornerDelta = 0, straightDelta = 0;
-    let cornersWon = 0, straightsWon = 0;
+    const time = { corner: 0, curve: 0, straight: 0 };
+    const delta = { corner: 0, curve: 0, straight: 0 };
+    const won = { corner: 0, curve: 0, straight: 0 };
     for (const seg of segments) {
       const t = seg.timings[i];
-      if (seg.kind === "corner") {
-        cornerTime += t.time;
-        cornerDelta += t.delta;
-        if (t.fastest) cornersWon++;
-      } else {
-        straightTime += t.time;
-        straightDelta += t.delta;
-        if (t.fastest) straightsWon++;
-      }
+      time[seg.kind] += t.time;
+      delta[seg.kind] += t.delta;
+      if (t.fastest) won[seg.kind]++;
     }
     return {
       label: s.trace.label,
       color: s.trace.color,
       isBaseline: i === baselineIdx,
-      cornerTime,
-      straightTime,
-      cornerDelta,
-      straightDelta,
-      totalDelta: cornerDelta + straightDelta,
-      cornersWon,
-      straightsWon,
+      cornerTime: time.corner,
+      curveTime: time.curve,
+      straightTime: time.straight,
+      cornerDelta: delta.corner,
+      curveDelta: delta.curve,
+      straightDelta: delta.straight,
+      totalDelta: delta.corner + delta.curve + delta.straight,
+      cornersWon: won.corner,
+      curvesWon: won.curve,
+      straightsWon: won.straight,
     };
   });
 
-  const cornerSegs = segments.filter(s => s.kind === "corner");
-  const straightSegs = segments.filter(s => s.kind === "straight");
+  const count = (k: SectionKind) => segments.filter(s => s.kind === k).length;
+  const dist = (k: SectionKind) =>
+    segments.filter(s => s.kind === k).reduce((a, s) => a + s.length, 0);
 
   return {
     segments,
@@ -791,10 +852,12 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
     fromGeometry,
     totals,
     baselineLabel: sampled[baselineIdx].trace.label,
-    cornerCount: cornerSegs.length,
-    straightCount: straightSegs.length,
-    cornerDistance: cornerSegs.reduce((a, s) => a + s.length, 0),
-    straightDistance: straightSegs.reduce((a, s) => a + s.length, 0),
+    cornerCount: count("corner"),
+    curveCount: count("curve"),
+    straightCount: count("straight"),
+    cornerDistance: dist("corner"),
+    curveDistance: dist("curve"),
+    straightDistance: dist("straight"),
     trackDistance: lapLength,
   };
 }

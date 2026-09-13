@@ -9,7 +9,8 @@
 import { useMemo } from "react";
 import { C, F, sty } from "../../lib/styles";
 import { rowBg } from "../../lib/format";
-import { compareLapSegments, type SegmentTrace, type SegmentTotals } from "../../lib/lapSegments";
+import { SECTION_COLORS, SECTION_LABELS } from "../../lib/constants";
+import { compareLapSegments, type SegmentTrace, type SegmentTotals, type SectionKind } from "../../lib/lapSegments";
 import SectionMap from "./SectionMap";
 
 interface Props {
@@ -27,17 +28,21 @@ function deltaColor(v: number): string {
   return v < 0 ? C.pos : C.neg;
 }
 
-const KIND_COLOR = { corner: C.warn, straight: C.violet } as const;
+const KINDS: SectionKind[] = ["corner", "curve", "straight"];
 
-/** Diverging corner/straight bar: how much of a driver's deficit (or gain)
- *  came from each. Bars grow from a shared centre line. */
-function SplitBar({ t, scale }: { t: SegmentTotals; scale: number }) {
-  const bar = (v: number, color: string) => {
+/** Diverging bars: how much of a lap's deficit came from each kind of section.
+ *  Bars grow from a shared centre line, left when the lap was quicker there. */
+function SplitBars({ t, scale }: { t: SegmentTotals; scale: number }) {
+  const rows: { kind: SectionKind; delta: number }[] = [
+    { kind: "corner", delta: t.cornerDelta },
+    { kind: "curve", delta: t.curveDelta },
+    { kind: "straight", delta: t.straightDelta },
+  ];
+  const bar = (v: number) => {
     const pct = Math.min(100, (Math.abs(v) / scale) * 100);
+    const color = v < 0 ? C.pos : C.neg;
     return (
       <div style={{ display: "flex", height: 8, background: "rgba(255,255,255,0.04)", borderRadius: 4, overflow: "hidden" }}>
-        {/* Two half-tracks either side of a centre line: a lap that lost time
-            grows right, one that gained grows left. */}
         <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
           {v < 0 && <div style={{ width: pct + "%", height: "100%", background: color, borderRadius: "4px 0 0 4px" }} />}
         </div>
@@ -50,20 +55,15 @@ function SplitBar({ t, scale }: { t: SegmentTotals; scale: number }) {
   };
   return (
     <div style={{ display: "grid", gap: 8 }}>
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
-          <span style={{ color: KIND_COLOR.corner, fontWeight: 600 }}>Corners</span>
-          <span style={{ ...sty.mono, color: deltaColor(t.cornerDelta) }}>{sd(t.cornerDelta)}s</span>
+      {rows.map(r => (
+        <div key={r.kind}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
+            <span style={{ color: SECTION_COLORS[r.kind], fontWeight: 600 }}>{SECTION_LABELS[r.kind]}</span>
+            <span style={{ ...sty.mono, color: deltaColor(r.delta) }}>{sd(r.delta)}s</span>
+          </div>
+          {bar(r.delta)}
         </div>
-        {bar(t.cornerDelta, t.cornerDelta < 0 ? C.pos : C.neg)}
-      </div>
-      <div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
-          <span style={{ color: KIND_COLOR.straight, fontWeight: 600 }}>Straights</span>
-          <span style={{ ...sty.mono, color: deltaColor(t.straightDelta) }}>{sd(t.straightDelta)}s</span>
-        </div>
-        {bar(t.straightDelta, t.straightDelta < 0 ? C.pos : C.neg)}
-      </div>
+      ))}
     </div>
   );
 }

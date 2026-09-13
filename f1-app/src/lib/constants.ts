@@ -13,6 +13,29 @@ export const DRS_OPEN = [10, 12, 14];
 /** DRS status value indicating eligibility (within 1s) */
 export const DRS_ELIGIBLE = 8;
 
+/** The three ways a stretch of track is classified, shared by every view that
+ *  draws them so the colours and wording never drift apart. Corner = limited by
+ *  cornering grip. Curve = the track turns but a modern car carries it at or
+ *  near full throttle, so drag and power decide it. Straight = not turning. */
+export const SECTION_COLORS = {
+  corner: "#ffb547",
+  curve: "#38bdf8",
+  straight: "#a78bfa",
+} as const;
+
+export const SECTION_LABELS = {
+  corner: "Corners",
+  curve: "Fast curves",
+  straight: "Straights",
+} as const;
+
+/** Singular, for prose. */
+export const SECTION_LABEL_ONE = {
+  corner: "corner",
+  curve: "fast curve",
+  straight: "straight",
+} as const;
+
 /** Team liveries, used anywhere a chart colours a series by constructor.
  *  Covers the 2026 grid (Audi and Cadillac in, Kick Sauber out) alongside the
  *  historical names, since the season pages render past years too. */

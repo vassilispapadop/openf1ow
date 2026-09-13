@@ -5,6 +5,7 @@
 
 import { useMemo } from "react";
 import { C, F, M } from "../../lib/styles";
+import { SECTION_COLORS, SECTION_LABELS } from "../../lib/constants";
 import type { TrackSegment } from "../../lib/lapSegments";
 
 interface Props {
@@ -13,7 +14,6 @@ interface Props {
   height?: number;
 }
 
-const KIND_COLOR = { corner: C.warn, straight: C.violet } as const;
 const VIEW_W = 800;
 
 export default function SectionMap({ path, segments, height = 340 }: Props) {
@@ -67,15 +67,15 @@ export default function SectionMap({ path, segments, height = 340 }: Props) {
             key={i}
             d={pathFrom(r.pts)}
             fill="none"
-            stroke={KIND_COLOR[r.seg.kind]}
-            strokeWidth={r.seg.kind === "corner" ? 6 : 4}
-            strokeOpacity={r.seg.kind === "corner" ? 0.95 : 0.6}
+            stroke={SECTION_COLORS[r.seg.kind]}
+            strokeWidth={r.seg.kind === "corner" ? 6 : r.seg.kind === "curve" ? 5 : 4}
+            strokeOpacity={r.seg.kind === "straight" ? 0.6 : 0.95}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
         ))}
         {rendered.runs.map((r, i) => (
-          r.seg.kind === "corner" && r.mid ? (
+          r.seg.kind !== "straight" && r.mid ? (
             <text
               key={"l" + i}
               x={r.mid.x}
@@ -83,7 +83,7 @@ export default function SectionMap({ path, segments, height = 340 }: Props) {
               fontSize={17}
               fontFamily={M}
               fontWeight={700}
-              fill={C.warn}
+              fill={SECTION_COLORS[r.seg.kind]}
               textAnchor="middle"
               stroke="#0a0a0d"
               strokeWidth={4}
@@ -93,12 +93,18 @@ export default function SectionMap({ path, segments, height = 340 }: Props) {
         ))}
       </svg>
       <div style={{ display: "flex", gap: 16, fontSize: 11, marginTop: 8, color: C.textDim, flexWrap: "wrap" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 16, height: 5, borderRadius: 3, background: KIND_COLOR.corner }} /> Corner sections
-        </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 16, height: 4, borderRadius: 2, background: KIND_COLOR.straight, opacity: 0.6 }} /> Straights
-        </span>
+        {(["corner", "curve", "straight"] as const).map(k => (
+          <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{
+              width: 16,
+              height: k === "corner" ? 5 : 4,
+              borderRadius: 3,
+              background: SECTION_COLORS[k],
+              opacity: k === "straight" ? 0.6 : 1,
+            }} />
+            {SECTION_LABELS[k]}
+          </span>
+        ))}
       </div>
     </div>
   );
