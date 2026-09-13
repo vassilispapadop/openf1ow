@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { F, C, R } from "../../lib/styles";
 import { shareUrl, canShareUrl } from "../../lib/share";
 import { fd } from "../../lib/format";
-import { loadRaceIndex } from "../../lib/raceIndex";
+import { findLatestRace } from "../../lib/latestRace";
 import { loadSeasonTrends } from "../../lib/seasonClient";
-import { api, fetchInsights } from "../../lib/api";
+import { fetchInsights } from "../../lib/api";
 import { paths } from "../../lib/constants";
 import type { ConstructorPaceRace } from "../../lib/seasonUtils";
 
@@ -21,6 +21,7 @@ interface LatestRace {
   fastestTeamGap?: string;
   poleTeam?: string;          // P1 in the constructor-pace ranking, if available
   verdicts?: { id: string; headline: string; confidence: string; tab: string }[];
+  podium?: { pos: number; driver: string; team: string; gap: string | number | null; grid: number | null }[];
 }
 
 export default function LatestRaceCard({ year }: { year: number }) {
@@ -30,41 +31,8 @@ export default function LatestRaceCard({ year }: { year: number }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const idx = await loadRaceIndex();
-      if (!idx || cancelled) { setLoading(false); return; }
-      const list = idx.byYear[String(year)];
-      if (!list) { setLoading(false); return; }
-      const now = Date.now();
-
-      // A race counts as "latest" only once its Race session has actually
-      // started — not when the weekend begins. `dateStart` is FP1/Friday, so
-      // keying off it made an upcoming GP show as "latest" during its practice
-      // days (and clash with the NEXT RACE card). Use the real Race-session
-      // start from the (cached) sessions list; fall back to dateStart if the
-      // sessions fetch is unavailable (e.g. gated during a live session).
-      const raceStartByMeeting: Record<number, number> = {};
-      try {
-        const sessions = (await api(`/sessions?year=${year}`)) as Array<{
-          meeting_key: number; session_name: string; date_start?: string;
-        }>;
-        if (Array.isArray(sessions)) {
-          for (const s of sessions) {
-            if (s.session_name === "Race" && s.date_start) {
-              raceStartByMeeting[s.meeting_key] = new Date(s.date_start).getTime();
-            }
-          }
-        }
-      } catch { /* fall back to dateStart below */ }
-
-      const raceStart = (r: { meetingKey: number; dateStart?: string }) =>
-        raceStartByMeeting[r.meetingKey] ??
-        (r.dateStart ? new Date(r.dateStart).getTime() : 0);
-
-      const past = list
-        .filter(r => r.sessions?.race && raceStart(r) > 0 && raceStart(r) < now)
-        .sort((a, b) => raceStart(b) - raceStart(a));
-      const latest = past[0];
-      if (!latest) { setLoading(false); return; }
+      const latest = await findLatestRace(year);
+      if (!latest || cancelled) { setLoading(false); return; }
 
       const trends = await loadSeasonTrends(year);
       const trendRow: ConstructorPaceRace | undefined = trends?.constructorPace.find(
@@ -73,9 +41,12 @@ export default function LatestRaceCard({ year }: { year: number }) {
 
       // The engine's top findings for the race, from the Worker-side run.
       let verdicts: LatestRace["verdicts"] = undefined;
-      if (latest.sessions?.race) {
+      let podium: LatestRace["podium"] = undefined;
+      if (latest.raceSk) {
         try {
-          const ins = await fetchInsights(latest.sessions.race);
+          const ins = await fetchInsights(latest.raceSk);
+          const results = (ins?.tables?.results ?? []) as NonNullable<LatestRace["podium"]>;
+          if (Array.isArray(results) && results.length) podium = results.filter(r => r.pos != null && r.pos <= 3);
           verdicts = (ins?.verdicts ?? [])
             .filter((v: any) => v.id !== "data_quality" && v.id !== "race_winner")
             .slice(0, 3)
@@ -86,10 +57,11 @@ export default function LatestRaceCard({ year }: { year: number }) {
       if (cancelled) return;
       setRace({
         verdicts,
+        podium,
         year,
         slug: latest.slug,
         meetingKey: latest.meetingKey,
-        raceSk: latest.sessions?.race ?? null,
+        raceSk: latest.raceSk,
         meetingName: latest.meetingName,
         location: latest.location,
         country: latest.country,
@@ -157,6 +129,17 @@ export default function LatestRaceCard({ year }: { year: number }) {
           </>
         )}
       </div>
+      {race.podium && race.podium.length > 0 && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+          {race.podium.map(p => (
+            <div key={p.pos} style={{ flex: "1 1 160px", padding: "10px 12px", borderRadius: 10, background: C.surfaceAlt, border: "1px solid " + C.border, display: "flex", alignItems: "baseline", gap: 10 }}>
+              <span style={{ fontSize: 18, fontWeight: 800, color: p.pos === 1 ? "#FFD700" : p.pos === 2 ? "#C0C0C0" : "#CD7F32", fontFamily: "var(--mono)" }}>P{p.pos}</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{p.driver}</span>
+              <span style={{ fontSize: 11, color: C.textMute, marginLeft: "auto", fontFamily: "var(--mono)" }}>{p.pos === 1 ? (p.grid != null ? `from P${p.grid}` : "") : typeof p.gap === "number" ? `+${p.gap.toFixed(3)}` : p.gap ?? ""}</span>
+            </div>
+          ))}
+        </div>
+      )}
       {race.verdicts && race.verdicts.length > 0 && (
         <ul style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "grid", gap: 8 }}>
           {race.verdicts.map(v => (

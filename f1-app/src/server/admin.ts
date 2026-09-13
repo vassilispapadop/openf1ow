@@ -56,16 +56,15 @@ export async function handleAdminRequest(request: Request, env: AdminEnv, ctx: E
   if (!authorised(request, env)) return new Response("Not found", { status: 404 });
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
-  const sk = Number(url.searchParams.get("session_key"));
-  if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);
-
   const action = url.pathname.replace("/api/admin/", "");
+  const sk = Number(url.searchParams.get("session_key"));
   if (action === "cron") {
     const { runScheduledTick } = await import("./cron");
-    const report = await runScheduledTick(env, ctx, { force: sk || undefined });
+    const report = await runScheduledTick(env, ctx, { force: Number.isFinite(sk) && sk > 0 ? sk : undefined });
     return json(report);
   }
   if (action !== "purge" && action !== "refresh") return json({ error: "unknown action" }, 404);
+  if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);
 
   const { epoch, deleted } = await purgeSession(sk, env);
   const warmed = action === "refresh" ? await warmSession(sk, env, ctx) : {};

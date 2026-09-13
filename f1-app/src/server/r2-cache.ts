@@ -94,17 +94,33 @@ function sliceByDate(data: any[], filters: { gte?: string; lte?: string }): any[
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-/** In-isolate single-flight with one retry on 429/5xx. */
+/** In-isolate single-flight with one retry on 429/5xx. Every fetch carries a
+ *  timeout, and so does waiting on a shared in-flight call: a fetch started
+ *  by an invocation that was torn down (a cron tick, a cancelled request)
+ *  never settles, and without the second timeout every later request for
+ *  the same key in that isolate would hang on it. */
+const UPSTREAM_TIMEOUT_MS = 12_000;
+const INFLIGHT_WAIT_MS = 20_000;
 const inflight = new Map<string, Promise<{ ok: boolean; status: number; body: string }>>();
+
+function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error(what + " timed out")), ms);
+    p.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+  });
+}
 
 export async function fetchUpstreamOnce(fetchPath: string): Promise<{ ok: boolean; status: number; body: string }> {
   const existing = inflight.get(fetchPath);
-  if (existing) return existing;
+  if (existing) {
+    try { return await withTimeout(existing, INFLIGHT_WAIT_MS, "shared upstream call"); }
+    catch (e) { inflight.delete(fetchPath); throw e; }
+  }
   const p = (async () => {
     let lastErr: unknown;
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const res = await fetch(OPENF1 + fetchPath);
+        const res = await fetch(OPENF1 + fetchPath, { signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS) });
         if ((res.status === 429 || res.status >= 500) && attempt === 0) {
           await sleep(400 + Math.random() * 300);
           continue;

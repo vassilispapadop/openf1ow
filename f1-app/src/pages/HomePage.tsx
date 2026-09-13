@@ -10,6 +10,7 @@ import HotStats from "../components/home/HotStats";
 import ConstructorPaceTile from "../components/home/ConstructorPaceTile";
 import TeammateGapTile from "../components/home/TeammateGapTile";
 import SeasonGrid from "../components/home/SeasonGrid";
+import StandingsCard from "../components/home/StandingsCard";
 
 export default function HomePage() {
   const { year, sessions, mk, sk, loading } = useSession();
@@ -90,6 +91,10 @@ export default function HomePage() {
       )}
 
       <LatestRaceCard year={year} />
+
+      <div style={{ marginTop: 14 }}>
+        <StandingsCard year={year} />
+      </div>
 
       <HotStats year={year} />
 
