@@ -1,5 +1,6 @@
 import { handleF1Request, normalizeKey } from "./r2-cache";
 import { handleAdminRequest } from "./admin";
+import { runScheduledTick } from "./cron";
 import { handleBundleRequest } from "./bundle";
 import { handleSessionInsightsRequest } from "./insights";
 import { handleRecapRequest, handleInsightsRequest, buildRaceContentBlock } from "./recap";
@@ -451,6 +452,13 @@ const BOT_PROBE_RE =
   /(\.php($|[?/])|\/wp-(admin|includes|content|login)|xmlrpc|\/\.(env|git|aws|ssh)|\/vendor\/|\/phpmyadmin)/i;
 
 export default {
+  // Cron Trigger (wrangler.jsonc): one settled session per tick — warm its
+  // endpoints, derive the intervals window, store the engine's insights.
+  async scheduled(_controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    const report = await runScheduledTick(env, ctx);
+    console.log("cron", JSON.stringify(report));
+  },
+
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 

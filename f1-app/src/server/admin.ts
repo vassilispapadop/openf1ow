@@ -2,6 +2,8 @@
 //
 //   POST /api/admin/purge?session_key=SK     invalidate everything cached for a session
 //   POST /api/admin/refresh?session_key=SK   purge, then warm the standard endpoint set
+//   POST /api/admin/cron                     run one scheduled tick now (see cron.ts)
+//   POST /api/admin/cron?session_key=SK      process that session now, whatever its age
 //
 // Purging writes an epoch to meta/purge/{sk}.json — the freshness floor in
 // r2-cache.ts treats any object fetched before it as stale — and deletes the
@@ -14,7 +16,7 @@ export interface AdminEnv extends CacheEnv {
   ADMIN_TOKEN?: string;
 }
 
-const STANDARD_ENDPOINTS = [
+export const STANDARD_ENDPOINTS = [
   "drivers", "laps", "stints", "pit", "position", "race_control", "session_result", "weather", "intervals", "overtakes", "starting_grid",
 ];
 
@@ -58,29 +60,41 @@ export async function handleAdminRequest(request: Request, env: AdminEnv, ctx: E
   if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);
 
   const action = url.pathname.replace("/api/admin/", "");
+  if (action === "cron") {
+    const { runScheduledTick } = await import("./cron");
+    const report = await runScheduledTick(env, ctx, { force: sk || undefined });
+    return json(report);
+  }
   if (action !== "purge" && action !== "refresh") return json({ error: "unknown action" }, 404);
 
+  const { epoch, deleted } = await purgeSession(sk, env);
+  const warmed = action === "refresh" ? await warmSession(sk, env, ctx) : {};
+  return json({ action, session_key: sk, purgeEpoch: epoch, deleted, warmed });
+}
+
+/** Write the purge epoch (freshness floor) and drop the per-session artifacts. */
+export async function purgeSession(sk: number, env: CacheEnv): Promise<{ epoch: number; deleted: Record<string, number> }> {
   const epoch = Date.now();
-  await env.F1_DATA.put(`meta/purge/${sk}.json`, JSON.stringify({ epoch }), {
-    httpMetadata: { contentType: "application/json" },
-  });
+  await env.F1_DATA.put(`meta/purge/${sk}.json`, JSON.stringify({ epoch }), { httpMetadata: { contentType: "application/json" } });
   const deleted: Record<string, number> = {};
   for (const p of ARTIFACT_PREFIXES(sk)) deleted[p] = await deletePrefix(env.F1_DATA, p);
+  return { epoch, deleted };
+}
 
+/** Resolve the standard endpoint set for a session, sequentially so the
+ *  upstream budget (3 req/s) is respected. Returns status per endpoint. */
+export async function warmSession(sk: number, env: CacheEnv, ctx: ExecutionContext, endpoints: readonly string[] = STANDARD_ENDPOINTS): Promise<Record<string, string>> {
   const warmed: Record<string, string> = {};
-  if (action === "refresh") {
-    // Sequential, so the upstream budget (3 req/s) is respected.
-    for (const ep of STANDARD_ENDPOINTS) {
-      try {
-        const r = await resolveResource(`/${ep}?session_key=${sk}`, env, ctx);
-        warmed[ep] = `${r.status} ${r.xcache}`;
-      } catch (e) {
-        warmed[ep] = "error " + (e instanceof Error ? e.message : String(e));
-      }
-      await new Promise(r => setTimeout(r, 350));
+  for (const ep of endpoints) {
+    try {
+      const r = await resolveResource(`/${ep}?session_key=${sk}`, env, ctx);
+      warmed[ep] = `${r.status} ${r.xcache}`;
+    } catch (e) {
+      warmed[ep] = "error " + (e instanceof Error ? e.message : String(e));
     }
+    await new Promise(r => setTimeout(r, 350));
   }
-  return json({ action, session_key: sk, purgeEpoch: epoch, deleted, warmed });
+  return warmed;
 }
 
 function json(body: unknown, status = 200): Response {
