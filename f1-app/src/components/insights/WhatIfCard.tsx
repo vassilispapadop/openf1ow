@@ -118,7 +118,7 @@ export default function WhatIfCard() {
               endDots={false}
               endLabels
               x={{ domain: [1, model.totalLaps], format: l => `Lap ${l}`, label: "Lap" }}
-              y={{ format: y => fmt.signedSec(y, 1), invert: true, includeZero: true, zeroLine: "reference", zeroLabel: winner.driver.name_acronym === d.driver.name_acronym ? "own actual pace" : `${winner.driver.name_acronym} (winner)`, targetTicks: 5 }}
+              y={{ format: y => fmt.signedSec(y, 1), invert: true, includeZero: true, zeroLine: "reference", zeroLabel: winner.driver.name_acronym === d.driver.name_acronym ? "as raced" : winner.driver.name_acronym, targetTicks: 5 }}
               marks={marks}
               format={y => fmt.signedSec(y)}
               tipTitle={l => `Lap ${l} · gap to ${winner.driver.name_acronym}`}
