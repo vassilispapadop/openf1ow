@@ -23,6 +23,7 @@ import { StrategyTimelineCard, UndercutCard, TyreLifeCard, PitCrewCard } from ".
 import { DegradationCard, CompoundsCard, FuelCard } from "./components/insights/TyreCards";
 import { TeammatesCard, OvertakesCard, SCImpactCard, DirtyAirCard } from "./components/insights/BattlesCards";
 import ConstructorsCard from "./components/insights/ConstructorsCard";
+import WhatIfCard from "./components/insights/WhatIfCard";
 import { StartCard, GridFinishCard } from "./components/insights/OverviewCards";
 
 export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [], raceMeta, subTab, onSubTabChange }: {
@@ -84,6 +85,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                 <Verdicts area="strategy" onOpenTab={onSubTabChange} />
                 <StrategyTimelineCard />
                 <UndercutCard />
+                <WhatIfCard />
                 <TyreLifeCard />
                 <DegradationCard />
                 <CompoundsCard />
