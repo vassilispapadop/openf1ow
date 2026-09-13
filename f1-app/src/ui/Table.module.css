@@ -1,0 +1,49 @@
+.wrap {
+  overflow: auto;
+  border-radius: var(--r-md);
+  container-type: inline-size;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font);
+  font-size: 12px;
+  color: var(--text);
+}
+.th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface);
+  color: var(--text-mute);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+.sortable { cursor: pointer; }
+.sortable:hover { color: var(--text-dim); }
+.sortIcon { display: inline-block; width: 1em; opacity: 0.6; margin-left: 2px; font-size: 9px; }
+.td {
+  padding: 9px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  vertical-align: middle;
+}
+.right { text-align: right; }
+.center { text-align: center; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tr { transition: background 0.12s ease; }
+.tr:hover { background: rgba(255, 255, 255, 0.025); }
+.tr.clickable { cursor: pointer; }
+.tr.highlight { background: rgba(255, 255, 255, 0.05); }
+.tr.dim { opacity: 0.45; }
+.compact .th, .compact .td { padding: 6px 8px; font-size: 11px; }
+
+/* Column hiding by container width, not viewport — tables live inside cards
+   inside grids. */
+@container (max-width: 900px) { .hide900 { display: none; } }
+@container (max-width: 640px) { .hide640 { display: none; } }
+@container (max-width: 480px) { .hide480 { display: none; } }

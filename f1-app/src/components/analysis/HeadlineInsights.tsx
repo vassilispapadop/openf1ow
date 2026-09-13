@@ -1,7 +1,8 @@
 import { useMemo, type ReactNode } from "react";
 import type { Driver, Lap, Stint } from "../../lib/types";
 import type { ViewKey } from "../../lib/constants";
-import { F, M, C } from "../../lib/styles";
+import { C } from "../../lib/styles";
+import { StatTile } from "../../ui";
 import { ft3, podiumColor } from "../../lib/format";
 import {
   computeSlowLapThreshold,
@@ -113,50 +114,7 @@ function Card({ label, accent, teamColor, primary, secondary, onClick }: {
   secondary: ReactNode;
   onClick?: () => void;
 }) {
-  return (
-    <button
-      onClick={onClick}
-      className="hover-border-strong"
-      style={{
-        flex: "1 1 200px",
-        minWidth: 200,
-        textAlign: "left",
-        padding: "14px 16px",
-        borderRadius: 14,
-        border: "1px solid " + C.border,
-        background: C.surface,
-        cursor: onClick ? "pointer" : "default",
-        color: "inherit",
-        fontFamily: F,
-      }}
-    >
-      <div style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        fontSize: 11,
-        fontWeight: 600,
-        color: C.textMute,
-        marginBottom: 10,
-      }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent }} />
-        <span>{label}</span>
-      </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-        <span style={{
-          width: 3, alignSelf: "stretch", borderRadius: 2, background: teamColor, flexShrink: 0,
-          minHeight: 18,
-        }} />
-        <span style={{
-          fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: "-0.015em",
-        }}>{primary}</span>
-      </div>
-      <div style={{
-        fontSize: 12, fontFamily: M, color: C.textDim, fontWeight: 500,
-        paddingLeft: 11,
-      }}>{secondary}</div>
-    </button>
-  );
+  return <StatTile grow label={label} accent={accent} teamColor={teamColor} value={primary} sub={secondary} onClick={onClick} />;
 }
 
 export default function HeadlineInsights({

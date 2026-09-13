@@ -10,7 +10,7 @@ import LiveSessionBanner from "../components/LiveSessionBanner";
 import { SkeletonAnalysis, SkeletonHome } from "../components/Skeleton";
 import { F, C, sty } from "../lib/styles";
 import { paths } from "../lib/constants";
-import Pill from "../components/Pill";
+import { Segmented } from "../ui";
 
 function LayoutInner() {
   const { year, meetings, sessions, drivers, mk, sk, loading, error, clearError, retry } = useSession();
@@ -91,32 +91,19 @@ function LayoutInner() {
         />
 
         {drivers.length > 0 && !loading && sk && (
-          <div style={{
-            display: "inline-flex",
-            gap: 2,
-            marginBottom: 16,
-            background: C.surface,
-            borderRadius: 999,
-            padding: 3,
-            border: "1px solid " + C.border,
-          }}>
-            <Pill
+          <div style={{ marginBottom: 16 }}>
+            <Segmented
               size="lg"
               variant="inverted"
-              active={!isDriver}
-              onClick={() => navigate(paths.analysis(year, mk, sk))}>
-              Race analysis
-            </Pill>
-            <Pill
-              size="lg"
-              variant="inverted"
-              active={isDriver}
-              onClick={() => {
-                if (dn) navigate(paths.driver(year, mk, sk, dn));
+              ariaLabel="Page"
+              options={[{ key: "analysis", label: "Race analysis" }, { key: "driver", label: "Driver view" }]}
+              value={isDriver ? "driver" : "analysis"}
+              onChange={key => {
+                if (key === "analysis") navigate(paths.analysis(year, mk, sk));
+                else if (dn) navigate(paths.driver(year, mk, sk, dn));
                 else if (drivers.length > 0) navigate(paths.driver(year, mk, sk, String(drivers[0].driver_number)));
-              }}>
-              Driver view
-            </Pill>
+              }}
+            />
           </div>
         )}
 

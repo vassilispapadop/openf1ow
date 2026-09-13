@@ -11,18 +11,18 @@ import type { ClipEvent } from "../lib/clipping";
 
 // Color palette
 const C = {
-  bg: "#0a0e14",
-  panel1: "#0d1119",
-  panel2: "#0f131d",
-  border: "#1c2333",
-  grid: "rgba(99,130,191,.07)",
-  gridStrong: "rgba(99,130,191,.15)",
-  axis: "#2a3a5c",
-  tick: "#3d4f6f",
-  text: "#6b7d9e",
-  bright: "#c8d6e5",
-  dim: "#3d4f6f",
-  accent: "#e63946",
+  bg: "#131318",
+  panel1: "#1a1a20",
+  panel2: "#1a1a20",
+  border: "rgba(255,255,255,0.12)",
+  grid: "rgba(255,255,255,0.05)",
+  gridStrong: "rgba(255,255,255,0.10)",
+  axis: "rgba(255,255,255,0.18)",
+  tick: "#8a8a94",
+  text: "#a0a0ac",
+  bright: "#f4f4f6",
+  dim: "#8a8a94",
+  accent: "#ff1e00",
 };
 
 // Layout constants

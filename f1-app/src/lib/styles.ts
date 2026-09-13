@@ -31,6 +31,25 @@ export const C = {
 
 export const R = { sm: 6, md: 10, lg: 14 };
 
+/** Canvas chart palette — the JS mirror of the --chart-* tokens in
+ *  src/ui/tokens.css. Charts used to carry their own navy plot palette
+ *  (#0a0e14 / #1c2333 / #e63946); this puts them on the brand surfaces. */
+export const CHART = {
+  bg: C.surface,
+  panel: C.surfaceAlt,
+  border: C.borderStrong,
+  grid: "rgba(255,255,255,0.05)",
+  gridStrong: "rgba(255,255,255,0.10)",
+  axis: "rgba(255,255,255,0.18)",
+  tick: C.textMute,
+  text: C.textDim,
+  bright: C.text,
+  dim: C.textMute,
+  accent: C.accent,
+  crosshair: "rgba(255,255,255,0.28)",
+  dimOpacity: 0.18,
+};
+
 export const sty = {
   bg: {
     fontFamily: F,

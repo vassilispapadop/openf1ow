@@ -4,8 +4,8 @@
 // dashboard into something with actual narrative beats.
 
 import { useEffect, useState } from "react";
-import { F, M, C, R } from "../../lib/styles";
 import { TC } from "../../lib/constants";
+import { StatTile } from "../../ui";
 import { loadSeasonTrends } from "../../lib/seasonClient";
 import type { SeasonTrends } from "../../lib/seasonUtils";
 
@@ -39,42 +39,7 @@ export default function HotStats({ year }: { year: number }) {
         gap: 8,
       }}>
         {stats.map((s, i) => (
-          <div key={i} style={{
-            padding: "14px 16px",
-            background: C.surface,
-            border: "1px solid " + C.border,
-            borderLeft: "3px solid " + (s.accent || C.accent),
-            borderRadius: R.md,
-            fontFamily: F,
-          }}>
-            <div style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: C.textMute,
-              letterSpacing: "0.12em",
-              marginBottom: 6,
-            }}>
-              {s.label}
-            </div>
-            <div style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: C.text,
-              letterSpacing: "-0.01em",
-              lineHeight: 1.2,
-            }}>
-              {s.headline}
-            </div>
-            <div style={{
-              fontSize: 11,
-              color: C.textDim,
-              marginTop: 4,
-              fontFamily: M,
-              fontVariantNumeric: "tabular-nums",
-            }}>
-              {s.detail}
-            </div>
-          </div>
+          <StatTile key={i} label={s.label} value={s.headline} sub={s.detail} accent={s.accent} />
         ))}
       </div>
     </section>

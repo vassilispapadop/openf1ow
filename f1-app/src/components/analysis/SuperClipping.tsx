@@ -250,10 +250,10 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
                         {d.driver?.name_acronym || "???"}
                       </td>
                       <td style={{ ...sty.td, fontFamily: M }}>{d.totalEvents}</td>
-                      <td style={{ ...sty.td, fontFamily: M, color: d.avgDrop > 10 ? "#ef4444" : d.avgDrop > 5 ? "#eab308" : "#6b7d9e" }}>
+                      <td style={{ ...sty.td, fontFamily: M, color: d.avgDrop > 10 ? "#ef4444" : d.avgDrop > 5 ? "#eab308" : "#a0a0ac" }}>
                         {d.avgDrop.toFixed(1)} km/h
                       </td>
-                      <td style={{ ...sty.td, fontFamily: M, color: d.worstDrop > 10 ? "#ef4444" : d.worstDrop > 5 ? "#eab308" : "#6b7d9e" }}>
+                      <td style={{ ...sty.td, fontFamily: M, color: d.worstDrop > 10 ? "#ef4444" : d.worstDrop > 5 ? "#eab308" : "#a0a0ac" }}>
                         {d.worstDrop.toFixed(1)} km/h
                       </td>
                       <td style={{ ...sty.td, fontFamily: M, color: "#5a5a6e" }}>{d.lapsAnalyzed}</td>

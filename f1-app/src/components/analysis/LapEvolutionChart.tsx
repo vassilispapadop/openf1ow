@@ -83,7 +83,7 @@ function LapEvolutionChart({ allLaps, drivers }: {
     }));
 
     if (!maxLap || minTime === Infinity) {
-      ctx.fillStyle = "#0a0e14";
+      ctx.fillStyle = "#131318";
       ctx.fillRect(0, 0, W, H);
       return;
     }
@@ -102,13 +102,13 @@ function LapEvolutionChart({ allLaps, drivers }: {
     const yPos = (t: number) => T + plotH - ((t - yMin) / (yMax - yMin)) * plotH;
 
     // Background
-    ctx.fillStyle = "#0a0e14";
+    ctx.fillStyle = "#131318";
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#0d1119";
+    ctx.fillStyle = "#1a1a20";
     ctx.fillRect(L, T, plotW, plotH);
 
     // Grid
-    ctx.strokeStyle = "rgba(99,130,191,.07)";
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 3]);
     const lapStep = Math.max(1, Math.ceil(maxLap / 15));
@@ -129,11 +129,11 @@ function LapEvolutionChart({ allLaps, drivers }: {
     ctx.setLineDash([]);
 
     // Axes
-    ctx.strokeStyle = "#2a3a5c"; ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(L, T); ctx.lineTo(L, T + plotH); ctx.lineTo(W - R, T + plotH); ctx.stroke();
 
     // X labels
-    ctx.font = "10px " + M; ctx.fillStyle = "#3d4f6f"; ctx.textAlign = "center";
+    ctx.font = "10px " + M; ctx.fillStyle = "#8a8a94"; ctx.textAlign = "center";
     for (let lap = 1; lap <= maxLap; lap += lapStep) ctx.fillText("L" + lap, xPos(lap), T + plotH + 18);
 
     ctx.textAlign = "right";
@@ -194,11 +194,11 @@ function LapEvolutionChart({ allLaps, drivers }: {
         olCtx.fillStyle = "rgba(10,14,20,.93)";
         olCtx.beginPath(); olCtx.roundRect(bx, by, boxW, boxH, 6); olCtx.fill();
         olCtx.shadowColor = "transparent"; olCtx.shadowBlur = 0;
-        olCtx.strokeStyle = "#1c2333"; olCtx.lineWidth = 1; olCtx.stroke();
-        olCtx.fillStyle = "#e63946";
+        olCtx.strokeStyle = "rgba(255,255,255,0.12)"; olCtx.lineWidth = 1; olCtx.stroke();
+        olCtx.fillStyle = "#ff1e00";
         olCtx.beginPath(); olCtx.roundRect(bx, by, boxW, 3, [6, 6, 0, 0]); olCtx.fill();
 
-        olCtx.font = "600 10px " + F; olCtx.fillStyle = "#6b7d9e"; olCtx.textAlign = "left";
+        olCtx.font = "600 10px " + F; olCtx.fillStyle = "#a0a0ac"; olCtx.textAlign = "left";
         olCtx.fillText("Lap " + hoverLap, bx + pad, by + pad + 10);
 
         olCtx.font = "10px " + M;
@@ -206,8 +206,8 @@ function LapEvolutionChart({ allLaps, drivers }: {
           const ry = by + pad + 16 + i * lineH + 11;
           olCtx.fillStyle = "#" + p.color;
           olCtx.beginPath(); olCtx.arc(bx + pad + 4, ry - 4, 3, 0, Math.PI * 2); olCtx.fill();
-          olCtx.fillStyle = "#c8d6e5"; olCtx.fillText(p.name, bx + pad + 14, ry);
-          olCtx.fillStyle = "#6b7d9e"; olCtx.textAlign = "right";
+          olCtx.fillStyle = "#f4f4f6"; olCtx.fillText(p.name, bx + pad + 14, ry);
+          olCtx.fillStyle = "#a0a0ac"; olCtx.textAlign = "right";
           olCtx.fillText(ft1(p.time), bx + boxW - pad, ry); olCtx.textAlign = "left";
         });
       }

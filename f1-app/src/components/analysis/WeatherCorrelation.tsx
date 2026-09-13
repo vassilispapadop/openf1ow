@@ -128,13 +128,13 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
     const xPos = (temp: number) => L + ((temp - minTemp) / Math.max(maxTemp - minTemp, 1)) * plotW;
     const yPos = (pace: number) => T + plotH - ((pace - (minPace - padPace)) / ((maxPace + padPace) - (minPace - padPace))) * plotH;
 
-    ctx.fillStyle = "#0a0e14";
+    ctx.fillStyle = "#131318";
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#0d1119";
+    ctx.fillStyle = "#1a1a20";
     ctx.fillRect(L, T, plotW, plotH);
 
     // Grid
-    ctx.strokeStyle = "rgba(99,130,191,.07)";
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 3]);
     for (let temp = Math.ceil(minTemp); temp <= maxTemp; temp++) {
@@ -147,7 +147,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
     ctx.setLineDash([]);
 
     // Axes
-    ctx.strokeStyle = "#2a3a5c";
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(L, T);
@@ -157,7 +157,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
 
     // X labels
     ctx.font = "10px " + M;
-    ctx.fillStyle = "#3d4f6f";
+    ctx.fillStyle = "#8a8a94";
     ctx.textAlign = "center";
     for (let temp = Math.ceil(minTemp); temp <= maxTemp; temp++) {
       ctx.fillText(temp + "\u00B0C", xPos(temp), T + plotH + 18);
@@ -200,7 +200,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
 
     // Labels
     ctx.font = "600 10px " + F;
-    ctx.fillStyle = "#6b7d9e";
+    ctx.fillStyle = "#a0a0ac";
     ctx.textAlign = "center";
     ctx.fillText("Track Temperature", L + plotW / 2, T + plotH + 28);
     ctx.save();

@@ -14,9 +14,7 @@ import { TC, ANALYSIS_VIEWS, type ViewKey } from "./lib/constants";
 import Pill from "./components/Pill";
 import ScatterPlot from "./components/analysis/ScatterPlot";
 import type { ScatterPoint } from "./components/analysis/useTooltip";
-import SubTab from "./components/analysis/SubTab";
 import { PendingData, isRateLimited } from "./components/analysis/PendingData";
-import ViewToggle from "./components/analysis/ViewToggle";
 import LapEvolutionChart from "./components/analysis/LapEvolutionChart";
 import RacePaceRanking from "./components/analysis/RacePaceRanking";
 import StintDegradation from "./components/analysis/StintDegradation";
@@ -30,38 +28,9 @@ import DirtyAirAnalysis from "./components/analysis/DirtyAirAnalysis";
 import SuperClipping from "./components/analysis/SuperClipping";
 import HeadlineInsights from "./components/analysis/HeadlineInsights";
 import StickyTabBar from "./components/shell/StickyTabBar";
+import { Section, Segmented } from "./ui";
 
-function Section({ title, hint, actions, children }: {
-  title: string;
-  hint?: string;
-  actions?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section style={sty.card}>
-      <header style={{
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
-        marginBottom: hint ? 6 : 14,
-      }}>
-        <h3 style={sty.sectionHead}>{title}</h3>
-        {actions}
-      </header>
-      {hint && (
-        <p style={{
-          fontSize: 12,
-          color: C.textMute,
-          margin: "0 0 14px",
-          lineHeight: 1.55,
-          maxWidth: 760,
-        }}>{hint}</p>
-      )}
-      {children}
-    </section>
-  );
-}
+const VIEW_OPTIONS = [{ key: "list", label: "List" }, { key: "graph", label: "Graph" }] as const;
 
 export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [], raceMeta, subTab, onSubTabChange }: {
   sessionKey: string;
@@ -82,7 +51,11 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
   // session); the number is the attempt count that drives capped auto-retry.
   const [pending, setPending] = useState(0);
   const [loaded, setLoaded] = useState(false);
-  const [viewMode, setViewMode] = useState<"list" | "graph">("graph");
+  // One list|graph toggle per card — the old single state flipped three
+  // unrelated sections at once, across tab boundaries.
+  const [paceView, setPaceView] = useState<"list" | "graph">("graph");
+  const [degView, setDegView] = useState<"list" | "graph">("graph");
+  const [teamView, setTeamView] = useState<"list" | "graph">("graph");
   const [progress, setProgress] = useState("");
 
   useEffect(() => {
@@ -324,13 +297,12 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           gap: 12,
           flexWrap: "wrap",
         }}>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {ANALYSIS_VIEWS.map(v => (
-              <SubTab key={v.key} active={subTab === v.key} onClick={() => onSubTabChange(v.key)}>
-                {v.label}
-              </SubTab>
-            ))}
-          </div>
+          <Segmented
+            ariaLabel="Analysis view"
+            options={ANALYSIS_VIEWS.map(v => ({ key: v.key, label: v.label }))}
+            value={subTab}
+            onChange={onSubTabChange}
+          />
           <Pill size="sm" onClick={exportJson} title="Download race analysis data as JSON">
             Export JSON
           </Pill>
@@ -356,9 +328,9 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           <Section
             title="Race pace ranking"
             hint="Who was genuinely fastest on track? Each driver's median lap time on clean racing laps — slow laps (safety car, traffic, mistakes) filtered out."
-            actions={<ViewToggle mode={viewMode} onChange={setViewMode} />}
+            actions={<Segmented size="sm" role="radiogroup" ariaLabel="List or graph" options={VIEW_OPTIONS} value={paceView} onChange={setPaceView} />}
           >
-            <RacePaceRanking allLaps={allLaps} drivers={drivers} viewMode={viewMode} />
+            <RacePaceRanking allLaps={allLaps} drivers={drivers} viewMode={paceView} />
           </Section>
 
           <Section
@@ -437,9 +409,9 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           <Section
             title="Tire degradation by stint"
             hint="How much slower does each driver get per lap on each compound? Fuel-corrected (lighter car = faster, so raw times understate true tire wear). First 2 laps of each stint excluded (cold tires)."
-            actions={<ViewToggle mode={viewMode} onChange={setViewMode} />}
+            actions={<Segmented size="sm" role="radiogroup" ariaLabel="List or graph" options={VIEW_OPTIONS} value={degView} onChange={setDegView} />}
           >
-            <StintDegradation allLaps={allLaps} drivers={drivers} stints={allStints} viewMode={viewMode} />
+            <StintDegradation allLaps={allLaps} drivers={drivers} stints={allStints} viewMode={degView} />
           </Section>
 
           <Section
@@ -641,9 +613,9 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
           <Section
             title="Constructor pace"
             hint="Which team had the fastest car? Both drivers' laps combined into a single team pace, with individual breakdowns showing each driver's contribution."
-            actions={<ViewToggle mode={viewMode} onChange={setViewMode} />}
+            actions={<Segmented size="sm" role="radiogroup" ariaLabel="List or graph" options={VIEW_OPTIONS} value={teamView} onChange={setTeamView} />}
           >
-            <ConstructorPace allLaps={allLaps} drivers={drivers} viewMode={viewMode} />
+            <ConstructorPace allLaps={allLaps} drivers={drivers} viewMode={teamView} />
           </Section>
 
           <Section

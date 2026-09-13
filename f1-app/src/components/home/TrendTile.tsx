@@ -1,5 +1,8 @@
+// Home-page trend tile: a StatTile with a sparkline. Kept as a thin adapter
+// so the tile callers don't change while the tiles share one look.
+
 import type { ReactNode } from "react";
-import { F, C, R } from "../../lib/styles";
+import { StatTile } from "../../ui";
 
 interface Props {
   label: string;          // e.g. "CONSTRUCTOR PACE"
@@ -11,58 +14,14 @@ interface Props {
 }
 
 export default function TrendTile({ label, headline, detail, delta, spark, href }: Props) {
-  const inner = (
-    <>
-      <div style={{ fontSize: 11, color: C.textMute, fontWeight: 600, letterSpacing: "0.12em", marginBottom: 8 }}>
-        {label}
-      </div>
-      <div style={{
-        fontSize: "clamp(20px, 3.2vw, 26px)",
-        fontWeight: 800,
-        color: C.text,
-        letterSpacing: "-0.02em",
-        lineHeight: 1.1,
-      }}>
-        {headline}
-      </div>
-      {detail && (
-        <div style={{ fontSize: 12, color: C.textDim, marginTop: 4 }}>
-          {detail}
-        </div>
-      )}
-      {delta && (
-        <div style={{
-          fontSize: 11,
-          color: delta.positive ? C.pos : C.neg,
-          fontWeight: 600,
-          marginTop: 6,
-          fontVariantNumeric: "tabular-nums",
-        }}>
-          {delta.value}
-        </div>
-      )}
-      {spark && <div style={{ marginTop: 14 }}>{spark}</div>}
-    </>
+  return (
+    <StatTile
+      label={label}
+      value={headline}
+      sub={detail}
+      delta={delta ? { value: delta.value, tone: delta.positive ? "pos" : "neg" } : undefined}
+      spark={spark}
+      href={href}
+    />
   );
-
-  const wrap: React.CSSProperties = {
-    background: C.surface,
-    border: "1px solid " + C.border,
-    borderRadius: R.lg,
-    padding: 18,
-    fontFamily: F,
-    minHeight: 156,
-    display: "flex",
-    flexDirection: "column",
-    transition: "border-color 0.15s ease",
-  };
-
-  if (href) {
-    return (
-      <a href={href} className="card-glow" style={{ ...wrap, color: "inherit", textDecoration: "none" }}>
-        {inner}
-      </a>
-    );
-  }
-  return <div style={wrap}>{inner}</div>;
 }

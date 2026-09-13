@@ -54,12 +54,12 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
     const toX = (v: number) => L + ((v - xMin) / (xMax - xMin)) * pW;
     const toY = (v: number) => T + pH - ((v - yMin) / (yMax - yMin)) * pH;
 
-    ctx.fillStyle = "#0a0e14";
+    ctx.fillStyle = "#131318";
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#0d1119";
+    ctx.fillStyle = "#1a1a20";
     ctx.fillRect(L, T, pW, pH);
 
-    ctx.strokeStyle = "rgba(99,130,191,.07)";
+    ctx.strokeStyle = "rgba(255,255,255,0.05)";
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 3]);
     const xSteps = width < 480 ? 3 : 5;
@@ -76,7 +76,7 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
     }
     ctx.setLineDash([]);
 
-    ctx.strokeStyle = "#2a3a5c";
+    ctx.strokeStyle = "rgba(255,255,255,0.18)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(L, T); ctx.lineTo(L, T + pH); ctx.lineTo(L + pW, T + pH);
@@ -92,7 +92,7 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
     }
 
     ctx.font = `${m.axisFont}px ${M}`;
-    ctx.fillStyle = "#3d4f6f";
+    ctx.fillStyle = "#8a8a94";
     ctx.textAlign = "center";
     for (let i = 0; i <= xSteps; i++) {
       const v = xMin + ((xMax - xMin) * i) / xSteps;
@@ -105,7 +105,7 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
     }
 
     ctx.font = `600 ${m.labelFont}px ${F}`;
-    ctx.fillStyle = "#6b7d9e";
+    ctx.fillStyle = "#a0a0ac";
     ctx.textAlign = "center";
     ctx.fillText(xLabel, L + pW / 2, H - 4);
     ctx.save();

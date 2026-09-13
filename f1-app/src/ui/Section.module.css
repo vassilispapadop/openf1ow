@@ -1,0 +1,122 @@
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  margin-bottom: 10px;
+  font-family: var(--font);
+  container-type: inline-size;
+  scroll-margin-top: calc(var(--header-h, 60px) + 56px);
+}
+.dense { padding: 12px 14px; }
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.headText { min-width: 0; flex: 1; }
+.kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+  margin-bottom: 4px;
+}
+.title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hint {
+  font-size: 12px;
+  color: var(--text-mute);
+  margin: 6px 0 0;
+  line-height: 1.55;
+  max-width: 760px;
+}
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.method {
+  margin: 0 0 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface-alt);
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+.method summary {
+  cursor: pointer;
+  padding: 8px 12px;
+  color: var(--text-mute);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.method summary::-webkit-details-marker { display: none; }
+.method summary::before {
+  content: "";
+  width: 6px; height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+.method[open] summary::before { transform: rotate(45deg); }
+.methodBody { padding: 0 12px 12px; }
+.methodBody p { margin: 0 0 8px; }
+.methodBody ul { margin: 0 0 8px; padding-left: 18px; }
+.methodBody li { margin: 2px 0; }
+.methodLabel {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin: 8px 0 3px;
+}
+
+.body { position: relative; }
+
+/* Evidence highlight — a verdict linked here. */
+.section:target,
+.flash {
+  animation: sectionFlash 1.2s ease-out both;
+}
+@keyframes sectionFlash {
+  0% { box-shadow: 0 0 0 2px var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Collapsible variant (supporting evidence, collapsed on phones). */
+.collapsible > summary { list-style: none; cursor: pointer; }
+.collapsible > summary::-webkit-details-marker { display: none; }
+.collapsible:not([open]) .head { margin-bottom: 0; }
+
+@media (max-width: 600px) {
+  .section { padding: 14px; }
+  .head { flex-direction: column; align-items: stretch; }
+  .actions { justify-content: flex-start; }
+}

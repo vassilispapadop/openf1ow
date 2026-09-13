@@ -79,7 +79,7 @@ function BoxPlotChart({ rows, valueFmt, axisLabel }: {
               position: "absolute",
               left: toX(v) + "%",
               transform: "translateX(-50%)",
-              fontSize: 9, fontFamily: M, color: "#3d4f6f",
+              fontSize: 9, fontFamily: M, color: "#8a8a94",
             }}>{fmt1(v)}</span>
           );
         })}

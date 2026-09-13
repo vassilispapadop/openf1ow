@@ -17,9 +17,12 @@ export const DRS_ELIGIBLE = 8;
  *  draws them so the colours and wording never drift apart. Corner = limited by
  *  cornering grip. Curve = the track turns but a modern car carries it at or
  *  near full throttle, so drag and power decide it. Straight = not turning. */
+// Validated as a categorical trio on the dark surface (dataviz palette
+// checks): sky blue for curves sat ΔE 5.2 from the violet for deutan readers,
+// so curves are teal — ΔE 14 worst-case across colour-vision types.
 export const SECTION_COLORS = {
   corner: "#ffb547",
-  curve: "#38bdf8",
+  curve: "#2dd4bf",
   straight: "#a78bfa",
 } as const;
 
