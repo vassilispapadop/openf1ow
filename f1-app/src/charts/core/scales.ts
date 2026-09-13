@@ -22,12 +22,13 @@ export function niceStep(raw: number): number {
 /** Ticks from `min` to `max` on a nice step, always including zero when the
  *  range spans it (so a signed axis shows the reference line). */
 export function ticks(min: number, max: number, target = 5): number[] {
-  if (!(max > min)) return [min];
+  // A degenerate span (a flat series) gets one tick, not a thousand.
+  if (!(max > min) || max - min < 1e-9 * Math.max(1, Math.abs(max))) return [+min.toFixed(6) || 0];
   const step = niceStep((max - min) / target);
   const out: number[] = [];
-  for (let g = Math.ceil(min / step - 1e-9) * step; g <= max + step * 1e-4; g += step) out.push(+g.toFixed(6));
+  for (let g = Math.ceil(min / step - 1e-9) * step; g <= max + step * 1e-4 && out.length < 50; g += step) out.push(+g.toFixed(6) || 0);
   if (min <= 0 && max >= 0 && !out.some(t => Math.abs(t) < 1e-9)) out.push(0);
-  return out.sort((a, b) => a - b);
+  return Array.from(new Set(out)).sort((a, b) => a - b);
 }
 
 /** [min, max] over numbers, ignoring non-finite values; null when empty. */

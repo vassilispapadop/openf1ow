@@ -90,7 +90,9 @@ export default function LineChart({
     const pool = (visible.length ? visible : series).flatMap(sr => sr.points.map(p => p.y));
     let e = extent(pool) ?? [0, 1];
     if (y.includeZero) e = [Math.min(0, e[0]), Math.max(0, e[1])];
-    return pad(e, y.padFrac ?? 0.08);
+    // A flat series still needs a visible band around its value.
+    const floor = e[1] - e[0] < 1e-9 ? Math.max(1, Math.abs(e[0]) * 0.01) : 0;
+    return pad(e, y.padFrac ?? 0.08, floor);
   }, [y.domain, y.includeZero, y.padFrac, visible, series]);
 
   // All distinct x values for snapping.

@@ -146,12 +146,12 @@ export default function Frame({
         })}
 
         {/* y grid + ticks */}
-        {(y.grid ?? true) && yTicks.map(t => {
+        {(y.grid ?? true) && yTicks.map((t, i) => {
           const yy = sc.y(t.value);
           if (yy < sc.margin.top - 1 || yy > sc.margin.top + sc.innerH + 1) return null;
           const isZero = Math.abs(t.value) < 1e-9 && y.zeroLine === "reference";
           return (
-            <g key={t.value}>
+            <g key={`${i}-${t.value}`}>
               <line x1={sc.margin.left} x2={sc.margin.left + sc.innerW} y1={yy} y2={yy} className={isZero ? s.zeroRef : s.grid} />
               <text x={sc.margin.left - 7} y={yy + 3} textAnchor="end" className={isZero ? s.zeroTick : s.tick}>
                 {isZero && y.zeroLabel ? y.zeroLabel : (t.label ?? fmtY(t.value))}
