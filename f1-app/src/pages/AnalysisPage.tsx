@@ -2,7 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSession } from "../contexts/SessionContext";
 import { ANALYSIS_VIEWS, DEFAULT_ANALYSIS_TAB, TAB_REDIRECT, type ViewKey } from "../lib/constants";
-import { classifySession } from "../lib/sessionAnalysis";
+import { classifySession } from "../engine/index.ts";
 import RaceAnalysis from "../RaceAnalysis";
 import QualifyingAnalysis from "../components/session/QualifyingAnalysis";
 import PracticeAnalysis from "../components/session/PracticeAnalysis";
@@ -49,9 +49,9 @@ export default function AnalysisPage() {
 
   let content: React.ReactNode;
   if (kind === "qualifying") {
-    content = <QualifyingAnalysis sessionKey={sk} drivers={drivers} sessionName={session?.session_name} />;
+    content = <QualifyingAnalysis sessionKey={sk} sessionName={session?.session_name} subTab={view} onSubTabChange={onSubTabChange} />;
   } else if (kind === "practice") {
-    content = <PracticeAnalysis sessionKey={sk} drivers={drivers} sessionName={session?.session_name} />;
+    content = <PracticeAnalysis sessionKey={sk} sessionName={session?.session_name} subTab={view} onSubTabChange={onSubTabChange} />;
   } else {
     // Race / Sprint — full analysis stack.
     content = (

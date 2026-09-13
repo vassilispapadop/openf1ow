@@ -11,7 +11,7 @@ import { C, F } from "../../lib/styles";
 import { podiumColor } from "../../lib/format";
 import type { ViewKey } from "../../lib/constants";
 
-const AREA_LABEL: Record<VerdictArea, string> = { overview: "Race", pace: "Pace", strategy: "Strategy", battles: "Battles", track: "Track" };
+const AREA_LABEL: Record<VerdictArea, string> = { overview: "Session", pace: "Pace", strategy: "Strategy", battles: "Battles", track: "Track" };
 const CONF_TONE = { high: "pos", medium: "warn", low: "mute" } as const;
 
 export function useVerdicts(): Verdict[] {
@@ -19,33 +19,34 @@ export function useVerdicts(): Verdict[] {
   return useMemo(() => (model ? generateVerdicts(model) : []), [model]);
 }
 
-/** The four headline tiles, derived from the same verdicts. */
-export function KpiRow({ onOpenTab }: { onOpenTab?: (tab: ViewKey) => void }) {
+/** The headline tiles: the verdicts that carry a `kpi`, most important first. */
+export function KpiRow({ onOpenTab, max = 4 }: { onOpenTab?: (tab: ViewKey) => void; max?: number }) {
   const verdicts = useVerdicts();
   const { model } = useSessionModel();
-  const by = (id: string) => verdicts.find(v => v.id === id);
-  const teamColor = (v?: Verdict) => {
-    const dn = v?.drivers?.[0];
+  const tiles = verdicts.filter(v => v.kpi).slice(0, max);
+  if (!tiles.length) return null;
+  const teamColor = (v: Verdict) => {
+    const dn = v.drivers?.[0];
     const d = dn != null ? model?.byDriver[dn] : null;
     return d ? "#" + (d.driver.team_colour || "666") : undefined;
   };
-  const acr = (v?: Verdict) => { const dn = v?.drivers?.[0]; return dn != null ? model?.byDriver[dn]?.driver.name_acronym ?? "—" : "—"; };
-  const winner = by("race_winner"), fl = by("fastest_lap"), tyre = by("best_tyre_management"), over = by("overperformer");
-  const tiles = [
-    winner && { key: "winner", label: "Winner", accent: podiumColor(0), team: teamColor(winner), value: acr(winner), sub: winner.numbers.find(n => n.label === "Margin") ? `Margin ${winner.numbers.find(n => n.label === "Margin")!.value}` : "Race winner", tab: "overview" as ViewKey },
-    fl && { key: "fastest", label: "Fastest lap", accent: C.violet, team: teamColor(fl), value: acr(fl), sub: fl.numbers.find(n => n.label === "Time")?.value ?? "", tab: "pace" as ViewKey },
-    tyre && { key: "tyre", label: "Tyre master", accent: C.pos, team: teamColor(tyre), value: acr(tyre), sub: tyre.numbers.find(n => n.label === "Deg")?.value ?? "", tab: "strategy" as ViewKey },
-    over && { key: "over", label: "Overperformer", accent: C.warn, team: teamColor(over), value: acr(over), sub: `${over.numbers.find(n => n.label === "Finish")?.value} from ${over.numbers.find(n => n.label === "Pace rank")?.value} pace`, tab: "overview" as ViewKey },
-  ].filter(Boolean) as { key: string; label: string; accent: string; team?: string; value: string; sub: string; tab: ViewKey }[];
-  if (!tiles.length) return null;
   return (
     <div id="kpis" style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 14 }}>
-      {tiles.map(t => (
-        <StatTile key={t.key} grow label={t.label} accent={t.accent} teamColor={t.team} value={t.value} sub={t.sub} onClick={onOpenTab ? () => onOpenTab(t.tab) : undefined} />
-      ))}
+      {tiles.map(v => {
+        const k = v.kpi!;
+        return (
+          <StatTile key={v.id} grow label={k.label} accent={KPI_ACCENT[k.accent ?? "accent"]} teamColor={teamColor(v)} value={k.value} sub={k.sub}
+            mono={/^[\d:+−.\s%a-z]+$/.test(k.value) && k.value.length > 4}
+            onClick={onOpenTab ? () => onOpenTab(v.evidence.tab as ViewKey) : undefined} />
+        );
+      })}
     </div>
   );
 }
+
+const KPI_ACCENT: Record<NonNullable<NonNullable<Verdict["kpi"]>["accent"]>, string> = {
+  gold: podiumColor(0), violet: C.violet, pos: C.pos, warn: C.warn, accent: C.accent,
+};
 
 export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictArea; limit?: number; onOpenTab?: (tab: ViewKey) => void }) {
   const verdicts = useVerdicts();

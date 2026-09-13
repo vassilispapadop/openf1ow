@@ -21,11 +21,15 @@ export interface TimelineProps {
   onRowHover?: (key: string | null) => void;
   highlightKey?: string | null;
   ariaLabel?: string;
+  /** Continuous x (minutes) instead of integer laps: spans are not widened by half a unit. */
+  continuous?: boolean;
+  xFormat?: (v: number) => string;
 }
 
-export default function Timeline({ rows, xDomain, bands, rowHeight = 22, labelWidth = 92, xLabel = "Lap", onRowHover, highlightKey, ariaLabel }: TimelineProps) {
+export default function Timeline({ rows, xDomain, bands, rowHeight = 22, labelWidth = 92, xLabel = "Lap", onRowHover, highlightKey, ariaLabel, continuous, xFormat }: TimelineProps) {
   const tip = useTooltip();
-  const height = rows.length * rowHeight + 36;
+  const half = continuous ? 0 : 0.5;
+  const height = rows.length * rowHeight + (xLabel ? 48 : 36);
   return (
     <div className={s.root}>
       <div className={s.labels} style={{ width: labelWidth, paddingTop: 14 }}>
@@ -40,10 +44,10 @@ export default function Timeline({ rows, xDomain, bands, rowHeight = 22, labelWi
       <div className={s.plot}>
         <Frame
           height={height}
-          x={{ domain: xDomain, label: xLabel, format: v => String(Math.round(v)), targetTicks: 10 }}
+          x={{ domain: xDomain, label: xLabel, format: xFormat ?? (v => String(Math.round(v))), targetTicks: 10 }}
           y={{ domain: [0, rows.length], grid: false, ticks: [], zeroLine: false, invert: true }}
           bands={bands}
-          margin={{ left: 4, right: 10, top: 14, bottom: 22 }}
+          margin={{ left: 4, right: 10, top: 14, bottom: xLabel ? 34 : 22 }}
           ariaLabel={ariaLabel}
         >
           {sc => (
@@ -54,7 +58,7 @@ export default function Timeline({ rows, xDomain, bands, rowHeight = 22, labelWi
                 return (
                   <g key={r.key} opacity={dim ? 0.35 : 1} onMouseEnter={() => onRowHover?.(r.key)} onMouseLeave={() => onRowHover?.(null)}>
                     {r.spans.map((sp, j) => {
-                      const x0 = sc.x(sp.from - 0.5), x1 = sc.x(sp.to + 0.5);
+                      const x0 = sc.x(sp.from - half), x1 = sc.x(sp.to + half);
                       return (
                         <g key={j} onPointerMove={e => sp.tip && tip.show(e, sp.tip)} onPointerLeave={tip.hide}>
                           <rect x={x0} y={y0} width={Math.max(1, x1 - x0 - 2)} height={h} rx={3} fill={sp.color} opacity={sp.opacity ?? 0.85} />
@@ -63,7 +67,7 @@ export default function Timeline({ rows, xDomain, bands, rowHeight = 22, labelWi
                       );
                     })}
                     {r.marks?.map((m, j) => {
-                      const x = sc.x(m.x + 0.5);
+                      const x = sc.x(m.x + half);
                       return (
                         <g key={"m" + j} onPointerMove={e => m.tip && tip.show(e, m.tip)} onPointerLeave={tip.hide} opacity={m.dim ? 0.5 : 1}>
                           {m.shape === "flag"
@@ -73,7 +77,7 @@ export default function Timeline({ rows, xDomain, bands, rowHeight = 22, labelWi
                       );
                     })}
                     {r.end != null && r.end < xDomain[1] && (
-                      <text x={sc.x(r.end + 0.5) + 6} y={y0 + h / 2 + 3.5} className={s.endLabel}>out L{r.end}</text>
+                      <text x={sc.x(r.end + half) + 6} y={y0 + h / 2 + 3.5} className={s.endLabel}>{continuous ? "out" : `out L${r.end}`}</text>
                     )}
                   </g>
                 );

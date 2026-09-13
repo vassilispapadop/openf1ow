@@ -14,4 +14,6 @@ export interface Verdict {
   evidence: { tab: VerdictArea; sectionId: string; drivers?: number[] };
   impact: number;                 // for ordering; larger = more important
   drivers?: number[];             // drivers named
+  /** When set, the verdict also renders as a headline tile at the top of the page. */
+  kpi?: { label: string; value: string; sub?: string; accent?: "gold" | "violet" | "pos" | "warn" | "accent" };
 }

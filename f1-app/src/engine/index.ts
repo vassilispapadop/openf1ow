@@ -24,6 +24,12 @@ export {
 export { sectorAnalysis, type SectorRow, type SectorAnalysis } from "./analyses/sectors.ts";
 export { bestLapsByDriver, bestLapFor, eligibleForBest, type BestLapRow } from "./analyses/quali.ts";
 export { longRuns, compoundPrograms, type LongRun, type CompoundProgram } from "./analyses/practice.ts";
+export {
+  sessionClock, lapMinute, phaseOf, pushLaps, trackEvolution, sectorBests, teammateSingleLap, runPlan,
+  PUSH_LAP_FACTOR, TRACK_EVOLUTION_MIN_LAPS, TRACK_EVOLUTION_MIN_DRIVERS,
+  type SessionClock, type SessionPhase, type PushLap, type DriverPushLaps, type TrackEvolution,
+  type SectorBests, type SectorBestRow, type SingleLapPair, type PhaseDelta, type DriverRunPlan, type RunSpan,
+} from "./analyses/singleLap.ts";
 
 export { pitStopAnalysis, pitLossFor, type PitStopAnalysis, type TeamPitRow } from "./analyses/pitstops.ts";
 export { undercutAnalysis, type UndercutAnalysis, type Exchange } from "./analyses/undercut.ts";

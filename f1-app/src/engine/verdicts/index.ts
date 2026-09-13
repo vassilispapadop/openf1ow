@@ -15,6 +15,7 @@ import { startAnalysis } from "../analyses/start.ts";
 import { conversionAnalysis } from "../analyses/conversion.ts";
 import { pitStopAnalysis } from "../analyses/pitstops.ts";
 import { overtakeAnalysis } from "../analyses/overtakes.ts";
+import { singleLapVerdicts } from "./singleLap.ts";
 
 export type { Verdict, VerdictArea, VerdictNumber } from "./types.ts";
 
@@ -25,12 +26,16 @@ export const SECTION_IDS = {
   strategyTimeline: "strategy-timeline", undercut: "undercut", tyreLife: "tyre-life", degradation: "degradation", fuel: "fuel", pitCrew: "pit-crew",
   overtakes: "overtakes", teammates: "teammates", constructors: "constructors", dirtyAir: "dirty-air", scImpact: "sc-impact",
   weather: "weather", clipping: "clipping", replay: "replay",
+  // Qualifying / practice
+  bestLaps: "best-laps", poleLap: "pole-lap", sectorBests: "sector-bests", sessionEvolution: "session-evolution", trackEvolution: "track-evolution",
+  runPlan: "run-plan", startTyres: "start-tyres", longRuns: "long-runs", compoundProgram: "compound-program", teammatesSingleLap: "teammates-single-lap", corners: "corners",
 } as const;
 
 const s3 = (v: number) => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(3) + " s";
 const lapTime = (v: number) => { const m = Math.floor(v / 60); return m > 0 ? `${m}:${(v - m * 60).toFixed(3).padStart(6, "0")}` : v.toFixed(3); };
 
 export function generateVerdicts(model: SessionModel): Verdict[] {
+  if (model.kind === "qualifying" || model.kind === "practice") return singleLapVerdicts(model, SECTION_IDS).sort((a, b) => b.impact - a.impact);
   const out: Verdict[] = [];
   if (model.kind !== "race") return out;
 
@@ -46,6 +51,7 @@ export function generateVerdicts(model: SessionModel): Verdict[] {
       numbers: [{ label: "Winner", value: winner.driver.name_acronym }, ...(margin != null ? [{ label: "Margin", value: margin.toFixed(3) + " s" }] : [])],
       evidence: { tab: "overview", sectionId: SECTION_IDS.gridFinish, drivers: [winner.driver.driver_number] },
       drivers: [winner.driver.driver_number],
+      kpi: { label: "Winner", value: winner.driver.name_acronym, sub: margin != null ? `Margin ${margin.toFixed(3)} s` : "Race winner", accent: "gold" },
     });
   }
 
@@ -84,6 +90,7 @@ export function generateVerdicts(model: SessionModel): Verdict[] {
       numbers: [{ label: "Lap", value: `L${b.lap.lap_number}` }, { label: "Time", value: lapTime(b.bestLap) }],
       evidence: { tab: "pace", sectionId: SECTION_IDS.lapEvolution, drivers: [b.driver.driver_number] },
       drivers: [b.driver.driver_number],
+      kpi: { label: "Fastest lap", value: b.driver.name_acronym, sub: lapTime(b.bestLap), accent: "violet" },
     });
   }
 
@@ -98,6 +105,7 @@ export function generateVerdicts(model: SessionModel): Verdict[] {
       numbers: [{ label: "Deg", value: (d.weightedDeg * 1000).toFixed(0) + " ms/lap" }, { label: "Stints", value: String(d.stints) }],
       evidence: { tab: "strategy", sectionId: SECTION_IDS.degradation, drivers: [d.driver.driver_number] },
       drivers: [d.driver.driver_number],
+      kpi: { label: "Tyre master", value: d.driver.name_acronym, sub: (d.weightedDeg * 1000).toFixed(0) + " ms/lap", accent: "pos" },
     });
   }
   for (const d of model.drivers) for (const st of d.stints) {
@@ -221,6 +229,7 @@ export function generateVerdicts(model: SessionModel): Verdict[] {
       numbers: [{ label: "Finish", value: `P${o.finish}` }, { label: "Pace rank", value: `P${o.paceRank}` }],
       evidence: { tab: "overview", sectionId: SECTION_IDS.gridFinish, drivers: [o.driver.driver_number] },
       drivers: [o.driver.driver_number],
+      kpi: { label: "Overperformer", value: o.driver.name_acronym, sub: `P${o.finish} from P${o.paceRank} pace`, accent: "warn" },
     });
   }
 
