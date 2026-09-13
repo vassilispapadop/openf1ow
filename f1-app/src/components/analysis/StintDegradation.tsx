@@ -1,9 +1,9 @@
 import { useState, useMemo, useRef } from "react";
 import type { Driver, Lap, Stint } from "../../lib/types";
-import { F, M, sty } from "../../lib/styles";
-import { ft3, ft1, podiumColor, rowBg } from "../../lib/format";
+import { F, sty } from "../../lib/styles";
+import { ft3, rowBg } from "../../lib/format";
 import { TC } from "../../lib/constants";
-import { computeSlowLapThreshold, isCleanLap, median, linearSlope, FUEL_TOTAL_KG, FUEL_SEC_PER_KG } from "../../lib/raceUtils";
+import { computeSlowLapThreshold, isCleanLap, median, linearSlope, fuelCorrPerLap, inferStartFuelKg, FUEL_SEC_PER_KG } from "../../lib/raceUtils";
 import BoxPlotChart from "./BoxPlotChart";
 import ShareButton from "../ShareButton";
 
@@ -38,13 +38,15 @@ function StintDegradation({ allLaps, drivers, stints, viewMode }: {
   const contentRef = useRef<HTMLDivElement>(null);
   const [compoundFilter, setCompoundFilter] = useState("OVERALL");
 
-  const { data, fuelCorrectionPerLap, compounds } = useMemo(() => {
+  const { data, fuelCorrectionPerLap, startFuelKg, compounds } = useMemo(() => {
     const lapMap: Record<string, Lap> = {};
     allLaps.forEach(l => { lapMap[l.driver_number + "-" + l.lap_number] = l; });
 
     const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
-    const fuelPerLap = FUEL_TOTAL_KG / totalRaceLaps;
-    const fuelCorrectionPerLap = fuelPerLap * FUEL_SEC_PER_KG;
+    // Sprint-aware (≈40 kg for a sprint, 110 kg for a Grand Prix) so this card
+    // agrees with the compound summary below it, which already used the helper.
+    const startFuelKg = inferStartFuelKg(totalRaceLaps);
+    const fuelCorrectionPerLap = fuelCorrPerLap(totalRaceLaps);
     const threshold = computeSlowLapThreshold(allLaps);
 
     const compoundSet = new Set<string>();
@@ -94,7 +96,7 @@ function StintDegradation({ allLaps, drivers, stints, viewMode }: {
     const compoundOrder = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"];
     const compounds = [...compoundSet].sort((a, b) => compoundOrder.indexOf(a) - compoundOrder.indexOf(b));
 
-    return { data: results, fuelCorrectionPerLap, compounds };
+    return { data: results, fuelCorrectionPerLap, startFuelKg, compounds };
   }, [allLaps, drivers, stints]);
 
   // Compute overall per-driver averages (weighted by stint laps)
@@ -143,7 +145,7 @@ function StintDegradation({ allLaps, drivers, stints, viewMode }: {
         <span style={{ fontWeight: 700 }}>FUEL CORRECTION</span>
         <span style={{ color: "#b0b0c0" }}>
           ~{(fuelCorrectionPerLap * 1000).toFixed(0)}ms/lap fuel effect applied
-          ({FUEL_TOTAL_KG}kg / {FUEL_SEC_PER_KG}s per kg)
+          ({startFuelKg}kg / {FUEL_SEC_PER_KG}s per kg)
         </span>
       </div>
 

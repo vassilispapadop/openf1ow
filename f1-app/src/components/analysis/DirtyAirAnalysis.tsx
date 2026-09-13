@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, { useEffect, useCallback, useRef, useMemo } from "react";
 import type { Driver, Lap, Stint } from "../../lib/types";
 import { F, M, sty } from "../../lib/styles";
 import { initCanvas, drawWatermark } from "../../lib/canvas";
-import { ft3, rowBg } from "../../lib/format";
-import { median, computeSlowLapThreshold, isCleanLap, FUEL_TOTAL_KG, FUEL_SEC_PER_KG, DIRTY_AIR_THRESHOLD } from "../../lib/raceUtils";
+import { rowBg } from "../../lib/format";
+import { median, computeSlowLapThreshold, isCleanLap, fuelCorrPerLap as fuelCorrPerLapFor, DIRTY_AIR_THRESHOLD } from "../../lib/raceUtils";
 import useTooltip from "./useTooltip";
 import ShareButton from "../ShareButton";
 
@@ -43,7 +43,8 @@ export function useDirtyAirData(allLaps: Lap[], drivers: Driver[], stints: Stint
   return useMemo(() => {
     const threshold = computeSlowLapThreshold(allLaps);
     const totalRaceLaps = Math.max(...allLaps.map(l => l.lap_number), 1);
-    const fuelCorrPerLap = (FUEL_TOTAL_KG / totalRaceLaps) * FUEL_SEC_PER_KG;
+    // Sprint-aware, same helper as the rest of the page.
+    const fuelCorrPerLap = fuelCorrPerLapFor(totalRaceLaps);
 
     const lapMap: Record<string, Lap> = {};
     allLaps.forEach(l => { lapMap[l.driver_number + "-" + l.lap_number] = l; });

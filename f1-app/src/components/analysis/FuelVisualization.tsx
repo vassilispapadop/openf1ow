@@ -1,18 +1,22 @@
 import React, { useEffect, useRef, useMemo, useCallback } from "react";
 import type { Driver, Lap } from "../../lib/types";
-import { F, M, sty } from "../../lib/styles";
-import { FUEL_TOTAL_KG, FUEL_SEC_PER_KG } from "../../lib/raceUtils";
+import { M, sty } from "../../lib/styles";
+import { inferStartFuelKg, FUEL_SEC_PER_KG } from "../../lib/raceUtils";
 import { drawWatermark } from "../../lib/canvas";
 import useTooltip from "./useTooltip";
 import ShareButton from "../ShareButton";
 
-function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driver[] }) {
+// `drivers` stays in the prop type so the call site in RaceAnalysis is
+// unchanged; the model here is a pure function of the lap count.
+function FuelVisualization({ allLaps }: { allLaps: Lap[]; drivers: Driver[] }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const cvRef = useRef<HTMLCanvasElement>(null);
   const { show: fuelShow, hide: fuelHide, el: fuelTipEl } = useTooltip(wrapRef);
 
   const totalRaceLaps = useMemo(() => Math.max(...allLaps.map(l => l.lap_number), 1), [allLaps]);
-  const fuelPerLap = FUEL_TOTAL_KG / totalRaceLaps;
+  // Sprint-aware start load (≈40 kg for a sprint, 110 kg for a Grand Prix).
+  const startFuelKg = inferStartFuelKg(totalRaceLaps);
+  const fuelPerLap = startFuelKg / totalRaceLaps;
   const fuelCorrectionPerLap = fuelPerLap * FUEL_SEC_PER_KG;
 
   useEffect(() => {
@@ -50,8 +54,8 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
     ctx.lineTo(LEFT + plotW, TOP + plotH);
     ctx.stroke();
 
-    // Y-axis: fuel (0 to 110 kg)
-    const maxFuel = FUEL_TOTAL_KG;
+    // Y-axis: fuel (0 to the start load)
+    const maxFuel = startFuelKg;
     ctx.fillStyle = "#5a5a6e";
     ctx.font = "10px 'JetBrains Mono', monospace";
     ctx.textAlign = "right";
@@ -129,7 +133,7 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
     ctx.fillText("Cumulative Time Gain (s)", LEFT + 172, legendY);
 
     drawWatermark(ctx, cssW, cssH);
-  }, [totalRaceLaps, fuelPerLap, fuelCorrectionPerLap]);
+  }, [totalRaceLaps, startFuelKg, fuelPerLap, fuelCorrectionPerLap]);
 
   const onFuelHover = useCallback((e: React.MouseEvent) => {
     const wrap = wrapRef.current;
@@ -142,7 +146,7 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
     const lapFrac = (mx - LEFT) / plotW;
     if (lapFrac < 0 || lapFrac > 1) { fuelHide(); return; }
     const lap = Math.round(lapFrac * totalRaceLaps);
-    const fuel = FUEL_TOTAL_KG - lap * fuelPerLap;
+    const fuel = startFuelKg - lap * fuelPerLap;
     const timeGain = lap * fuelCorrectionPerLap;
     fuelShow(e, (
       <div>
@@ -154,7 +158,7 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
         </div>
       </div>
     ));
-  }, [totalRaceLaps, fuelPerLap, fuelCorrectionPerLap, fuelShow, fuelHide]);
+  }, [totalRaceLaps, startFuelKg, fuelPerLap, fuelCorrectionPerLap, fuelShow, fuelHide]);
 
   return (
     <div>
@@ -167,7 +171,7 @@ function FuelVisualization({ allLaps, drivers }: { allLaps: Lap[]; drivers: Driv
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>
         {[
-          { label: "Total Fuel", value: FUEL_TOTAL_KG + " kg", color: "#e10600" },
+          { label: "Total Fuel", value: startFuelKg + " kg", color: "#e10600" },
           { label: "Race Laps", value: String(totalRaceLaps), color: "#b0b0c0" },
           { label: "Fuel per Lap", value: fuelPerLap.toFixed(2) + " kg", color: "#b0b0c0" },
           { label: "Time per kg", value: FUEL_SEC_PER_KG + " s/kg", color: "#b0b0c0" },
