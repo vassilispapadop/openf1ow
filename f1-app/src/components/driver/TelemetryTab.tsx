@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { sty } from "../../lib/styles";
 import { DRS_OPEN, DRS_ELIGIBLE } from "../../lib/constants";
-import { Chart } from "../TelemetryChart";
+import TelemetryStack from "./TelemetryStack";
 import { detectClipping, buildDrsZones } from "../../lib/clipping";
 
 interface TelemetryTabProps {
@@ -45,7 +45,7 @@ export default function TelemetryTab({ carData, selLap, dn, drv }: TelemetryTabP
         </div>
       ) : (
         <>
-          <Chart traces={[{ data: carData, color: drv.team_colour || "3b82f6", label: "#" + dn + " Lap " + selLap }]} clippingEvents={clipEvents} />
+          <TelemetryStack traces={[{ key: dn + "-" + selLap, data: carData, color: drv.team_colour || "3b82f6", label: "#" + dn + " Lap " + selLap }]} clippingEvents={clipEvents} />
           <div style={{ overflow: "auto", maxHeight: 400, marginTop: 10 }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
               <thead>

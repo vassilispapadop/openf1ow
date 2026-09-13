@@ -21,7 +21,9 @@ for (const r of routes) {
   await page.goto(base + r, { waitUntil: "networkidle", timeout: 90000 });
   await page.waitForTimeout(2500);
   const name = r.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "");
-  await page.screenshot({ path: `${out}/${name}.png`, fullPage: true });
+  // CLIP=<css selector> shoots just that element.
+  if (process.env.CLIP) await page.locator(process.env.CLIP).first().screenshot({ path: `${out}/${name}.png` });
+  else await page.screenshot({ path: `${out}/${name}.png`, fullPage: true });
   console.log("shot", r, `${out}/${name}.png`);
 }
 if (errors.length) { console.log("ERRORS:"); for (const e of errors) console.log(" ", e.slice(0, 300)); }

@@ -1,20 +1,27 @@
-import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from "react";
+// The driver view: one driver's session over the engine model, comparison
+// first. Laps to compare come from any driver in the session, are carried
+// in ?cmp=dn-lap,dn-lap (byte-identical to the old codec) and render as a
+// synced telemetry stack, a delta trace, the dominance map and the
+// corner/curve/straight split.
 
+import { useState, useEffect, useLayoutEffect, useCallback, useRef, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useSession } from "../contexts/SessionContext";
 import { api } from "../lib/api";
-import { F, sty } from "../lib/styles";
 import { mergeDistance } from "../lib/telemetry";
 import { detectClipping, buildDrsZones } from "../lib/clipping";
 import { DRIVER_COLORS, DEFAULT_DRIVER_TAB, paths } from "../lib/constants";
-import Tab from "../components/Tab";
+import { C } from "../lib/styles";
 import Spinner from "../components/Spinner";
-import ShareButton from "../components/ShareButton";
-import { Chart, DeltaChart } from "../components/TelemetryChart";
+import Pill from "../components/Pill";
+import { Section, Segmented } from "../ui";
 import DominanceMap from "../components/session/DominanceMap";
 import SegmentComparison from "../components/session/SegmentComparison";
 import DriverInfoCard from "../components/shell/DriverInfoCard";
 import StickyTabBar from "../components/shell/StickyTabBar";
+import ModelGate from "../components/insights/ModelGate";
+import TelemetryStack from "../components/driver/TelemetryStack";
+import CompareBuilder from "../components/driver/CompareBuilder";
 import LapsTab from "../components/driver/LapsTab";
 import TelemetryTab from "../components/driver/TelemetryTab";
 import StintsTab from "../components/driver/StintsTab";
@@ -22,149 +29,117 @@ import PositionTab from "../components/driver/PositionTab";
 import WeatherTab from "../components/driver/WeatherTab";
 import RaceControlTab from "../components/driver/RaceControlTab";
 import ResultsTab from "../components/driver/ResultsTab";
+import { SessionModelProvider, useSessionModel } from "../lib/useSessionModel";
+import { SelectionProvider } from "../contexts/SelectionContext";
+import { bestLapFor, type SessionModel, type EnrichedLap } from "../engine/index.ts";
+import type { LapTrace } from "../engine/telemetry/compare.ts";
+
+const TABS = [
+  ["laps", "Laps & Sectors"], ["telemetry", "Telemetry"], ["stints", "Stints & Pits"], ["position", "Positions"],
+  ["weather", "Weather"], ["rc", "Race Control"], ["results", "Results"],
+] as const;
+type DriverTab = typeof TABS[number][0];
+
+interface Comparison extends LapTrace {
+  driverNumber: number;
+  lapNumber: number;
+  loading: boolean;
+}
 
 export default function DriverPage() {
+  const { sk } = useSession();
+  return (
+    <SessionModelProvider sessionKey={sk}>
+      <SelectionProvider resetKey={sk}>
+        <ModelGate loading="Loading driver data…">{model => <DriverPageInner model={model} />}</ModelGate>
+      </SelectionProvider>
+    </SessionModelProvider>
+  );
+}
+
+function DriverPageInner({ model }: { model: SessionModel }) {
   const { driverNumber: dnParam, tab } = useParams<{ driverNumber: string; tab: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { sk, drivers, weather, rc, results, year, mk, setError } = useSession();
+  const { sk, drivers, rc, results, year, mk, setError } = useSession();
+  const { model: liveModel } = useSessionModel();
+  void liveModel;
 
   const dn = dnParam || "";
-  const currentTab = tab || DEFAULT_DRIVER_TAB;
+  const dnNum = Number(dn);
+  const currentTab = (tab || DEFAULT_DRIVER_TAB) as DriverTab;
+  const d = model.byDriver[dnNum];
 
-  const [laps, setLaps] = useState<any[]>([]);
-  const [stints, setStints] = useState<any[]>([]);
-  const [pits, setPits] = useState<any[]>([]);
-  const [positions, setPositions] = useState<any[]>([]);
   const [carData, setCarData] = useState<any[]>([]);
   const [selLap, setSelLap] = useState<number | null>(null);
-  const [comparisons, setComparisons] = useState<any[]>([]);
-  const [driverLoading, setDriverLoading] = useState("");
-  const syncRef = useRef({});
-  // Refs to the comparison panel's chart canvases — used so the unified
-  // SHARE button at the panel header can capture both Chart and DeltaChart
-  // stacked into one PNG.
-  const cmpChartCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const cmpDeltaCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [comparisons, setComparisons] = useState<Comparison[]>([]);
+  const [telLoading, setTelLoading] = useState("");
 
-  // Load driver data when driver or session changes
-  const loadedRef = useRef("");
+  // A new driver or session drops the loaded lap; comparisons persist so laps
+  // from different drivers can be compared.
+  const loadedRef = useRef(sk + "-" + dn);
   useEffect(() => {
     const key = sk + "-" + dn;
-    if (!dn || !sk || loadedRef.current === key) return;
+    if (loadedRef.current === key) return;
     loadedRef.current = key;
     setCarData([]);
     setSelLap(null);
-    // Cleared up front: the driver card and tabs now stay mounted during the
-    // fetch, so stale rows from the previous driver would render under the new
-    // driver's name.
-    setLaps([]);
-    setStints([]);
-    setPits([]);
-    setPositions([]);
-    // Don't clear comparisons — they persist across driver switches
-    // so users can compare laps from different drivers
-    setDriverLoading("Loading driver data...");
-    Promise.all([
-      api("/laps?session_key=" + sk + "&driver_number=" + dn),
-      api("/stints?session_key=" + sk + "&driver_number=" + dn).catch(() => []),
-      api("/pit?session_key=" + sk + "&driver_number=" + dn).catch(() => []),
-      api("/position?session_key=" + sk + "&driver_number=" + dn).catch(() => []),
-    ]).then(([l, s, p, pos]) => {
-      setLaps(l as any[]);
-      setStints(s as any[]);
-      setPits(p as any[]);
-      setPositions(pos as any[]);
-      setDriverLoading("");
-    }).catch(e => { setError(e.message); setDriverLoading(""); });
-  }, [dn, sk, setError]);
+  }, [dn, sk]);
 
-  const fetchTelemetry = useCallback((sessionKey: string, driverNumber: string, lap: any) => {
-    const end = new Date(new Date(lap.date_start).getTime() + lap.lap_duration * 1000 + 2000).toISOString();
-    const q = "?session_key=" + sessionKey + "&driver_number=" + driverNumber + "&date>=" + lap.date_start + "&date<=" + end;
-    return Promise.all([
-      api("/car_data" + q),
-      api("/location" + q).catch(() => []),
-    ]).then(([cd, loc]) => mergeDistance(cd as any[], loc as any[]));
-  }, []);
+  const fetchTelemetry = useCallback((driverNumber: number | string, lap: EnrichedLap) => {
+    const end = new Date(new Date(lap.date_start).getTime() + (lap.lap_duration as number) * 1000 + 2000).toISOString();
+    const q = "?session_key=" + sk + "&driver_number=" + driverNumber + "&date>=" + lap.date_start + "&date<=" + end;
+    return Promise.all([api("/car_data" + q), api("/location" + q).catch(() => [])]).then(([cd, loc]) => mergeDistance(cd as any[], loc as any[]));
+  }, [sk]);
 
-  const loadTel = useCallback((lap: any) => {
+  const loadTel = useCallback((lap: EnrichedLap) => {
     if (!lap.date_start || !lap.lap_duration) return;
     setSelLap(lap.lap_number);
-    setDriverLoading("Loading telemetry for lap " + lap.lap_number + "...");
-    fetchTelemetry(sk, dn, lap)
-      .then(merged => {
-        setCarData(merged);
-        navigate(paths.driver(year, mk, sk, dn, "telemetry"), { replace: true });
-        setDriverLoading("");
-      })
-      .catch(e => { setError(e.message); setDriverLoading(""); });
-  }, [sk, dn, fetchTelemetry, navigate, year, mk, setError]);
+    setTelLoading("Loading telemetry for lap " + lap.lap_number + "…");
+    fetchTelemetry(dn, lap)
+      .then(merged => { setCarData(merged); navigate(paths.driver(year, mk, sk, dn, "telemetry"), { replace: true }); setTelLoading(""); })
+      .catch(e => { setError(e.message); setTelLoading(""); });
+  }, [dn, fetchTelemetry, navigate, year, mk, sk, setError]);
 
-  const addComparison = useCallback((driverNumber: string, lap: any, driverInfo: any) => {
+  const addComparison = useCallback((driverNumber: number, lap: EnrichedLap) => {
     if (!lap.date_start || !lap.lap_duration) return;
+    const info = model.byDriver[driverNumber]?.driver;
+    if (!info) return;
     const id = driverNumber + "-" + lap.lap_number;
     setComparisons(prev => {
-      if (prev.find((c: any) => c.id === id)) return prev;
+      if (prev.find(c => c.key === id)) return prev;
       return [...prev, {
-        id,
-        driverNumber,
-        lapNumber: lap.lap_number,
-        label: "#" + driverNumber + " " + (driverInfo.name_acronym || driverInfo.full_name) + " L" + lap.lap_number,
+        key: id, driverNumber, lapNumber: lap.lap_number,
+        label: "#" + driverNumber + " " + info.name_acronym + " L" + lap.lap_number,
         color: DRIVER_COLORS[prev.length % DRIVER_COLORS.length],
-        // Kept alongside the samples so the corner/straight split can pin its
-        // window to exactly one lap rather than to the fetch window, which
-        // deliberately overruns the flag.
-        lap: { dateStart: lap.date_start, duration: lap.lap_duration },
-        data: [],
-        loading: true,
+        lap: { dateStart: lap.date_start, duration: lap.lap_duration as number },
+        data: [], loading: true,
       }];
     });
-    fetchTelemetry(sk, driverNumber, lap).then(merged => {
-      setComparisons(prev => prev.map((c: any) => c.id === id ? { ...c, data: merged, loading: false } : c));
-    }).catch(e => {
-      setError(e.message);
-      setComparisons(prev => prev.filter((c: any) => c.id !== id));
-    });
-  }, [sk, fetchTelemetry, setError]);
+    fetchTelemetry(driverNumber, lap)
+      .then(merged => setComparisons(prev => prev.map(c => (c.key === id ? { ...c, data: merged, loading: false } : c))))
+      .catch(e => { setError(e.message); setComparisons(prev => prev.filter(c => c.key !== id)); });
+  }, [model, fetchTelemetry, setError]);
 
-  const removeComparison = useCallback((id: string) => {
-    setComparisons(prev => prev.filter((c: any) => c.id !== id));
-  }, []);
+  const removeComparison = useCallback((id: string) => setComparisons(prev => prev.filter(c => c.key !== id)), []);
 
-  // Restore comparisons from ?cmp=dn-lap,dn-lap on first ready render. Runs
-  // sequentially so the rendered order — and thus the colour assignment in
-  // addComparison — matches the URL exactly.
+  // Restore ?cmp=dn-lap,dn-lap once; laps come from the model, no fetch.
   const restoredRef = useRef(false);
   useEffect(() => {
     if (restoredRef.current) return;
-    if (!sk || drivers.length === 0) return;
     restoredRef.current = true;
-
     const cmp = new URLSearchParams(location.search).get("cmp");
     if (!cmp) return;
-
-    const pairs = cmp.split(",")
-      .map(s => s.split("-"))
-      .filter(p => p.length === 2 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1]));
-
-    (async () => {
-      for (const [drvNum, lapNumStr] of pairs) {
-        const driver = drivers.find(d => String(d.driver_number) === drvNum);
-        if (!driver) continue;
-        try {
-          const rs = await api(`/laps?session_key=${sk}&driver_number=${drvNum}`);
-          const lap = (rs as any[]).find(l => l.lap_number === Number(lapNumStr));
-          if (lap) addComparison(drvNum, lap, driver);
-        } catch { /* skip missing */ }
-      }
-    })();
-    // location.search intentionally omitted — we restore once per mount.
+    const pairs = cmp.split(",").map(s => s.split("-")).filter(p => p.length === 2 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1]));
+    for (const [drvNum, lapNumStr] of pairs) {
+      const lap = model.byDriver[Number(drvNum)]?.laps.find(l => l.lap_number === Number(lapNumStr));
+      if (lap) addComparison(Number(drvNum), lap);
+    }
+    // location.search intentionally omitted — restore once per mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sk, drivers, addComparison]);
+  }, [model, addComparison]);
 
-  // Sync comparisons → URL. Only after the initial restore so we don't
-  // immediately overwrite a freshly-pasted shareable URL.
+  // Comparisons → URL, after the restore so a pasted link is not overwritten.
   useEffect(() => {
     if (!restoredRef.current) return;
     const params = new URLSearchParams(location.search);
@@ -172,174 +147,94 @@ export default function DriverPage() {
     if (cmpStr) params.set("cmp", cmpStr); else params.delete("cmp");
     const next = params.toString();
     const target = next ? `${location.pathname}?${next}` : location.pathname;
-    if (`${location.pathname}${location.search}` !== target) {
-      navigate(target, { replace: true });
-    }
+    if (`${location.pathname}${location.search}` !== target) navigate(target, { replace: true });
   }, [comparisons, navigate, location.pathname, location.search]);
 
-  const drv = useMemo(() => drivers.find(d => String(d.driver_number) === String(dn)), [drivers, dn]);
-  const best = useMemo(() => laps.reduce((b: any, l: any) => (l.lap_duration && (!b || l.lap_duration < b.lap_duration) ? l : b), null), [laps]);
+  const best = useMemo(() => (d ? bestLapFor(model, dnNum) : null), [model, d, dnNum]);
 
-  // Landing on the Telemetry tab used to show nothing but an instruction to go
-  // back to Laps & Sectors and press Load. Load the best lap automatically
-  // instead — once per driver/session, so a session with no car data doesn't
-  // retry forever. useLayoutEffect so the spinner replaces the empty state
-  // before paint rather than flashing it for a frame.
+  // Landing on Telemetry loads the best lap once per driver/session.
   const autoTelRef = useRef("");
   useLayoutEffect(() => {
-    if (currentTab !== "telemetry") return;
-    if (!best || carData.length || driverLoading) return;
+    if (currentTab !== "telemetry" || !best || carData.length || telLoading) return;
     const key = sk + "-" + dn;
     if (autoTelRef.current === key) return;
     autoTelRef.current = key;
     loadTel(best);
-  }, [currentTab, best, carData.length, driverLoading, sk, dn, loadTel]);
+  }, [currentTab, best, carData.length, telLoading, sk, dn, loadTel]);
 
-  const cmpTraces = useMemo(() => comparisons.filter((c: any) => c.data.length > 0).map((c: any) => ({ data: c.data, color: c.color, label: c.label, lap: c.lap })), [comparisons]);
+  const cmpTraces = useMemo(() => comparisons.filter(c => c.data.length > 0), [comparisons]);
   const cmpDrsZones = useMemo(() => buildDrsZones(cmpTraces.map(t => t.data)), [cmpTraces]);
   const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data, cmpDrsZones).map(e => ({ ...e, color: t.color }))), [cmpTraces, cmpDrsZones]);
+  const cmpIds = useMemo(() => new Set(comparisons.map(c => c.key)), [comparisons]);
 
-  if (!drv || !sk) return null;
+  if (!d || !sk) return <div style={{ color: C.textMute, fontSize: 13, padding: 24 }}>Driver #{dn} did not take part in this session.</div>;
 
   return (
     <>
-      <DriverInfoCard drv={drv} best={best} laps={laps.length} pits={pits.length} loading={!!driverLoading} onLoadBest={best ? () => loadTel(best) : undefined} onAddBest={best ? () => addComparison(dn, best, drv) : undefined} />
+      <DriverInfoCard drv={d.driver} best={best} laps={d.laps.length} pits={d.pits.length} onLoadBest={best ? () => loadTel(best) : undefined} onAddBest={best ? () => addComparison(dnNum, best) : undefined} />
 
-      {/* Tab bar */}
       <StickyTabBar>
-        <div style={{
-          display: "flex",
-          gap: 6,
-          overflowX: "auto",
-          flexWrap: "wrap",
-        }}>
-          {([["laps", "Laps & Sectors"], ["telemetry", "Telemetry"], ["stints", "Stints & Pits"], ["position", "Positions"], ["weather", "Weather"], ["rc", "Race Control"], ["results", "Results"]] as const).map(([k, v]) => (
-            <Tab key={k} active={currentTab === k} onClick={() => navigate(paths.driver(year, mk, sk, dn, k))}>{v}</Tab>
-          ))}
+        <div style={{ overflowX: "auto" }}>
+          <Segmented ariaLabel="Driver view" options={TABS.map(([k, v]) => ({ key: k, label: v }))} value={currentTab} onChange={k => navigate(paths.driver(year, mk, sk, dn, k))} />
         </div>
       </StickyTabBar>
 
-      {/* Comparison panel */}
-      {comparisons.length > 0 && (
-        <div style={sty.card}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={sty.sectionHead}>COMPARISON</span>
-              <span style={{
-                background: "#e10600", color: "#fff", fontSize: 10, fontWeight: 700,
-                width: 20, height: 20, borderRadius: "50%",
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-              }}>{comparisons.length}</span>
-            </div>
-            <button onClick={() => setComparisons([])} style={{
-              background: "transparent", color: "#6a6a7e",
-              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6,
-              padding: "5px 12px", cursor: "pointer", fontSize: 11, fontWeight: 600,
-              transition: "all 0.2s ease", fontFamily: F,
-            }}>Clear All</button>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-            {comparisons.map((c: any) => (
-              <span key={c.id} style={{
-                background: "rgba(20,20,36,0.8)", borderLeft: "3px solid #" + c.color,
-                borderRadius: 8, padding: "6px 12px", fontSize: 12,
-                display: "inline-flex", alignItems: "center", gap: 8, fontFamily: F,
-              }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#" + c.color, display: "inline-block", flexShrink: 0 }} />
+      <Section
+        id="comparison"
+        kicker={comparisons.length ? `${comparisons.length} lap${comparisons.length === 1 ? "" : "s"}` : undefined}
+        title="Lap comparison"
+        hint="Any laps from any drivers in this session, by distance round the lap: speed, throttle, brake, gear and DRS on one crosshair, the time delta to the fastest, who was quickest through each stretch of track, and where the time went — corners, fast curves or straights."
+        method={{ summary: "Car data (~3.7 Hz) merged with GPS location and aligned by distance from the lap's start; the delta is elapsed time behind the fastest lap at each of 400 points, smoothed over five points to take out sampling jitter. Fast curves are stretches the track turns but a modern car takes at or near full throttle." }}
+        actions={comparisons.length ? <Pill size="sm" onClick={() => setComparisons([])}>Clear all</Pill> : undefined}
+        share={cmpTraces.length ? { meta: "lap comparison", filename: "openf1ow-comparison" } : undefined}
+      >
+        <CompareBuilder model={model} currentDn={dnNum} existing={cmpIds} onAdd={addComparison} />
+        {comparisons.length > 0 && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0 14px" }}>
+            {comparisons.map(c => (
+              <span key={c.key} style={{ background: C.surfaceAlt, borderLeft: "3px solid #" + c.color, border: "1px solid " + C.border, borderLeftWidth: 3, borderLeftColor: "#" + c.color, borderRadius: 8, padding: "6px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#" + c.color, flexShrink: 0 }} />
                 <span style={{ fontWeight: 600 }}>{c.label}</span>
-                {c.loading ? <span style={{ color: "#5a5a6e", fontSize: 10 }}>loading...</span> : null}
-                <button onClick={() => removeComparison(c.id)} style={{
-                  background: "rgba(255,255,255,0.06)", border: "none", color: "#6a6a7e",
-                  cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1,
-                  width: 20, height: 20, borderRadius: "50%",
-                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                  transition: "all 0.2s ease",
-                }}>{"\u2715"}</button>
+                {c.loading && <span style={{ color: C.textMute, fontSize: 10 }}>loading…</span>}
+                <button onClick={() => removeComparison(c.key)} aria-label={`Remove ${c.label}`} style={{ background: "rgba(255,255,255,0.06)", border: "none", color: C.textMute, cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1, width: 20, height: 20, borderRadius: "50%" }}>×</button>
               </span>
             ))}
           </div>
-          {cmpTraces.length > 0 && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
-                <ShareButton
-                  canvasRefs={[cmpChartCanvasRef, cmpDeltaCanvasRef]}
-                  filename="openf1ow-comparison"
-                />
-              </div>
-              <Chart
-                traces={cmpTraces}
-                syncRef={syncRef}
-                clippingEvents={cmpClipEvents}
-                canvasRef={cmpChartCanvasRef}
-                hideShareButton
-              />
-              <DeltaChart
-                traces={cmpTraces}
-                syncRef={syncRef}
-                canvasRef={cmpDeltaCanvasRef}
-              />
-              {cmpTraces.length >= 2 && (
-                <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 10,
-                    marginBottom: 10,
-                  }}>
-                    <span style={sty.sectionHead}>DOMINANCE MAP</span>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
-                      who was faster <em>through</em> each segment
-                    </span>
+        )}
+        {cmpTraces.length > 0 && (
+          <>
+            <TelemetryStack traces={cmpTraces} clippingEvents={cmpClipEvents} />
+            {cmpTraces.length >= 2 && (
+              <div style={{ marginTop: 18, display: "grid", gap: 18 }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Dominance map</span>
+                    <span style={{ fontSize: 11, color: C.textMute }}>who was faster <em>through</em> each stretch</span>
                   </div>
                   <DominanceMap traces={cmpTraces} height={420} />
                 </div>
-              )}
-              {cmpTraces.length >= 2 && (
-                <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                  <div style={{
-                    display: "flex",
-                    alignItems: "baseline",
-                    gap: 10,
-                    marginBottom: 10,
-                  }}>
-                    <span style={sty.sectionHead}>CORNERS vs STRAIGHTS</span>
-                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>
-                      where the lap time was won and lost
-                    </span>
+                <div>
+                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Corners, curves and straights</span>
+                    <span style={{ fontSize: 11, color: C.textMute }}>where the lap time was won and lost</span>
                   </div>
                   <SegmentComparison traces={cmpTraces} />
                 </div>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+              </div>
+            )}
+          </>
+        )}
+      </Section>
 
-      {/* Tab content — the spinner is scoped here so the driver card and the
-          sticky tab bar stay put while a lap's telemetry loads. */}
-      {driverLoading ? <Spinner label={driverLoading} /> : (
+      {telLoading ? <Spinner label={telLoading} /> : (
         <>
-          {currentTab === "laps" && (
-            <LapsTab laps={laps} best={best} drv={drv} comparisons={comparisons} dn={dn} carData={carData} selLap={selLap} onLoadTel={loadTel} onAddComparison={addComparison} />
-          )}
-          {currentTab === "telemetry" && (
-            <TelemetryTab carData={carData} selLap={selLap} dn={dn} drv={drv} />
-          )}
-          {currentTab === "stints" && (
-            <StintsTab stints={stints} pits={pits} />
-          )}
-          {currentTab === "position" && (
-            <PositionTab positions={positions} />
-          )}
-          {currentTab === "weather" && (
-            <WeatherTab weather={weather} />
-          )}
-          {currentTab === "rc" && (
-            <RaceControlTab rc={rc} />
-          )}
-          {currentTab === "results" && (
-            <ResultsTab results={results} drivers={drivers} dn={dn} />
-          )}
+          {currentTab === "laps" && <LapsTab d={d} best={best} comparisons={cmpIds} selLap={selLap} onLoadTel={loadTel} onAddComparison={l => addComparison(dnNum, l)} />}
+          {currentTab === "telemetry" && <TelemetryTab carData={carData} selLap={selLap} dn={dn} drv={d.driver} />}
+          {currentTab === "stints" && <StintsTab stints={d.stints} pits={d.pits} />}
+          {currentTab === "position" && <PositionTab model={model} d={d} />}
+          {currentTab === "weather" && <WeatherTab model={model} />}
+          {currentTab === "rc" && <RaceControlTab rc={rc} />}
+          {currentTab === "results" && <ResultsTab results={results} drivers={drivers} dn={dn} />}
         </>
       )}
     </>

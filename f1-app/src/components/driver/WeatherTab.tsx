@@ -1,68 +1,75 @@
-import { sty } from "../../lib/styles";
+// Every weather sample of the session on a time axis — track and air
+// temperature as lines, rain as shaded bands — with the full table below.
+// Replaces a grid that silently showed only the last 30 samples.
 
-interface WeatherTabProps {
-  weather: any[];
-}
+import { useMemo } from "react";
+import type { SessionModel, Weather } from "../../engine/index.ts";
+import LineChart from "../../charts/LineChart";
+import type { Band } from "../../charts/core/Frame";
+import { Section, Table, EmptyState, type Column } from "../../ui";
+import { C } from "../../lib/styles";
 
-export default function WeatherTab({ weather }: WeatherTabProps) {
+const minuteLabel = (m: number) => `${Math.floor(m)}′`;
+
+export default function WeatherTab({ model }: { model: SessionModel }) {
+  const samples = useMemo(() => model.weather.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()), [model]);
+  const origin = useMemo(() => (model.raceStart ?? (samples.length ? new Date(samples[0].date).getTime() : 0)), [model, samples]);
+  const minute = (w: Weather) => (new Date(w.date).getTime() - origin) / 60_000;
+  const rainBands: Band[] = useMemo(() => {
+    const out: Band[] = [];
+    let cur: Band | null = null;
+    for (const w of samples) {
+      const m = minute(w);
+      if (w.rainfall === true || w.rainfall === 1) { if (cur) cur.to = m; else cur = { from: m, to: m, color: "rgba(0,114,198,0.16)", label: "rain" }; }
+      else if (cur) { out.push(cur); cur = null; }
+    }
+    if (cur) out.push(cur);
+    return out.map(b => ({ ...b, to: Math.max(b.to, b.from + 1) }));
+  }, [samples, origin]);
+
+  const columns: Column<Weather>[] = [
+    { key: "t", label: "Time", render: w => (w.date || "").split("T")[1]?.substring(0, 8), mono: true },
+    { key: "m", label: "Session", render: w => minuteLabel(minute(w)), mono: true, align: "right", hideBelow: 480 },
+    { key: "track", label: "Track °C", render: w => w.track_temperature?.toFixed(1), mono: true, align: "right" },
+    { key: "air", label: "Air °C", render: w => w.air_temperature?.toFixed(1), mono: true, align: "right" },
+    { key: "hum", label: "Humidity", render: w => Math.round(w.humidity) + " %", mono: true, align: "right", hideBelow: 640 },
+    { key: "wind", label: "Wind", render: w => `${w.wind_speed?.toFixed(1)} m/s${w.wind_direction != null ? ` · ${w.wind_direction}°` : ""}`, mono: true, align: "right", hideBelow: 640 },
+    { key: "press", label: "Pressure", render: w => Math.round(w.pressure) + " hPa", mono: true, align: "right", hideBelow: 900 },
+    { key: "rain", label: "Rain", render: w => (w.rainfall === true || w.rainfall === 1 ? <span style={{ color: "#0072C6", fontWeight: 700 }}>rain</span> : <span style={{ color: C.textFaint }}>—</span>), align: "right" },
+  ];
   return (
-    <div style={sty.card}>
-      <div style={{
-        ...sty.sectionHead,
-        marginBottom: 14,
-      }}>Weather</div>
-      {!weather.length ? <div style={{ color: "#5a5a6e", fontSize: 13 }}>No data</div> : (
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-          gap: 8,
-          maxHeight: 500,
-          overflowY: "auto",
-        }}>
-          {weather.slice(-30).map((w, i) => (
-            <div key={i} style={{
-              background: "rgba(20,20,36,0.6)",
-              borderRadius: 10,
-              padding: "12px 14px",
-              border: "1px solid rgba(255,255,255,0.04)",
-            }}>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 8,
-              }}>
-                <span style={{
-                  fontSize: 10,
-                  color: "#5a5a6e",
-                  fontFamily: "'JetBrains Mono','SF Mono',monospace",
-                }}>{(w.date || "").split("T")[1]?.substring(0, 8)}</span>
-                <span style={{ fontSize: 16 }}>{w.rainfall ? "\u2601" : "\u2600"}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-                <span style={{ color: "#5a5a6e" }}>Air</span>
-                <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono','SF Mono',monospace" }}>{w.air_temperature}{"\u00B0"}C</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-                <span style={{ color: "#5a5a6e" }}>Track</span>
-                <span style={{ fontWeight: 600, color: "#fbbf24", fontFamily: "'JetBrains Mono','SF Mono',monospace" }}>{w.track_temperature}{"\u00B0"}C</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-                <span style={{ color: "#5a5a6e" }}>Humidity</span>
-                <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono','SF Mono',monospace" }}>{w.humidity}%</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 4 }}>
-                <span style={{ color: "#5a5a6e" }}>Wind</span>
-                <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono','SF Mono',monospace" }}>{w.wind_speed} m/s {w.wind_direction != null ? "@ " + w.wind_direction + "\u00B0" : ""}</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11 }}>
-                <span style={{ color: "#5a5a6e" }}>Pressure</span>
-                <span style={{ fontWeight: 600, fontFamily: "'JetBrains Mono','SF Mono',monospace" }}>{w.pressure} mbar</span>
-              </div>
-            </div>
-          ))}
-        </div>
+    <Section
+      id="weather"
+      title="Weather"
+      hint={`Track and air temperature through the session, every sample the feed published (${samples.length}). Shaded bands are rain.`}
+      method={{ summary: "Samples from the weather feed, about one a minute, on the session clock (minutes since the first timed lap)." }}
+      share={{ meta: "weather", filename: "openf1ow-weather" }}
+    >
+      {!samples.length ? <EmptyState kind="no-data" what="weather samples" inline={false} /> : (
+        <>
+          <LineChart
+            series={[
+              { key: "track", label: "Track", color: "#ffb547", points: samples.map(w => ({ x: minute(w), y: w.track_temperature })) },
+              { key: "air", label: "Air", color: "#7dd3fc", points: samples.map(w => ({ x: minute(w), y: w.air_temperature })) },
+            ]}
+            height={240}
+            curve="monotone"
+            endDots={false}
+            endLabels
+            x={{ format: minuteLabel, label: "Session time" }}
+            y={{ format: v => Math.round(v) + "°", targetTicks: 5, label: "°C" }}
+            bands={rainBands}
+            format={v => v.toFixed(1) + " °C"}
+            tipTitle={m => `${minuteLabel(m)} into the session`}
+            legend={{ compact: true, columns: 2 }}
+            rankTooltip={false}
+            ariaLabel="Track and air temperature through the session"
+          />
+          <div style={{ marginTop: 12 }}>
+            <Table columns={columns} rows={samples} rowKey={w => w.date} compact maxHeight={360} />
+          </div>
+        </>
       )}
-    </div>
+    </Section>
   );
 }

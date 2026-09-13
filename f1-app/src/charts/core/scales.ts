@@ -2,7 +2,7 @@
 // d3-shape / d3-array so the maths is theirs and the rendering is ours.
 
 import { scaleLinear, type ScaleLinear } from "d3-scale";
-import { line as d3line, curveCatmullRom, curveLinear, curveMonotoneX } from "d3-shape";
+import { line as d3line, curveStepAfter, curveCatmullRom, curveLinear, curveMonotoneX } from "d3-shape";
 import { bisector, extent as d3extent } from "d3-array";
 
 export type Linear = ScaleLinear<number, number>;
@@ -42,13 +42,15 @@ export function pad([lo, hi]: [number, number], frac = 0.08, floor = 0): [number
   return [lo - span * frac, hi + span * frac];
 }
 
-export type Curve = "linear" | "smooth" | "monotone";
+export type Curve = "linear" | "smooth" | "monotone" | "step";
 
 const CURVES = {
   linear: curveLinear,
   // Low-alpha Catmull-Rom: hugs the data, softens joints, does not invent shape.
   smooth: curveCatmullRom.alpha(0.5),
   monotone: curveMonotoneX,
+  // Hold each value until the next sample: gears, brake on/off, DRS state.
+  step: curveStepAfter,
 };
 
 /** SVG path through screen points (NaN/undefined y breaks the line). */
