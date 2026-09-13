@@ -11,6 +11,8 @@ import { GATES } from "../gates.ts";
 
 const CLIFF_MIN_DELTA_BIC = 6;
 const CLIFF_MIN_SLOPE_JUMP = 0.15;
+const CLIFF_BEFORE_MIN_SLOPE = -0.03;   // s/lap: warm-up segments are steeper than this
+const CLIFF_AFTER_MIN_SLOPE = 0.10;     // s/lap: the second segment must be real degradation
 
 function degConfidence(fit: Fit): Confidence {
   let c: Confidence = fit.n >= 15 ? "high" : fit.n >= 8 ? "medium" : "low";
@@ -40,7 +42,11 @@ export function detectCliff(fitLaps: EnrichedLap[], deg: Gated<Fit>): Gated<Clif
   if (!two) return gate("fit_unstable", n, GATES.CLIFF_MIN_LAPS);
   const jump = two.after.slope - two.before.slope;
   const needJump = Math.max(CLIFF_MIN_SLOPE_JUMP, 3 * deg.value.se);
-  if (two.deltaBic > CLIFF_MIN_DELTA_BIC && jump > needJump) {
+  // A cliff is a tyre that was holding and then let go — not a tyre that was
+  // still coming in (strongly negative first slope) settling into normal wear.
+  const wasHolding = two.before.slope >= CLIFF_BEFORE_MIN_SLOPE;
+  const nowFalling = two.after.slope >= CLIFF_AFTER_MIN_SLOPE;
+  if (two.deltaBic > CLIFF_MIN_DELTA_BIC && jump > needJump && wasHolding && nowFalling) {
     return ok(
       { atTyreAge: xs[two.splitAt], slopeBefore: two.before.slope, slopeAfter: two.after.slope, deltaBic: two.deltaBic },
       n,

@@ -15,6 +15,18 @@ import { compoundSummary, driverDegradation } from "../analyses/degradation.ts";
 import { sectorAnalysis } from "../analyses/sectors.ts";
 import { bestLapsByDriver } from "../analyses/quali.ts";
 import { longRuns, compoundPrograms } from "../analyses/practice.ts";
+import { pitStopAnalysis } from "../analyses/pitstops.ts";
+import { undercutAnalysis } from "../analyses/undercut.ts";
+import { tyreLife } from "../analyses/tyreLife.ts";
+import { strategyTimeline } from "../analyses/strategyTimeline.ts";
+import { deltaTrace } from "../analyses/deltaTrace.ts";
+import { startAnalysis } from "../analyses/start.ts";
+import { overtakeAnalysis } from "../analyses/overtakes.ts";
+import { neutralisationImpact } from "../analyses/neutralisationImpact.ts";
+import { dirtyAirAnalysis } from "../analyses/dirtyAir.ts";
+import { conversionAnalysis } from "../analyses/conversion.ts";
+import { generateVerdicts } from "../verdicts/index.ts";
+import { buildFacts } from "../summary/facts.ts";
 
 const fixtures = loadAllFixtures();
 
@@ -145,6 +157,8 @@ describe.each(fixtures.map(f => [f.slug, f] as const))("fixture %s", (_slug, fx)
       paceRanking(model), truePaceRanking(model), consistencyByDriver(model), teammateComparisons(model),
       constructorPace(model), compoundSummary(model), driverDegradation(model), sectorAnalysis(model),
       bestLapsByDriver(model), longRuns(model), compoundPrograms(model),
+      pitStopAnalysis(model), undercutAnalysis(model), tyreLife(model), strategyTimeline(model), deltaTrace(model),
+      startAnalysis(model), overtakeAnalysis(model), neutralisationImpact(model), dirtyAirAnalysis(model), conversionAnalysis(model),
     ];
     for (const r of results) {
       if (!r.ok) { expect(r.n).toBeLessThan(Math.max(r.need, 1)); continue; }
@@ -167,6 +181,33 @@ describe.each(fixtures.map(f => [f.slug, f] as const))("fixture %s", (_slug, fx)
       const pace = paceRanking(model);
       expect(pace.ok).toBe(true);
       if (pace.ok) expect(pace.value.ranked.length).toBeGreaterThanOrEqual(Math.floor(model.drivers.length * 0.6));
+    }
+  });
+
+  it("verdicts and facts are finite, every verdict points at a known section, and the facts stay compact", () => {
+    const verdicts = generateVerdicts(model);
+    if (model.kind === "race") expect(verdicts.length).toBeGreaterThanOrEqual(3);
+    for (const v of verdicts) {
+      expect(v.headline.length).toBeGreaterThan(10);
+      expect(v.evidence.sectionId).toMatch(/^[a-z-]+$/);
+      for (const n of v.numbers) expect(n.value).not.toMatch(/NaN|Infinity|undefined/);
+    }
+    const facts = buildFacts(model);
+    const bad: string[] = [];
+    walk(facts.tables, "tables", bad);
+    expect(bad).toEqual([]);
+    expect(JSON.stringify(facts).length).toBeLessThan(120_000);
+  });
+
+  it("strategy timeline covers every lap of every driver exactly once", () => {
+    const tl = strategyTimeline(model);
+    if (!tl.ok) return;
+    for (const row of tl.value.rows) {
+      const d = model.byDriver[row.driver.driver_number];
+      for (const l of d.laps) {
+        const covering = row.stints.filter(s => l.lap_number >= s.fromLap && l.lap_number <= s.toLap).length;
+        expect(covering, `${row.driver.name_acronym} L${l.lap_number}`).toBeLessThanOrEqual(1);
+      }
     }
   });
 

@@ -133,7 +133,8 @@ export async function handleBundleRequest(request: Request, env: CacheEnv, ctx: 
     intervals: JSON.parse(intervalsBody),
   };
   const body = JSON.stringify(payload);
-  const etag = `W/"${(await sha1Hex(body)).slice(0, 16)}"`;
+  // Hash the content, not the timestamp, so an unchanged bundle validates.
+  const etag = `W/"${(await sha1Hex(JSON.stringify({ ...payload, meta: { ...payload.meta, generatedAt: "" } }))).slice(0, 16)}"`;
   if (request.headers.get("If-None-Match") === etag) return new Response(null, { status: 304, headers: { ETag: etag } });
 
   const edge = state === "settled" ? 604_800 : state === "recent" ? 300 : 30;

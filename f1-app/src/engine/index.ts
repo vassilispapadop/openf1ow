@@ -24,3 +24,16 @@ export {
 export { sectorAnalysis, type SectorRow, type SectorAnalysis } from "./analyses/sectors.ts";
 export { bestLapsByDriver, bestLapFor, eligibleForBest, type BestLapRow } from "./analyses/quali.ts";
 export { longRuns, compoundPrograms, type LongRun, type CompoundProgram } from "./analyses/practice.ts";
+
+export { pitStopAnalysis, pitLossFor, type PitStopAnalysis, type TeamPitRow } from "./analyses/pitstops.ts";
+export { undercutAnalysis, type UndercutAnalysis, type Exchange } from "./analyses/undercut.ts";
+export { tyreLife, type TyreLifeCurve, type TyreLifeBin } from "./analyses/tyreLife.ts";
+export { strategyTimeline, type StrategyTimeline, type TimelineRow } from "./analyses/strategyTimeline.ts";
+export { deltaTrace, type DeltaTrace, type DeltaSeries, type DeltaReference } from "./analyses/deltaTrace.ts";
+export { startAnalysis, type StartAnalysis, type StartRow } from "./analyses/start.ts";
+export { overtakeAnalysis, type OvertakeAnalysis, type ClassifiedOvertake, type OvertakeKind } from "./analyses/overtakes.ts";
+export { neutralisationImpact, type NeutralisationImpact, type ImpactRow } from "./analyses/neutralisationImpact.ts";
+export { dirtyAirAnalysis, type DirtyAirAnalysis, type DriverTraffic } from "./analyses/dirtyAir.ts";
+export { conversionAnalysis, type ConversionAnalysis, type ConversionRow } from "./analyses/conversion.ts";
+export { generateVerdicts, SECTION_IDS, type Verdict, type VerdictArea, type VerdictNumber } from "./verdicts/index.ts";
+export { buildFacts, type AnalysisFacts } from "./summary/facts.ts";
