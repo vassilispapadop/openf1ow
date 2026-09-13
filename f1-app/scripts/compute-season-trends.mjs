@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import { compareLapSegments } from "../src/engine/telemetry/lapSegments.ts";
 import { mergeDistance } from "../src/engine/telemetry/telemetry.ts";
 import { eligibleForBest } from "../src/engine/index.ts";
-import { buildSeasonTrends } from "../src/lib/seasonUtils.ts";
+import { buildSeasonTrends, qualiModel } from "../src/lib/seasonUtils.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..");
