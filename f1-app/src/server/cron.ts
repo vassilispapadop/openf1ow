@@ -109,6 +109,9 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
 
   const ins = await computeInsights(sk, env, ctx);
   report.insights = `${ins.status} ${ins.cached ? "HIT" : "computed"} (${ins.state})`;
+  // Throttled or failed while building the model: no marker, so the next
+  // tick comes back to this session.
+  if (ins.status !== 200) { report.skipped = `insights ${ins.status} — will retry`; return report; }
 
   if (isRace) {
     report.championship = {};

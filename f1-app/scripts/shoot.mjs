@@ -18,8 +18,9 @@ if (process.env.API_ORIGIN) {
 }
 page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
 for (const r of routes) {
-  await page.goto(base + r, { waitUntil: "networkidle", timeout: 90000 });
-  await page.waitForTimeout(2500);
+  // "load" rather than networkidle: analytics beacons keep production busy.
+  await page.goto(base + r, { waitUntil: "load", timeout: 90000 });
+  await page.waitForTimeout(process.env.SETTLE_MS ? Number(process.env.SETTLE_MS) : 4000);
   const name = r.replace(/[^a-z0-9]+/gi, "_").replace(/^_|_$/g, "");
   // CLIP=<css selector> shoots just that element.
   if (process.env.CLIP) await page.locator(process.env.CLIP).first().screenshot({ path: `${out}/${name}.png` });
