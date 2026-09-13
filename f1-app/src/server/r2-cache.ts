@@ -27,7 +27,7 @@ const TELEMETRY_ENDPOINTS = ["car_data", "location"];
  * For telemetry endpoints, strips date filters so the key matches
  * the full-session blob stored by the scraper.
  */
-function normalizeKey(path: string): string {
+export function normalizeKey(path: string): string {
   const [base, qs] = path.split("?");
   const clean = base.replace(/^\//, "");
   if (!qs) return clean;

@@ -1,4 +1,4 @@
-import { handleF1Request } from "./r2-cache";
+import { handleF1Request, normalizeKey } from "./r2-cache";
 import { handleRecapRequest, handleInsightsRequest, buildRaceContentBlock } from "./recap";
 import { handleShareRaceRequest, handleShareDriverRequest } from "./share-card";
 import { handleShareImageUpload, handleShareImageRead } from "./share-image";
@@ -36,10 +36,12 @@ const META_TTL = 3600_000; // 1 hour
 async function fetchCached(path: string, r2?: R2Bucket): Promise<any> {
   const cached = metaCache.get(path);
   if (cached && Date.now() - cached.ts < META_TTL) return cached.data;
-  // Try R2 first (data may already be cached by the /api/f1 proxy)
+  // Try R2 first (data may already be cached by the /api/f1 proxy). The proxy
+  // writes keys with query params sorted, so build the lookup the same way —
+  // "drivers?session_key=…&driver_number=…" never matched before this.
   if (r2) {
     try {
-      const key = path.replace(/^\//, "");
+      const key = normalizeKey(path);
       const obj = await r2.get(key);
       if (obj) {
         const data = await obj.json();
