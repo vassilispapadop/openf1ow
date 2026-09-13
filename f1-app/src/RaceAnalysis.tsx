@@ -13,7 +13,6 @@ import Pill from "./components/Pill";
 import ScatterPlot from "./components/analysis/ScatterPlot";
 import type { ScatterPoint } from "./components/analysis/useTooltip";
 import { PendingData } from "./components/analysis/PendingData";
-import LapEvolutionChart from "./components/analysis/LapEvolutionChart";
 import RacePaceRanking from "./components/analysis/RacePaceRanking";
 import StintDegradation from "./components/analysis/StintDegradation";
 import TeammateDelta from "./components/analysis/TeammateDelta";
@@ -29,6 +28,7 @@ import { buildFacts } from "./engine/index.ts";
 import Verdicts, { KpiRow } from "./components/insights/Verdicts";
 import TruePaceCard from "./components/insights/TruePaceCard";
 import DeltaTraceCard from "./components/insights/DeltaTraceCard";
+import LapEvolutionCard from "./components/insights/LapEvolutionCard";
 import { StrategyTimelineCard, UndercutCard, TyreLifeCard, PitCrewCard } from "./components/insights/StrategyCards";
 import { TeammatesCard, OvertakesCard, SCImpactCard, DirtyAirCard } from "./components/insights/BattlesCards";
 import { StartCard, GridFinishCard } from "./components/insights/OverviewCards";
@@ -253,12 +253,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
             <SectorAnalysis allLaps={allLaps} drivers={drivers} />
           </Section>
 
-          <Section
-            title="Lap-time evolution"
-            hint="Every driver's lap time plotted lap-by-lap. Shows tire degradation trends, pit-stop effects, and when drivers push vs. manage pace."
-          >
-            <LapEvolutionChart allLaps={allLaps} drivers={drivers} />
-          </Section>
+          <LapEvolutionCard />
           <DeltaTraceCard />
         </>
       )}

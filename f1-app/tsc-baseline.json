@@ -1,9 +1,8 @@
 {
-  "errors": 173,
+  "errors": 171,
   "perFile": {
     "src/components/analysis/BoxPlotChart.tsx": 2,
     "src/components/analysis/ConstructorPace.tsx": 7,
-    "src/components/analysis/LapEvolutionChart.tsx": 2,
     "src/components/analysis/SectorAnalysis.tsx": 43,
     "src/components/analysis/TeammateDelta.tsx": 4,
     "src/components/analysis/WeatherCorrelation.tsx": 1,
