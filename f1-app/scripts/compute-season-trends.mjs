@@ -20,13 +20,7 @@ import { fileURLToPath } from "node:url";
 import { compareLapSegments } from "../src/engine/telemetry/lapSegments.ts";
 import { mergeDistance } from "../src/engine/telemetry/telemetry.ts";
 import { eligibleForBest } from "../src/engine/index.ts";
-import {
-  aggregateConstructorPaceByRace,
-  aggregateConstructorQualifyingByRace,
-  aggregateTeammateGapTrend,
-  aggregateTireDegByCompound,
-  qualiModel,
-} from "../src/lib/seasonUtils.ts";
+import { buildSeasonTrends } from "../src/lib/seasonUtils.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..");
@@ -389,18 +383,14 @@ async function processYear(year, allRaces) {
     console.log(`  [corners] skipped — carrying over ${cornerStraight.length} previously published races`);
   }
 
-  const trends = {
-    generatedAt: new Date().toISOString(),
-    year,
-    raceCount: racesData.length,
-    constructorPace: aggregateConstructorPaceByRace(racesData),
-    constructorQualifying: aggregateConstructorQualifyingByRace(racesData),
-    teammateGap: aggregateTeammateGapTrend(racesData),
-    tireDeg: aggregateTireDegByCompound(racesData),
-  };
+  // Every engine-backed series comes from one builder (src/lib/seasonUtils.ts),
+  // so a series added there reaches the artifact without touching this script.
+  // Corner/curve/straight is the exception: it needs per-lap telemetry that
+  // only this script fetches.
+  const trends = buildSeasonTrends(year, racesData);
   if (cornerStraight.length) trends.cornerStraight = cornerStraight;
 
-  console.log(`  built trends: cp=${trends.constructorPace.length} cq=${trends.constructorQualifying.length} tg=${trends.teammateGap.length} td=${trends.tireDeg.length} cs=${cornerStraight.length}`);
+  console.log(`  built trends: cp=${trends.constructorPace.length} cq=${trends.constructorQualifying?.length ?? 0} tg=${trends.teammateGap.length} td=${trends.tireDeg.length} tl=${trends.tyreLife?.length ?? 0} cv=${trends.conversion?.length ?? 0} ts=${trends.topSpeed?.length ?? 0} cs=${cornerStraight.length}`);
   uploadToR2(year, trends);
 }
 
