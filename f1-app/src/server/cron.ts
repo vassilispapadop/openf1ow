@@ -84,9 +84,12 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
   }
 
   report.warmed = await warmSession(sk, env, ctx, STANDARD_ENDPOINTS);
-  // Paywall still up (401) or throttled (429): leave the marker unwritten so
-  // the next tick retries.
-  const blocked = Object.values(report.warmed).some(v => v.startsWith("401") || v.startsWith("429"));
+  // Paywall still up (401 anywhere) or throttled on a feed the engine needs:
+  // leave the marker unwritten so the next tick retries. Optional feeds
+  // (starting_grid is 404/429 for most sessions) do not block the pass.
+  const REQUIRED = ["drivers", "laps", "stints", "session_result", "race_control"];
+  const blocked = Object.values(report.warmed).some(v => v.startsWith("401"))
+    || REQUIRED.some(ep => (report.warmed?.[ep] ?? "").startsWith("429") || (report.warmed?.[ep] ?? "").startsWith("5"));
   if (blocked) { report.skipped = "upstream blocked — will retry"; return report; }
 
   const isRace = row.session_type === "Race";
