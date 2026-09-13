@@ -454,16 +454,26 @@ async function cornerStraightForRace(race) {
   // the team we want everything measured against.
   const byLabel = Object.fromEntries(traces.map(t => [t.label, t]));
   const teams = cmp.totals
-    .map(t => ({
-      team: t.label,
-      driver: byLabel[t.label]?.driver ?? "",
-      lapTime: byLabel[t.label]?.lapTime ?? 0,
-      cornerTime: round3(t.cornerTime),
-      straightTime: round3(t.straightTime),
-      cornerGap: round3(t.cornerDelta),
-      straightGap: round3(t.straightDelta),
-      gapToFastest: round3(t.totalDelta),
-    }))
+    .map(t => {
+      const cornerGap = round3(t.cornerDelta);
+      const curveGap = round3(t.curveDelta);
+      const straightGap = round3(t.straightDelta);
+      return {
+        team: t.label,
+        driver: byLabel[t.label]?.driver ?? "",
+        lapTime: byLabel[t.label]?.lapTime ?? 0,
+        cornerTime: round3(t.cornerTime),
+        curveTime: round3(t.curveTime),
+        straightTime: round3(t.straightTime),
+        cornerGap,
+        curveGap,
+        straightGap,
+        // Summed from the rounded parts rather than rounded separately, so the
+        // decomposition the UI promises (parts add up to the gap) holds exactly
+        // in the artifact — at most 1.5 ms from the unrounded total.
+        gapToFastest: round3(cornerGap + curveGap + straightGap),
+      };
+    })
     .sort((a, b) => a.gapToFastest - b.gapToFastest);
 
   return {
@@ -474,8 +484,10 @@ async function cornerStraightForRace(race) {
     round: race.meta.round,
     referenceTeam: cmp.baselineLabel,
     cornerCount: cmp.cornerCount,
+    curveCount: cmp.curveCount,
     straightCount: cmp.straightCount,
     cornerDistance: Math.round(cmp.cornerDistance),
+    curveDistance: Math.round(cmp.curveDistance),
     straightDistance: Math.round(cmp.straightDistance),
     trackDistance: Math.round(cmp.trackDistance),
     teams,
@@ -508,7 +520,7 @@ async function aggregateCornerStraightByRace(races) {
       const row = await cornerStraightForRace(race);
       if (row) {
         out.push(row);
-        console.log(`${row.teams.length} teams · ${row.cornerCount}c/${row.straightCount}s · ref ${row.referenceTeam}`);
+        console.log(`${row.teams.length} teams · ${row.cornerCount}c/${row.curveCount}fc/${row.straightCount}s · ref ${row.referenceTeam}`);
       } else {
         console.log("(skipped — no usable qualifying telemetry)");
       }

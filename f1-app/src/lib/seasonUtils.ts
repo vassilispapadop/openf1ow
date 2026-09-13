@@ -341,9 +341,11 @@ export function aggregateTireDegByCompound(races: RaceData[]): TireDegRace[] {
 // Where each team finds (or loses) its lap time: cornering vs straight-line
 // running. Built from qualifying telemetry — each team's fastest lap of the
 // weekend is split into corner and straight sections (see lib/lapSegments) and
-// timed against the fastest team's lap. cornerGap + straightGap is exactly the
-// team's lap-time gap, so the two numbers are a true decomposition rather than
-// two loosely related indices.
+// timed against the fastest team's lap. cornerGap + curveGap + straightGap is
+// exactly the team's lap-time gap, so the numbers are a true decomposition
+// rather than loosely related indices. The curve fields are optional: artifacts
+// built before fast curves were split out of the straights only carry the
+// two-way split, and readers treat a missing curve share as zero.
 //
 // Unlike the other aggregations this one can't be computed from RaceData —
 // it needs per-lap car_data and location, which only the offline trends script
@@ -354,10 +356,12 @@ export interface CornerStraightPoint {
   driver: string;           // name_acronym of whoever set the team's lap
   lapTime: number;          // sec
   cornerTime: number;       // sec — summed across the lap's corner sections
+  curveTime?: number;       // sec — summed across the fast curves (absent in two-way artifacts)
   straightTime: number;     // sec — summed across the straights
   cornerGap: number;        // sec vs the reference team's corner total
+  curveGap?: number;        // sec vs the reference team's fast-curve total
   straightGap: number;      // sec vs the reference team's straight total
-  gapToFastest: number;     // sec — equals cornerGap + straightGap
+  gapToFastest: number;     // sec — equals cornerGap + (curveGap ?? 0) + straightGap
 }
 
 export interface CornerStraightRace {
@@ -368,8 +372,10 @@ export interface CornerStraightRace {
   round: number;
   referenceTeam: string;    // fastest team that weekend — the 0.000 baseline
   cornerCount: number;      // corner sections the circuit was split into
+  curveCount?: number;      // fast-curve sections (absent in two-way artifacts)
   straightCount: number;
   cornerDistance: number;   // m of the lap classified as corner
+  curveDistance?: number;
   straightDistance: number;
   trackDistance: number;    // m — measured lap length
   teams: CornerStraightPoint[];

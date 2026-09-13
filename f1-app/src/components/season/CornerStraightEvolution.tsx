@@ -1,5 +1,7 @@
-// Corner and straight gap, race by race — the same shape as the constructor
-// pace and qualifying evolution charts, but on one half of the lap at a time.
+// Corner, fast-curve and straight gap, race by race — the same shape as the
+// constructor pace and qualifying evolution charts, but on one part of the lap
+// at a time. Artifacts built before fast curves were split out only carry the
+// two-way split, so the curves mode is offered only when the data has it.
 //
 // The one structural difference: these gaps are signed. A team can be *faster*
 // than the weekend's reference car through the corners while losing the lap
@@ -9,7 +11,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { F, M, C } from "../../lib/styles";
-import { TEAM_COLORS, TEAM_FALLBACK_COLORS } from "../../lib/constants";
+import { TEAM_COLORS, TEAM_FALLBACK_COLORS, SECTION_COLORS } from "../../lib/constants";
 import { smoothPath, signedYTicks, shortMeetingName } from "../../lib/chartUtils";
 import type { CornerStraightRace } from "../../lib/seasonUtils";
 
@@ -21,24 +23,33 @@ interface Props {
 const MARGIN = { top: 18, right: 18, bottom: 36, left: 62 };
 const TOP_N_DEFAULT = 3;
 
-type Mode = "corners" | "straights";
+type Mode = "corners" | "curves" | "straights";
 /** Seconds, or the gap as a share of the reference car's time through that
  *  part of the lap. Percent is the more honest cross-circuit read here:
  *  Monaco's corners take ~44 s and Monza's ~16 s, so a tenth means very
  *  different things at the two. */
 type Unit = "s" | "%";
 
-const MODE_COLOR: Record<Mode, string> = { corners: C.warn, straights: C.violet };
-const MODE_LABEL: Record<Mode, string> = { corners: "Corners", straights: "Straights" };
+const MODE_COLOR: Record<Mode, string> = {
+  corners: SECTION_COLORS.corner,
+  curves: SECTION_COLORS.curve,
+  straights: SECTION_COLORS.straight,
+};
+const MODE_LABEL: Record<Mode, string> = { corners: "Corners", curves: "Fast curves", straights: "Straights" };
 
 interface Point {
   round: number;
-  corner: number;
-  straight: number;
-  cornerPct: number;
-  straightPct: number;
+  gap: Record<Mode, number>;   // seconds vs the reference, per part of the lap
+  pct: Record<Mode, number>;   // the same as a share of the reference's own time there
   driver: string;
   lapGap: number;
+}
+
+type TeamPoint = CornerStraightRace["teams"][number];
+
+/** A team's gap through one part of the lap; curves read 0 in two-way artifacts. */
+function gapOf(t: TeamPoint, m: Mode): number {
+  return m === "corners" ? t.cornerGap : m === "curves" ? (t.curveGap ?? 0) : t.straightGap;
 }
 
 export default function CornerStraightEvolution({ races, height = 380 }: Props) {
@@ -62,6 +73,9 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
 
   const ordered = useMemo(() => [...races].sort((a, b) => a.round - b.round), [races]);
 
+  const hasCurves = useMemo(() => ordered.some(r => r.teams.some(t => t.curveGap != null)), [ordered]);
+  const modes: Mode[] = hasCurves ? ["corners", "curves", "straights"] : ["corners", "straights"];
+
   const { teams, minRound, maxRound, racesByRound } = useMemo(() => {
     const series: Record<string, Point[]> = {};
     let minRound = Infinity;
@@ -71,16 +85,15 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
       racesByRound[r.round] = r;
       minRound = Math.min(minRound, r.round);
       maxRound = Math.max(maxRound, r.round);
-      // The reference car's own corner and straight times are what the
-      // percentages are a share of.
+      // The reference car's own times through each part of the lap are what
+      // the percentages are a share of.
       const ref = refTimesFor(r);
+      const share = (t: TeamPoint, m: Mode) => (ref[m] > 0 ? (gapOf(t, m) / ref[m]) * 100 : 0);
       for (const t of r.teams) {
         (series[t.team] ||= []).push({
           round: r.round,
-          corner: t.cornerGap,
-          straight: t.straightGap,
-          cornerPct: ref.corner > 0 ? (t.cornerGap / ref.corner) * 100 : 0,
-          straightPct: ref.straight > 0 ? (t.straightGap / ref.straight) * 100 : 0,
+          gap: { corners: gapOf(t, "corners"), curves: gapOf(t, "curves"), straights: gapOf(t, "straights") },
+          pct: { corners: share(t, "corners"), curves: share(t, "curves"), straights: share(t, "straights") },
           driver: t.driver,
           lapGap: t.gapToFastest,
         });
@@ -101,10 +114,7 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
   const topTeams = useMemo(() => new Set(teams.slice(0, TOP_N_DEFAULT).map(t => t.team)), [teams]);
   const isFocusedTeam = (team: string) => !hidden.has(team) && (showAll || topTeams.has(team));
 
-  const valueOf = (p: Point) =>
-    unit === "s"
-      ? (mode === "corners" ? p.corner : p.straight)
-      : (mode === "corners" ? p.cornerPct : p.straightPct);
+  const valueOf = (p: Point) => (unit === "s" ? p.gap[mode] : p.pct[mode]);
 
   // Scale to whatever is on screen, but always keep zero in frame — it's the
   // line that says "level with the reference car".
@@ -168,19 +178,25 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
   const clipId = "cse-clip";
 
   // Values for the hovered round, in whichever unit is on screen.
-  const hoverRef = hoveredRace ? refTimesFor(hoveredRace) : { corner: 0, straight: 0 };
-  const hoverValue = (tp: CornerStraightRace["teams"][number]) => {
-    const gap = mode === "corners" ? tp.cornerGap : tp.straightGap;
+  const hoverRef = hoveredRace ? refTimesFor(hoveredRace) : { corners: 0, curves: 0, straights: 0 };
+  const hoverValue = (tp: TeamPoint) => {
+    const gap = gapOf(tp, mode);
     if (unit === "s") return gap;
-    const base = mode === "corners" ? hoverRef.corner : hoverRef.straight;
+    const base = hoverRef[mode];
     return base > 0 ? (gap / base) * 100 : 0;
   };
 
-  // Ranked for the tooltip by the half of the lap currently on screen.
+  // Ranked for the tooltip by the part of the lap currently on screen.
   const hoverRanked = hoveredRace
-    ? [...hoveredRace.teams].sort((a, b) =>
-        (mode === "corners" ? a.cornerGap - b.cornerGap : a.straightGap - b.straightGap))
+    ? [...hoveredRace.teams].sort((a, b) => gapOf(a, mode) - gapOf(b, mode))
     : [];
+
+  const sectionSummary = (r: CornerStraightRace): string =>
+    mode === "corners"
+      ? `${r.cornerCount} sections, ${r.cornerDistance.toLocaleString()} m`
+      : mode === "curves"
+        ? `${r.curveCount ?? 0} sections, ${(r.curveDistance ?? 0).toLocaleString()} m`
+        : `${r.straightCount} sections, ${r.straightDistance.toLocaleString()} m`;
 
   return (
     <div ref={wrapRef} style={{ position: "relative", width: "100%", fontFamily: F }}>
@@ -225,7 +241,7 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
           borderRadius: 6,
           padding: 2,
         }}>
-          {(["corners", "straights"] as Mode[]).map(m => {
+          {modes.map(m => {
             const active = mode === m;
             return (
               <button
@@ -461,9 +477,7 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
           <div style={{ fontSize: 10, color: C.textFaint, marginBottom: 6 }}>
             <span style={{ color: MODE_COLOR[mode], fontWeight: 700 }}>{MODE_LABEL[mode]}</span>
             {" · "}
-            {mode === "corners"
-              ? `${hoveredRace.cornerCount} sections, ${hoveredRace.cornerDistance.toLocaleString()} m`
-              : `${hoveredRace.straightCount} sections, ${hoveredRace.straightDistance.toLocaleString()} m`}
+            {sectionSummary(hoveredRace)}
           </div>
           {hoverRanked.map((tp, i) => {
             const idx = teams.findIndex(x => x.team === tp.team);
@@ -549,11 +563,13 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
 
       <p style={{ fontSize: 11, color: C.textMute, margin: "10px 4px 0", lineHeight: 1.5 }}>
         Sections come from the circuit's geometry — a corner is where the racing line's radius drops below
-        250 m, so a corner taken flat still counts as one. Each line is a team's gap through the{" "}
+        250 m, so a corner taken flat still counts as one; a fast curve is a wider bend (up to 600 m) that
+        still loads the car at 1.6 g or more, where drag and power decide the time rather than grip. Each line
+        is a team's gap through the{" "}
         <span style={{ color: MODE_COLOR[mode], fontWeight: 600 }}>{MODE_LABEL[mode].toLowerCase()}</span>{" "}
         of its fastest qualifying lap, against the fastest team of that weekend. Above the green line means
         quicker than the reference car through that part of the lap — which a team can manage while still
-        losing the lap overall, since the corner and straight gaps add up to the total. The reference is
+        losing the lap overall, since the corner, curve and straight gaps add up to the total. The reference is
         re-picked every race, so this tracks relative form rather than absolute pace.{" "}
         <strong>%</strong> shows the gap as a share of the reference car's time through that part of the lap —
         worth switching to when comparing circuits, since Monaco's corners take about {"\u2248"}44 s and Monza's
@@ -563,10 +579,10 @@ export default function CornerStraightEvolution({ races, height = 380 }: Props) 
   );
 }
 
-/** The reference car's own corner and straight times for a race — the base the
- *  percentage gaps are a share of. */
-function refTimesFor(r: CornerStraightRace): { corner: number; straight: number } {
+/** The reference car's own time through each part of the lap for a race — the
+ *  base the percentage gaps are a share of. */
+function refTimesFor(r: CornerStraightRace): Record<Mode, number> {
   const ref = r.teams.find(t => t.team === r.referenceTeam)
     ?? r.teams.reduce((m, t) => (t.gapToFastest < m.gapToFastest ? t : m), r.teams[0]);
-  return { corner: ref?.cornerTime ?? 0, straight: ref?.straightTime ?? 0 };
+  return { corners: ref?.cornerTime ?? 0, curves: ref?.curveTime ?? 0, straights: ref?.straightTime ?? 0 };
 }

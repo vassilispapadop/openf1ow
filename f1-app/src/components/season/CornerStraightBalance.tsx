@@ -1,18 +1,22 @@
-// Where each team finds its lap time: cornering vs straight-line running.
+// Where each team finds its lap time: cornering, fast curves, or straight-line
+// running.
 //
-// Every weekend, each team's fastest qualifying lap is split into corner and
-// straight sections and timed against the fastest team's lap. Because the two
-// gaps are a decomposition of the same lap time rather than two separate
-// indices, cornerGap + straightGap is exactly the team's deficit — so a team
-// can be genuinely quicker than the reference through the corners while still
-// losing the lap, and the chart shows both halves of that at once.
+// Every weekend, each team's fastest qualifying lap is split into corner, fast
+// curve and straight sections and timed against the fastest team's lap. Because
+// the gaps are a decomposition of the same lap time rather than separate
+// indices, cornerGap + curveGap + straightGap is exactly the team's deficit —
+// so a team can be genuinely quicker than the reference through the corners
+// while still losing the lap, and the chart shows every part of that at once.
 //
-// Rows are teams, sorted by total deficit. Two bars per row grow left (faster
-// than the reference) or right (slower) from a shared centre line.
+// Artifacts built before fast curves were split out only carry the two-way
+// corner/straight split; those render two bars and the curve share reads as 0.
+//
+// Rows are teams, sorted by total deficit. Bars grow left (faster than the
+// reference) or right (slower) from a shared centre line.
 
 import { useMemo, useState } from "react";
 import { F, M, C } from "../../lib/styles";
-import { TEAM_COLORS, TEAM_FALLBACK_COLORS } from "../../lib/constants";
+import { TEAM_COLORS, TEAM_FALLBACK_COLORS, SECTION_COLORS, SECTION_LABELS } from "../../lib/constants";
 import type { CornerStraightRace } from "../../lib/seasonUtils";
 
 interface Props {
@@ -24,20 +28,27 @@ interface Props {
  *  between tracks than straight time does. */
 type Unit = "s" | "%";
 
+type Kind = "corner" | "curve" | "straight";
+const KINDS: Kind[] = ["corner", "curve", "straight"];
+
 interface Row {
   team: string;
-  cornerGap: number;      // median across races
-  straightGap: number;
+  gap: Record<Kind, number>;   // median across races (or the one weekend)
   totalGap: number;
   races: number;
-  bestAt: string | null;  // weekend where the team's corner advantage peaked
+  bestAt: string | null;       // weekend where the team's corner advantage peaked
 }
 
-/** The reference car's own corner and straight times for a race. */
-function refTimesFor(r: CornerStraightRace): { corner: number; straight: number } {
+/** A team row's gap for one kind of section; curve is 0 in two-way artifacts. */
+function gapOf(t: CornerStraightRace["teams"][number], k: Kind): number {
+  return k === "corner" ? t.cornerGap : k === "curve" ? (t.curveGap ?? 0) : t.straightGap;
+}
+
+/** The reference car's own time through each kind of section for a race. */
+function refTimesFor(r: CornerStraightRace): Record<Kind, number> {
   const ref = r.teams.find(t => t.team === r.referenceTeam)
     ?? r.teams.reduce((m, t) => (t.gapToFastest < m.gapToFastest ? t : m), r.teams[0]);
-  return { corner: ref?.cornerTime ?? 0, straight: ref?.straightTime ?? 0 };
+  return { corner: ref?.cornerTime ?? 0, curve: ref?.curveTime ?? 0, straight: ref?.straightTime ?? 0 };
 }
 
 function median(xs: number[]): number {
@@ -61,16 +72,26 @@ export default function CornerStraightBalance({ races }: Props) {
 
   const ordered = useMemo(() => [...races].sort((a, b) => a.round - b.round), [races]);
 
+  // Only artifacts built with the three-way split carry a curve share; older
+  // ones get the two bars they were built for rather than an always-zero third.
+  const hasCurves = useMemo(
+    () => ordered.some(r => r.teams.some(t => t.curveGap != null)),
+    [ordered],
+  );
+  const kinds = useMemo(() => (hasCurves ? KINDS : KINDS.filter(k => k !== "curve")), [hasCurves]);
+
   const rows = useMemo<Row[]>(() => {
+    const value = (t: CornerStraightRace["teams"][number], k: Kind, ref: Record<Kind, number>) =>
+      unit === "s" ? gapOf(t, k) : pct(gapOf(t, k), ref[k]);
+
     if (round !== "season") {
       const r = ordered.find(x => x.round === round);
       if (!r) return [];
       const ref = refTimesFor(r);
-      const lapBase = ref.corner + ref.straight;
+      const lapBase = ref.corner + ref.curve + ref.straight;
       return r.teams.map(t => ({
         team: t.team,
-        cornerGap: unit === "s" ? t.cornerGap : pct(t.cornerGap, ref.corner),
-        straightGap: unit === "s" ? t.straightGap : pct(t.straightGap, ref.straight),
+        gap: { corner: value(t, "corner", ref), curve: value(t, "curve", ref), straight: value(t, "straight", ref) },
         totalGap: unit === "s" ? t.gapToFastest : pct(t.gapToFastest, lapBase),
         races: 1,
         bestAt: null,
@@ -79,16 +100,15 @@ export default function CornerStraightBalance({ races }: Props) {
 
     // Season view: median per team, so one compromised weekend (traffic, a
     // yellow, a wet Q3) doesn't decide a team's character.
-    const byTeam: Record<string, { corner: number[]; straight: number[]; total: number[]; best: { gap: number; at: string } | null }> = {};
+    const byTeam: Record<string, { gap: Record<Kind, number[]>; total: number[]; best: { gap: number; at: string } | null }> = {};
     for (const r of ordered) {
       const ref = refTimesFor(r);
-      const lapBase = ref.corner + ref.straight;
+      const lapBase = ref.corner + ref.curve + ref.straight;
       for (const t of r.teams) {
-        const e = (byTeam[t.team] ||= { corner: [], straight: [], total: [], best: null });
+        const e = (byTeam[t.team] ||= { gap: { corner: [], curve: [], straight: [] }, total: [], best: null });
         // Percentages are taken per race and then medianed, not the other way
         // round — each weekend gets normalised against its own circuit first.
-        e.corner.push(unit === "s" ? t.cornerGap : pct(t.cornerGap, ref.corner));
-        e.straight.push(unit === "s" ? t.straightGap : pct(t.straightGap, ref.straight));
+        for (const k of KINDS) e.gap[k].push(value(t, k, ref));
         e.total.push(unit === "s" ? t.gapToFastest : pct(t.gapToFastest, lapBase));
         if (!e.best || t.cornerGap < e.best.gap) e.best = { gap: t.cornerGap, at: r.meetingName };
       }
@@ -96,8 +116,7 @@ export default function CornerStraightBalance({ races }: Props) {
     return Object.entries(byTeam)
       .map(([team, e]) => ({
         team,
-        cornerGap: median(e.corner),
-        straightGap: median(e.straight),
+        gap: { corner: median(e.gap.corner), curve: median(e.gap.curve), straight: median(e.gap.straight) },
         totalGap: median(e.total),
         races: e.total.length,
         bestAt: e.best?.at ?? null,
@@ -108,8 +127,8 @@ export default function CornerStraightBalance({ races }: Props) {
   const selected = round === "season" ? null : ordered.find(r => r.round === round) ?? null;
 
   const scale = useMemo(
-    () => Math.max(unit === "s" ? 0.15 : 0.3, ...rows.flatMap(r => [Math.abs(r.cornerGap), Math.abs(r.straightGap)])),
-    [rows, unit],
+    () => Math.max(unit === "s" ? 0.15 : 0.3, ...rows.flatMap(r => kinds.map(k => Math.abs(r.gap[k])))),
+    [rows, unit, kinds],
   );
 
   if (!races.length || !rows.length) {
@@ -190,6 +209,9 @@ export default function CornerStraightBalance({ races }: Props) {
           <>
             <span style={{ color: C.text, fontWeight: 600 }}>{selected.meetingName}</span>
             {" — "}{selected.cornerCount} corner sections ({selected.cornerDistance.toLocaleString()} m)
+            {selected.curveCount != null && selected.curveCount > 0 && (
+              <>{" · "}{selected.curveCount} fast curves ({(selected.curveDistance ?? 0).toLocaleString()} m)</>
+            )}
             {" · "}{selected.straightCount} straights ({selected.straightDistance.toLocaleString()} m)
             {" · "}reference <span style={{ color: C.text, fontWeight: 600 }}>{selected.referenceTeam}</span>
           </>
@@ -200,13 +222,12 @@ export default function CornerStraightBalance({ races }: Props) {
       </div>
 
       {/* Legend */}
-      <div style={{ display: "flex", gap: 16, fontSize: 11, marginBottom: 10, color: C.textDim }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 14, height: 6, borderRadius: 3, background: C.warn }} /> Corners
-        </span>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 14, height: 6, borderRadius: 3, background: C.violet }} /> Straights
-        </span>
+      <div style={{ display: "flex", gap: 16, fontSize: 11, marginBottom: 10, color: C.textDim, flexWrap: "wrap" }}>
+        {kinds.map(k => (
+          <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 14, height: 6, borderRadius: 3, background: SECTION_COLORS[k] }} /> {SECTION_LABELS[k]}
+          </span>
+        ))}
         <span style={{ color: C.textFaint }}>left of the line = faster than the reference</span>
       </div>
 
@@ -236,18 +257,14 @@ export default function CornerStraightBalance({ races }: Props) {
             </div>
 
             <div style={{ display: "grid", gap: 5 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ ...mono, width: 58, textAlign: "right", color: gapColor(r.cornerGap) }}>
-                  {val(r.cornerGap)}
-                </span>
-                <span style={{ flex: 1 }}>{bar(r.cornerGap, C.warn)}</span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ ...mono, width: 58, textAlign: "right", color: gapColor(r.straightGap) }}>
-                  {val(r.straightGap)}
-                </span>
-                <span style={{ flex: 1 }}>{bar(r.straightGap, C.violet)}</span>
-              </div>
+              {kinds.map(k => (
+                <div key={k} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ ...mono, width: 58, textAlign: "right", color: gapColor(r.gap[k]) }}>
+                    {val(r.gap[k])}
+                  </span>
+                  <span style={{ flex: 1 }}>{bar(r.gap[k], SECTION_COLORS[k])}</span>
+                </div>
+              ))}
             </div>
 
             <div style={{ textAlign: "right" }}>
@@ -261,15 +278,15 @@ export default function CornerStraightBalance({ races }: Props) {
       </div>
 
       <p style={{ fontSize: 11, color: C.textMute, margin: "14px 4px 0", lineHeight: 1.5 }}>
-        Built from qualifying telemetry: each team's fastest clean lap is cut into corner and straight
-        sections at the same track positions for the whole field, so the two gaps sum exactly to the
-        team's lap-time deficit. A team can read negative through the corners and still lose the lap —
-        that's a car trading downforce for straight-line speed, or the reverse. Sections come from the
-        circuit's geometry (a corner is where the racing line's radius drops below 250 m), so a corner
-        taken flat still counts as one, and braking and acceleration zones count as straight. Switch to{" "}
-        <strong>%</strong> to read each gap as a share of the reference car's time over that stretch, which
-        is the fairer comparison across circuits — corner time swings far more track to track than
-        straight time does.
+        Built from qualifying telemetry: each team's fastest clean lap is cut into sections at the same track
+        positions for the whole field, so the gaps sum exactly to the team's lap-time deficit. A team can read
+        negative through the corners and still lose the lap — that's a car trading downforce for straight-line
+        speed, or the reverse. Sections come from the circuit's geometry: a corner is where the racing line's
+        radius drops below 250 m, so a corner taken flat still counts as one; a fast curve is a wider bend (up to
+        600 m) that still loads the car at 1.6 g or more, where drag and power decide the time rather than grip;
+        braking and acceleration zones count as straight. Switch to <strong>%</strong> to read each gap as a share
+        of the reference car's time over that stretch, which is the fairer comparison across circuits — corner
+        time swings far more track to track than straight time does.
       </p>
     </div>
   );
