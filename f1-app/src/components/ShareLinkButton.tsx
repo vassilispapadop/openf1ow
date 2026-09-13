@@ -8,7 +8,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSession } from "../contexts/SessionContext";
 import { findSlugForMeeting } from "../lib/raceIndex";
-import { paths } from "../lib/constants";
 import { shareUrl, canShareUrl } from "../lib/share";
 import Pill from "./Pill";
 

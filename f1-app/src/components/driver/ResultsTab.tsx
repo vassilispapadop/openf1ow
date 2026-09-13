@@ -54,7 +54,7 @@ export default function ResultsTab({ results, drivers, dn }: ResultsTabProps) {
                       <span style={{ fontWeight: 500 }}>{dv ? dv.full_name : "Driver " + r.driver_number}</span>
                     </td>
                     <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#b0b0c0", fontSize: 11 }}>
-                      {Array.isArray(r.duration) ? r.duration.map(x => x ? ft(x) : "\u2014").join(" / ") : ft(r.duration)}
+                      {Array.isArray(r.duration) ? r.duration.map((x: number | null) => x ? ft(x) : "\u2014").join(" / ") : ft(r.duration)}
                     </td>
                     <td style={{
                       ...sty.td,

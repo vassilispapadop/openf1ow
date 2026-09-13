@@ -64,7 +64,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
     const globalRange = globalMaxTemp - globalMinTemp;
     const tempRangeSufficient = globalRange >= 3;
 
-    const driverAdaptability = drivers.map(d => {
+    const driverAdaptability: Record<string, any>[] = drivers.map((d): Record<string, any> | null => {
       if (!tempRangeSufficient) return null;
       const driverLaps = cleanLaps.filter(l => l.driver_number === d.driver_number);
       if (driverLaps.length < 10) return null;
@@ -94,7 +94,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
         highCount: tempGroups.high.length,
         color: d.team_colour || "666",
       };
-    }).filter(Boolean) as NonNullable<typeof driverAdaptability[number]>[];
+    }).filter((x): x is Record<string, any> => x !== null);
 
     // Weather summary
     const firstW = weatherTimes[0];

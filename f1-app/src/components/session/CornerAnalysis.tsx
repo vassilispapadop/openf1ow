@@ -37,7 +37,7 @@ export default function CornerAnalysis({ sessionKey, driverNumber, lap }: Props)
 
   const corners = useMemo(() => detectCorners(samples), [samples]);
 
-  if (loading) return <div style={{ padding: 12 }}><Spinner /></div>;
+  if (loading) return <div style={{ padding: 12 }}><Spinner label="Loading corner data…" /></div>;
   if (error) return <div style={{ color: C.textMute, fontSize: 12, padding: 12 }}>Telemetry unavailable: {error}</div>;
   if (!corners.length) return <div style={{ color: C.textMute, fontSize: 12, padding: 12 }}>No corners detected — likely an in/out lap or a circuit configuration we couldn't parse.</div>;
 

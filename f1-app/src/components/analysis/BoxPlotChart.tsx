@@ -26,7 +26,7 @@ export function teamAbbr(name: string): string {
   return name.slice(0, 3).toUpperCase();
 }
 
-function BoxPlotChart({ rows, valueFmt, axisLabel }: {
+function BoxPlotChart({ rows, valueFmt }: {
   rows: { label: string; color: string; times: number[] }[];
   valueFmt?: (v: number) => string;
   axisLabel?: string;
@@ -68,7 +68,7 @@ function BoxPlotChart({ rows, valueFmt, axisLabel }: {
         <ShareButton domRef={contentRef} filename="openf1ow-pace-chart" />
       </div>
       <div ref={contentRef}>
-      <div ref={containerRef} style={{ position: "relative" }}>
+      <div ref={containerRef as React.RefObject<HTMLDivElement>} style={{ position: "relative" }}>
       {el}
       {/* X-axis labels */}
       <div style={{ position: "relative", height: 18, marginLeft: 72, marginBottom: 4 }}>
