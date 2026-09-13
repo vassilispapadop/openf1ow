@@ -31,7 +31,7 @@ export { tyreLife, type TyreLifeCurve, type TyreLifeBin } from "./analyses/tyreL
 export { strategyTimeline, type StrategyTimeline, type TimelineRow } from "./analyses/strategyTimeline.ts";
 export { deltaTrace, type DeltaTrace, type DeltaSeries, type DeltaReference } from "./analyses/deltaTrace.ts";
 export { startAnalysis, type StartAnalysis, type StartRow } from "./analyses/start.ts";
-export { overtakeAnalysis, type OvertakeAnalysis, type ClassifiedOvertake, type OvertakeKind } from "./analyses/overtakes.ts";
+export { overtakeAnalysis, type OvertakeAnalysis, type ClassifiedOvertake, type OvertakeKind, type DriverOvertakes } from "./analyses/overtakes.ts";
 export { neutralisationImpact, type NeutralisationImpact, type ImpactRow } from "./analyses/neutralisationImpact.ts";
 export { dirtyAirAnalysis, type DirtyAirAnalysis, type DriverTraffic } from "./analyses/dirtyAir.ts";
 export { conversionAnalysis, type ConversionAnalysis, type ConversionRow } from "./analyses/conversion.ts";

@@ -1,0 +1,10 @@
+.root { display: flex; gap: 4px; font-family: var(--font); width: 100%; }
+.labels { flex-shrink: 0; }
+.label { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-dim); padding-right: 6px; white-space: nowrap; overflow: hidden; transition: opacity 0.12s ease; }
+.labelMain { font-weight: 700; color: var(--text); font-family: var(--mono); }
+.labelSub { color: var(--text-faint); font-size: 10px; overflow: hidden; text-overflow: ellipsis; }
+.dim { opacity: 0.35; }
+.hl { color: var(--text); }
+.plot { flex: 1; min-width: 0; }
+.spanLabel { font-family: var(--mono); font-size: 9px; font-weight: 700; fill: var(--bg); }
+.endLabel { font-family: var(--font); font-size: 9px; fill: var(--text-faint); }
