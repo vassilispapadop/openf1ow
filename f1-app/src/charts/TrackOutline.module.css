@@ -1,0 +1,23 @@
+.wrap { position: relative; font-family: var(--font); }
+.svg { width: 100%; height: auto; display: block; }
+.ghost { stroke: rgba(255, 255, 255, 0.05); stroke-width: 16; }
+.label {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--chart-halo);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.corner {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-mute);
+}
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 11px; color: var(--text-dim); align-items: center; }
+.empty { color: var(--text-mute); font-size: 12px; padding: 12px; }
