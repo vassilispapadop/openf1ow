@@ -69,8 +69,10 @@ export function overtakeAnalysis(model: SessionModel): Gated<OvertakeAnalysis> {
         for (let p = l.position; p < prev.position; p++) {
           const victim = cur.find(x => x.position === p + 1 && x.driver_number !== l.driver_number);
           if (!victim) continue;
+          const a = model.byDriver[l.driver_number], b = model.byDriver[victim.driver_number];
+          if (!a || !b || !Number.isFinite(l.tStart)) continue;
           const kind: OvertakeKind = hasFlag(l.flags | victim.flags, LapFlag.PIT_IN | LapFlag.PIT_OUT) ? "pit-cycle" : "on-track";
-          events.push({ t: l.tStart, lap, overtaker: model.byDriver[l.driver_number].driver, overtaken: model.byDriver[victim.driver_number].driver, position: p, kind });
+          events.push({ t: l.tStart, lap, overtaker: a.driver, overtaken: b.driver, position: p, kind });
         }
       }
     }

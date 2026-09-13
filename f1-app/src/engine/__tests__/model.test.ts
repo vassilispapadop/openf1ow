@@ -218,6 +218,26 @@ describe.each(fixtures.map(f => [f.slug, f] as const))("fixture %s", (_slug, fx)
   });
 });
 
+describe.each(fixtures.map(f => [f.slug, f] as const))("fixture %s with feeds stripped", (_slug, fx) => {
+  // The fallback paths — no overtakes feed, no intervals, no results, no
+  // race control — must run clean too; the recorded sessions all have them.
+  const stripped = buildSessionModel({ ...fx.inputs, overtakes: [], intervals: [], startingGrid: [], results: [], raceControl: [] });
+  it("every analysis, the verdicts and the facts still run", () => {
+    expect(stripped.coverage.intervals).toBe(false);
+    for (const fn of [paceRanking, truePaceRanking, consistencyByDriver, teammateComparisons, constructorPace, compoundSummary, driverDegradation,
+      sectorAnalysis, bestLapsByDriver, longRuns, compoundPrograms, pitStopAnalysis, undercutAnalysis, tyreLife, strategyTimeline, deltaTrace,
+      startAnalysis, overtakeAnalysis, neutralisationImpact, dirtyAirAnalysis, conversionAnalysis]) {
+      const r = fn(stripped);
+      if (r.ok) { const bad: string[] = []; walk(r.value, fn.name, bad); expect(bad).toEqual([]); }
+    }
+    const v = generateVerdicts(stripped);
+    for (const x of v) for (const n of x.numbers) expect(n.value).not.toMatch(/NaN|undefined/);
+    expect(() => buildFacts(stripped)).not.toThrow();
+    const da = dirtyAirAnalysis(stripped);
+    if (stripped.kind === "race") { expect(da.ok).toBe(false); if (!da.ok) expect(da.reason).toBe("no_intervals"); }
+  });
+});
+
 describe("fixtures present", () => {
   it("at least one fixture is recorded", () => {
     expect(fixtures.length).toBeGreaterThan(0);
