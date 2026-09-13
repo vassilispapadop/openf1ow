@@ -1,33 +1,35 @@
 // GET /api/session/:sk/bundle — everything the engine's SessionModel ingests,
-// in one response, assembled from R2 through resolveResource. Intervals
-// (~4 MB raw) are reduced to the samples the engine actually reads: those
-// within [lap start − 2 s, lap start + 8 s] of one of that driver's laps.
-// The reduced object is persisted per session so the parse happens once.
+// in one response, assembled from R2 through resolveResource.
 //
-// Required parts: session, drivers, laps. Everything else is optional and
-// reported in meta.missing so analyses can gate on it. assembleBundle() is
-// shared with the insights route, which runs the engine on the same payload.
+// The request path does no heavy work: the parts' JSON is spliced together
+// as strings (never parsed and re-serialised), and intervals come only from
+// the per-session derived object `derived/{sk}/intervals-window.json`, which
+// scripts/derive-intervals.mjs produces offline (the raw feed is 3–4 MB and
+// windowing it inside a request blew the Worker's limits on bigger races).
+// Without that object the bundle ships with intervals empty and says so in
+// meta.missing; traffic analyses gate off rather than guess.
+//
+// Required parts: session, drivers, laps. Everything else is optional.
+// assembleBundle() is shared with the insights route, which parses the body
+// once to run the engine.
 
 import { resolveResource, type CacheEnv, type Resolved } from "./r2-cache";
 import { getSessionWindow, classifyState, type SessionState } from "./session-state";
 import { fetchUpstreamOnce } from "./r2-cache";
-import type { BundlePayload } from "../engine/bundle.ts";
 
 const OPTIONAL = ["stints", "pit", "position", "race_control", "session_result", "weather", "overtakes"] as const;
-const INTERVAL_BEFORE_MS = 2_000;
-const INTERVAL_AFTER_MS = 8_000;
 
-function parseArr<T = unknown>(r: Resolved | null): T[] {
-  if (!r || r.status !== 200) return [];
-  try { const v = JSON.parse(r.body); return Array.isArray(v) ? v : []; } catch { return []; }
-}
+const isArrayBody = (r: Resolved | null): boolean => !!r && r.status === 200 && r.body.trimStart().startsWith("[");
+const arrBody = (r: Resolved | null): string => (isArrayBody(r) ? r!.body : "[]");
+const isEmptyArray = (s: string): boolean => s.replace(/\s/g, "") === "[]";
 
 export async function sha1Hex(s: string): Promise<string> {
   const buf = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-/** Keep only interval samples near a lap start for that driver. */
+/** Keep only interval samples near a lap start for that driver. Used by the
+ *  offline script and tests; not called in the request path. */
 export function windowIntervals(intervals: { date: string; driver_number: number }[], laps: { date_start: string; driver_number: number }[]) {
   const starts: Record<number, number[]> = {};
   for (const l of laps) {
@@ -41,13 +43,15 @@ export function windowIntervals(intervals: { date: string; driver_number: number
     const t = Date.parse(r.date);
     if (!Number.isFinite(t)) return false;
     let lo = 0, hi = s.length - 1, idx = -1;
-    while (lo <= hi) { const mid = (lo + hi) >> 1; if (s[mid] <= t + INTERVAL_BEFORE_MS) { idx = mid; lo = mid + 1; } else hi = mid - 1; }
-    return idx >= 0 && t >= s[idx] - INTERVAL_BEFORE_MS && t <= s[idx] + INTERVAL_AFTER_MS;
+    while (lo <= hi) { const mid = (lo + hi) >> 1; if (s[mid] <= t + 2_000) { idx = mid; lo = mid + 1; } else hi = mid - 1; }
+    return idx >= 0 && t >= s[idx] - 2_000 && t <= s[idx] + 8_000;
   });
 }
 
+export interface BundleMeta { sessionKey: number; state: SessionState; generatedAt: string; missing: string[]; partial: boolean; intervals: "derived" | "none" }
+
 export type Assembled =
-  | { ok: true; payload: BundlePayload; state: SessionState }
+  | { ok: true; body: string; contentHash: string; meta: BundleMeta; state: SessionState }
   | { ok: false; status: number; body: string };
 
 export async function assembleBundle(sk: number, env: CacheEnv, ctx: ExecutionContext): Promise<Assembled> {
@@ -64,67 +68,63 @@ export async function assembleBundle(sk: number, env: CacheEnv, ctx: ExecutionCo
       return { ok: false, status: r.status, body };
     }
   }
-  const session = parseArr<BundlePayload["session"] & { meeting_key: number }>(sessionR)[0] ?? null;
+  let session: { meeting_key: number } | null = null;
+  try { session = (JSON.parse(sessionR.body) as { meeting_key: number }[])[0] ?? null; } catch { session = null; }
   if (!session) return { ok: false, status: 404, body: JSON.stringify({ error: "unknown session" }) };
-  const laps = parseArr<{ date_start: string; driver_number: number }>(lapsR);
 
-  const optional = await Promise.all(OPTIONAL.map(ep => get(`/${ep}?session_key=${sk}`)));
-  const meetingR = await get(`/meetings?meeting_key=${session.meeting_key}`);
+  const [optional, meetingR, gridOwnR, sessionsR] = await Promise.all([
+    Promise.all(OPTIONAL.map(ep => get(`/${ep}?session_key=${sk}`))),
+    get(`/meetings?meeting_key=${session.meeting_key}`),
+    get(`/starting_grid?session_key=${sk}`),
+    get(`/sessions?meeting_key=${session.meeting_key}`),
+  ]);
 
   // Starting grid is published against the qualifying session key.
-  let gridR = await get(`/starting_grid?session_key=${sk}`);
-  if (parseArr(gridR).length === 0) {
-    const sessionsR = await get(`/sessions?meeting_key=${session.meeting_key}`);
-    const quali = parseArr<{ session_key: number; session_name: string }>(sessionsR)
-      .find(s => /qualifying/i.test(s.session_name) && !/sprint/i.test(s.session_name));
-    if (quali) {
-      const qg = await get(`/starting_grid?session_key=${quali.session_key}`);
-      if (parseArr(qg).length) gridR = qg;
-    }
+  let gridBody = arrBody(gridOwnR);
+  if (isEmptyArray(gridBody)) {
+    try {
+      const quali = (JSON.parse(arrBody(sessionsR)) as { session_key: number; session_name: string }[])
+        .find(s => /qualifying/i.test(s.session_name) && !/sprint/i.test(s.session_name));
+      if (quali) {
+        const qg = await get(`/starting_grid?session_key=${quali.session_key}`);
+        if (!isEmptyArray(arrBody(qg))) gridBody = arrBody(qg);
+      }
+    } catch { /* keep [] */ }
   }
 
   const window = await getSessionWindow(sk, env.F1_DATA, fetchUpstreamOnce);
   const state: SessionState = classifyState(window);
-  const derivedKey = `derived/${sk}/intervals-window.json`;
+
   let intervalsBody = "[]";
-  let intervalsStatus = "MISS";
+  let intervalsSource: BundleMeta["intervals"] = "none";
   try {
-    const d = await env.F1_DATA.get(derivedKey);
-    if (d && state !== "live") { intervalsBody = await d.text(); intervalsStatus = "HIT"; }
-    else {
-      const raw = await get(`/intervals?session_key=${sk}`);
-      if (raw.status === 200) {
-        intervalsBody = JSON.stringify(windowIntervals(parseArr(raw), laps));
-        if (state === "settled" || state === "recent") {
-          ctx.waitUntil(env.F1_DATA.put(derivedKey, intervalsBody, { httpMetadata: { contentType: "application/json" }, customMetadata: { fetchedAt: String(Date.now()) } }));
-        }
-      }
-    }
-  } catch { /* leave empty */ }
+    const d = await env.F1_DATA.get(`derived/${sk}/intervals-window.json`);
+    if (d) { intervalsBody = await d.text(); intervalsSource = "derived"; }
+  } catch { /* none */ }
 
   const missing: string[] = [];
-  const parts: Record<string, unknown[]> = {};
+  const parts: string[] = [];
   OPTIONAL.forEach((ep, i) => {
-    const arr = parseArr(optional[i]);
-    parts[ep] = arr;
-    if (optional[i].status !== 200 || (!arr.length && ep !== "overtakes")) missing.push(ep);
+    const b = arrBody(optional[i]);
+    parts.push(`"${ep}":${b}`);
+    if (optional[i].status !== 200 || (isEmptyArray(b) && ep !== "overtakes")) missing.push(ep);
   });
-  const grid = parseArr(gridR);
-  if (!grid.length) missing.push("starting_grid");
-  if (intervalsBody === "[]") missing.push("intervals");
+  if (isEmptyArray(gridBody)) missing.push("starting_grid");
+  if (isEmptyArray(intervalsBody)) missing.push("intervals");
 
-  const payload: BundlePayload = {
-    meta: { sessionKey: sk, state, generatedAt: new Date().toISOString(), missing, partial: missing.some(m => m !== "starting_grid" && m !== "overtakes"), intervals: intervalsStatus },
-    session,
-    meeting: parseArr<NonNullable<BundlePayload["meeting"]>>(meetingR)[0] ?? null,
-    drivers: parseArr(driversR),
-    laps: laps as BundlePayload["laps"],
-    stints: parts.stints, pit: parts.pit, position: parts.position, race_control: parts.race_control,
-    session_result: parts.session_result, weather: parts.weather, overtakes: parts.overtakes,
-    starting_grid: grid,
-    intervals: JSON.parse(intervalsBody),
+  let meetingBody = "null";
+  try { const m = JSON.parse(arrBody(meetingR)); if (Array.isArray(m) && m[0]) meetingBody = JSON.stringify(m[0]); } catch { /* null */ }
+
+  const meta: BundleMeta = {
+    sessionKey: sk, state, generatedAt: new Date().toISOString(), missing,
+    partial: missing.some(m => m !== "starting_grid" && m !== "overtakes" && m !== "intervals"),
+    intervals: intervalsSource,
   };
-  return { ok: true, payload, state };
+  const rest =
+    `"session":${JSON.stringify(session)},"meeting":${meetingBody},"drivers":${arrBody(driversR)},"laps":${arrBody(lapsR)},` +
+    parts.join(",") + `,"starting_grid":${gridBody},"intervals":${intervalsBody}}`;
+  const body = `{"meta":${JSON.stringify(meta)},` + rest;
+  return { ok: true, body, contentHash: (await sha1Hex(rest)).slice(0, 16), meta, state };
 }
 
 export function edgeForState(state: SessionState, partial: boolean): number {
@@ -143,16 +143,16 @@ export async function handleBundleRequest(request: Request, env: CacheEnv, ctx: 
     if (a.status === 429) headers["Retry-After"] = "12";
     return new Response(a.body, { status: a.status, headers });
   }
-  const body = JSON.stringify(a.payload);
-  const etag = `W/"${(await sha1Hex(JSON.stringify({ ...a.payload, meta: { ...a.payload.meta, generatedAt: "" } }))).slice(0, 16)}"`;
+  const etag = `W/"${a.contentHash}"`;
   if (request.headers.get("If-None-Match") === etag) return new Response(null, { status: 304, headers: { ETag: etag } });
-  return new Response(body, {
+  return new Response(a.body, {
     status: 200,
     headers: {
       "Content-Type": "application/json",
       ETag: etag,
-      "Cache-Control": `public, max-age=60, s-maxage=${edgeForState(a.state, a.payload.meta.partial)}`,
+      "Cache-Control": `public, max-age=60, s-maxage=${edgeForState(a.state, a.meta.partial)}`,
       "X-Session-State": a.state,
+      "X-Intervals": a.meta.intervals,
     },
   });
 }

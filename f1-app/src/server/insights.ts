@@ -25,14 +25,15 @@ export async function computeInsights(sk: number, env: CacheEnv, ctx: ExecutionC
 
   const a = await assembleBundle(sk, env, ctx);
   if (!a.ok) return { status: a.status, body: a.body, state: "unknown", cached: false };
-  const model = buildSessionModel(inputsFromBundle(a.payload));
+  // One parse of the spliced bundle; the engine runs on it here, server-side.
+  const model = buildSessionModel(inputsFromBundle(JSON.parse(a.body)));
   const facts = buildFacts(model);
   const payload: InsightsPayload = {
     ...facts,
-    meta: { sessionKey: sk, state: a.state, generatedAt: new Date().toISOString(), version: VERSION, missing: a.payload.meta.missing },
+    meta: { sessionKey: sk, state: a.state, generatedAt: new Date().toISOString(), version: VERSION, missing: a.meta.missing },
   };
   const body = JSON.stringify(payload);
-  if (a.state === "settled" && !a.payload.meta.partial) {
+  if (a.state === "settled" && !a.meta.partial) {
     ctx.waitUntil(env.F1_DATA.put(key, body, { httpMetadata: { contentType: "application/json" }, customMetadata: { fetchedAt: String(Date.now()) } }));
   }
   return { status: 200, body, state: a.state, cached: false };
