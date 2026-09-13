@@ -6,6 +6,7 @@ import { C, sty } from "../../lib/styles";
 import ModelGate from "../insights/ModelGate";
 import AnalysisTabBar from "../shell/AnalysisTabBar";
 import Verdicts, { KpiRow } from "../insights/Verdicts";
+import TopSpeedsCard from "../insights/TopSpeedsCard";
 import {
   BestLapsCard, SectorBestsCard, SessionEvolutionCard, TrackEvolutionCard, RunPlanCard, LongRunsCard, CompoundProgramCard,
   TeammateSingleLapCard, HeadlineLapTrackCards, sessionIntro,
@@ -41,6 +42,7 @@ export default function PracticeAnalysis({ sessionKey, sessionName, subTab, onSu
               <Verdicts area="pace" onOpenTab={onSubTabChange} />
               <BestLapsCard />
               <SectorBestsCard />
+              <TopSpeedsCard />
               <SessionEvolutionCard />
             </>
           )}

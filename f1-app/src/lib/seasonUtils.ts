@@ -14,7 +14,7 @@ import type {
   Driver, Lap, Stint, Pit, RaceControlMsg, SessionResultRow, Interval, PositionRow, Weather, SessionInfo,
 } from "../engine/types/raw.ts";
 import {
-  conversionAnalysis, tyreLife,
+  conversionAnalysis, tyreLife, topSpeeds,
   buildSessionModel, paceRanking, teammateComparisons, compoundSummary, bestLapsByDriver, eligibleForBest,
   type SessionModel,
 } from "../engine/index.ts";
@@ -412,6 +412,52 @@ export function aggregateTyreLifeByCompound(races: RaceData[]): TyreLifeRace[] {
 }
 
 // ---------------------------------------------------------------------------
+// Top speed by team
+// ---------------------------------------------------------------------------
+// Straight-line speed across the year: each team's best speed-trap reading
+// in qualifying (single-lap, low fuel, DRS open) and in the race, per round.
+
+export interface TopSpeedPoint {
+  team: string;
+  qualiTrap: number | null;     // km/h, best of the team's drivers in qualifying
+  raceTrap: number | null;      // km/h, best in the race (any traffic state)
+  raceTrapClear: number | null; // km/h, best with clear air ahead, when intervals exist
+  driver: string | null;        // who set the qualifying best
+}
+
+export interface TopSpeedRace {
+  meetingKey: number;
+  slug: string;
+  meetingName: string;
+  dateStart: string;
+  round: number;
+  teams: TopSpeedPoint[];
+}
+
+export function aggregateTopSpeedByRace(races: RaceData[]): TopSpeedRace[] {
+  return races
+    .map(r => {
+      const race = topSpeeds(raceModel(r));
+      const qm = qualiModel(r);
+      const quali = qm ? topSpeeds(qm) : null;
+      const byTeam: Record<string, TopSpeedPoint> = {};
+      if (quali?.ok) for (const t of quali.value.teams) byTeam[t.team] = { team: t.team, qualiTrap: t.trap ? Math.round(t.trap.speed) : null, raceTrap: null, raceTrapClear: null, driver: t.trap?.driver.name_acronym ?? null };
+      if (race.ok) {
+        for (const t of race.value.teams) {
+          const p = (byTeam[t.team] ||= { team: t.team, qualiTrap: null, raceTrap: null, raceTrapClear: null, driver: null });
+          p.raceTrap = t.trap ? Math.round(t.trap.speed) : null;
+          const clear = race.value.drivers.filter(d => d.team === t.team && d.trapClear).map(d => d.trapClear!.speed);
+          p.raceTrapClear = clear.length ? Math.round(Math.max(...clear)) : null;
+        }
+      }
+      const teams = Object.values(byTeam).filter(p => p.qualiTrap != null || p.raceTrap != null);
+      if (!teams.length) return null;
+      return { ...meta(r), teams: teams.sort((a, b) => (b.qualiTrap ?? b.raceTrap ?? 0) - (a.qualiTrap ?? a.raceTrap ?? 0)) };
+    })
+    .filter((x): x is TopSpeedRace => !!x);
+}
+
+// ---------------------------------------------------------------------------
 // Corner / straight balance
 // ---------------------------------------------------------------------------
 // Where each team finds (or loses) its lap time: cornering vs straight-line
@@ -468,6 +514,7 @@ export interface SeasonTrends {
   cornerStraight?: CornerStraightRace[]; // optional — telemetry-derived, only in artifacts built with it
   conversion?: ConversionRace[];         // optional — artifacts since 2026-09
   tyreLife?: TyreLifeRace[];             // optional — artifacts since 2026-09
+  topSpeed?: TopSpeedRace[];             // optional — artifacts since 2026-09
 }
 
 export function buildSeasonTrends(year: number, races: RaceData[]): SeasonTrends {
@@ -481,5 +528,6 @@ export function buildSeasonTrends(year: number, races: RaceData[]): SeasonTrends
     tireDeg: aggregateTireDegByCompound(races),
     conversion: aggregateConversionByRace(races),
     tyreLife: aggregateTyreLifeByCompound(races),
+    topSpeed: aggregateTopSpeedByRace(races),
   };
 }

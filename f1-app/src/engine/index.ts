@@ -22,6 +22,7 @@ export {
   type CompoundSummary, type DriverDegRow,
 } from "./analyses/degradation.ts";
 export { sectorAnalysis, type SectorRow, type SectorAnalysis } from "./analyses/sectors.ts";
+export { topSpeeds, type TopSpeeds, type DriverSpeeds, type TeamSpeeds, type SpeedReading } from "./analyses/speeds.ts";
 export { bestLapsByDriver, bestLapFor, eligibleForBest, type BestLapRow } from "./analyses/quali.ts";
 export { longRuns, compoundPrograms, type LongRun, type CompoundProgram } from "./analyses/practice.ts";
 export {

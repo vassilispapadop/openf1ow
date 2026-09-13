@@ -6,6 +6,7 @@ import { C, sty } from "../../lib/styles";
 import ModelGate from "../insights/ModelGate";
 import AnalysisTabBar from "../shell/AnalysisTabBar";
 import Verdicts, { KpiRow } from "../insights/Verdicts";
+import TopSpeedsCard from "../insights/TopSpeedsCard";
 import {
   PoleHero, BestLapsCard, SectorBestsCard, SessionEvolutionCard, TrackEvolutionCard, RunPlanCard, StartTyresCard,
   TeammateSingleLapCard, HeadlineLapTrackCards, sessionIntro,
@@ -40,6 +41,7 @@ export default function QualifyingAnalysis({ sessionKey, sessionName, subTab, on
             <>
               <Verdicts area="pace" onOpenTab={onSubTabChange} />
               <SectorBestsCard />
+              <TopSpeedsCard />
               <SessionEvolutionCard />
               <BestLapsCard title="Best laps by segment" />
             </>

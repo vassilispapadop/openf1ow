@@ -10,9 +10,11 @@ interface DriverInfoCardProps {
   loading?: boolean;
   onLoadBest?: () => void;
   onAddBest?: () => void;
+  /** Best speed-trap reading of the session, with its lap. */
+  topSpeed?: { speed: number; lap: number } | null;
 }
 
-export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadBest, onAddBest }: DriverInfoCardProps) {
+export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadBest, onAddBest, topSpeed }: DriverInfoCardProps) {
   const team = "#" + drv.team_colour;
 
   return (
@@ -70,6 +72,7 @@ export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadB
               {onAddBest && <GhostBtn onClick={onAddBest} title="Add best lap to comparison">+</GhostBtn>}
             </div>
           )}
+          {topSpeed && <Stat label="Top speed" value={`${Math.round(topSpeed.speed)} km/h`} sub={`Lap ${topSpeed.lap}`} />}
           <Stat label="Laps" value={loading ? "—" : String(laps)} />
           <Stat label="Pits" value={loading ? "—" : String(pits)} />
         </div>

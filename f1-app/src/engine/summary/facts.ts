@@ -12,6 +12,7 @@ import { pitStopAnalysis } from "../analyses/pitstops.ts";
 import { undercutAnalysis } from "../analyses/undercut.ts";
 import { startAnalysis } from "../analyses/start.ts";
 import { overtakeAnalysis } from "../analyses/overtakes.ts";
+import { topSpeeds } from "../analyses/speeds.ts";
 import { sectorAnalysis } from "../analyses/sectors.ts";
 import { dirtyAirAnalysis } from "../analyses/dirtyAir.ts";
 import { neutralisationImpact } from "../analyses/neutralisationImpact.ts";
@@ -56,6 +57,8 @@ export function buildFacts(model: SessionModel): AnalysisFacts {
   const ov = overtakeAnalysis(model);
   if (ov.ok) tables.overtakes = { totals: ov.value.totals, source: ov.value.source, byDriver: ov.value.byDriver.filter(d => d.made || d.suffered).map(d => ({ driver: d.driver.name_acronym, onTrackMade: d.onTrackMade, onTrackSuffered: d.onTrackSuffered, net: d.net })) };
   const se = sectorAnalysis(model);
+  const ts = topSpeeds(model);
+  if (ts.ok) tables.topSpeeds = { fieldBest: ts.value.fieldBest.trap ? { driver: ts.value.fieldBest.trap.driver.name_acronym, kph: Math.round(ts.value.fieldBest.trap.speed), lap: ts.value.fieldBest.trap.lap } : null, drivers: ts.value.drivers.slice(0, 22).map(r => ({ driver: r.driver.name_acronym, team: r.team, trap: r.trap ? Math.round(r.trap.speed) : null, clear: r.trapClear ? Math.round(r.trapClear.speed) : null, tow: r.trapTow ? Math.round(r.trapTow.speed) : null, i1: r.i1 ? Math.round(r.i1.speed) : null, i2: r.i2 ? Math.round(r.i2.speed) : null })) };
   if (se.ok) tables.sectors = { kings: se.value.kings.map(k => k.name_acronym), ultimateLap: r3(se.value.ultimateLap), rows: se.value.rows.slice(0, 10).map(r => ({ driver: r.driver.name_acronym, medians: r.medians.map(r3), deltas: r.deltas.map(r3), theoretical: r3(r.theoretical), trapClear: r.trapClear })) };
   const da = dirtyAirAnalysis(model);
   if (da.ok) tables.dirtyAir = { costByGap: da.value.costByGap.map(b => ({ bin: b.bin, loss: r3(b.medianLoss), n: b.n })), drivers: da.value.drivers.filter(d => d.medianLoss != null).slice(0, 12).map(d => ({ driver: d.driver.name_acronym, lossPerLap: r3(d.medianLoss), dirtyLaps: d.dirtyLaps, clearShare: r3(d.clearShare) })) };

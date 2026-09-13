@@ -15,6 +15,7 @@ import { startAnalysis } from "../analyses/start.ts";
 import { conversionAnalysis } from "../analyses/conversion.ts";
 import { pitStopAnalysis } from "../analyses/pitstops.ts";
 import { overtakeAnalysis } from "../analyses/overtakes.ts";
+import { topSpeeds } from "../analyses/speeds.ts";
 import { singleLapVerdicts } from "./singleLap.ts";
 
 export type { Verdict, VerdictArea, VerdictNumber } from "./types.ts";
@@ -22,7 +23,7 @@ export type { Verdict, VerdictArea, VerdictNumber } from "./types.ts";
 /** Section ids the race page uses as evidence anchors — public API. */
 export const SECTION_IDS = {
   verdicts: "verdicts", kpis: "kpis", raceShape: "race-shape", start: "start", gridFinish: "grid-finish", narrative: "narrative",
-  truePace: "true-pace", lapEvolution: "lap-evolution", deltaTrace: "delta-trace", sectors: "sectors", consistency: "consistency",
+  truePace: "true-pace", lapEvolution: "lap-evolution", deltaTrace: "delta-trace", sectors: "sectors", consistency: "consistency", topSpeeds: "top-speeds",
   strategyTimeline: "strategy-timeline", undercut: "undercut", tyreLife: "tyre-life", degradation: "degradation", fuel: "fuel", pitCrew: "pit-crew", whatIfPit: "what-if-pit",
   overtakes: "overtakes", teammates: "teammates", constructors: "constructors", dirtyAir: "dirty-air", scImpact: "sc-impact",
   weather: "weather", clipping: "clipping", replay: "replay",
@@ -91,6 +92,20 @@ export function generateVerdicts(model: SessionModel): Verdict[] {
       evidence: { tab: "pace", sectionId: SECTION_IDS.lapEvolution, drivers: [b.driver.driver_number] },
       drivers: [b.driver.driver_number],
       kpi: { label: "Fastest lap", value: b.driver.name_acronym, sub: lapTime(b.bestLap), accent: "violet" },
+    });
+  }
+
+  const sp = topSpeeds(model);
+  if (sp.ok && sp.value.fieldBest.trap) {
+    const t = sp.value.fieldBest.trap;
+    const clear = sp.value.towSplit ? sp.value.drivers.slice().sort((a, b) => (b.trapClear?.speed ?? 0) - (a.trapClear?.speed ?? 0))[0] : null;
+    out.push({
+      id: "top_speed", area: "pace", impact: 40, confidence: sp.confidence,
+      headline: `${t.driver.name_acronym} was fastest through the speed trap: ${Math.round(t.speed)} km/h on lap ${t.lap}${clear?.trapClear && clear.driver.driver_number !== t.driver.driver_number ? `; in clear air ${clear.driver.name_acronym} led at ${Math.round(clear.trapClear.speed)} km/h` : ""}.`,
+      detail: `Best speed-trap reading on a timed lap outside safety-car periods.${sp.value.towSplit ? " Readings within 1.0 s of the car ahead count as a tow; clear air is ≥ 1.5 s." : ""} Team spread ${sp.value.teams.length > 1 && sp.value.teams[0].trap && sp.value.teams[sp.value.teams.length - 1].trap ? `${Math.round(sp.value.teams[0].trap.speed - (sp.value.teams[sp.value.teams.length - 1].trap as { speed: number }).speed)} km/h` : "—"}.`,
+      numbers: [{ label: t.driver.name_acronym, value: Math.round(t.speed) + " km/h" }, ...(clear?.trapClear ? [{ label: "Clear air", value: `${clear.driver.name_acronym} ${Math.round(clear.trapClear.speed)}` }] : []), { label: "Fastest team", value: sp.value.teams[0]?.team ?? "—" }],
+      evidence: { tab: "pace", sectionId: SECTION_IDS.topSpeeds, drivers: [t.driver.driver_number] },
+      drivers: [t.driver.driver_number],
     });
   }
 

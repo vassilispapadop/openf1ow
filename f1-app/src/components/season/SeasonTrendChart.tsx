@@ -12,7 +12,7 @@ import { C } from "../../lib/styles";
 import { TEAM_COLORS, TEAM_FALLBACK_COLORS, TC } from "../../lib/constants";
 import type { SeasonTrends, TireDegRace, CornerStraightRace, TyreLifeRace } from "../../lib/seasonUtils";
 
-export type SeasonMetric = "race" | "quali" | "teammate" | "tyre" | "tyreLife" | "conversion" | "corners" | "curves" | "straights";
+export type SeasonMetric = "race" | "quali" | "teammate" | "tyre" | "tyreLife" | "conversion" | "topSpeed" | "corners" | "curves" | "straights";
 type Unit = "s" | "%";
 
 const TOP_N = 3;
@@ -47,6 +47,7 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
   const [unit, setUnit] = useState<Unit>("s");
   const [topOnly, setTopOnly] = useState(false);
   const [csMode, setCsMode] = useState<"corners" | "curves" | "straights">(metric === "curves" ? "curves" : metric === "straights" ? "straights" : "corners");
+  const [speedMode, setSpeedMode] = useState<"quali" | "race" | "clear">("quali");
 
   const cs = trends.cornerStraight ?? [];
   const hasCurves = cs.some(r => r.teams.some(t => t.curveGap != null));
@@ -103,6 +104,15 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
       invert = false;
       zeroLine = "plain";
       zeroLabel = undefined;
+    } else if (metric === "topSpeed") {
+      const races = trends.topSpeed ?? [];
+      rounds = races.map(r => ({ round: r.round, meetingName: r.meetingName }));
+      series = teamSeries(races, (_r, t) => (speedMode === "quali" ? t.qualiTrap : speedMode === "race" ? t.raceTrap : t.raceTrapClear), pts => -mean(pts));
+      yFormat = v => Math.round(v) + " km/h";
+      yTicksFmt = v => String(Math.round(v));
+      invert = false;
+      includeZero = false;
+      zeroLine = false as const;
     } else if (metric === "conversion") {
       const races = trends.conversion ?? [];
       rounds = races.map(r => ({ round: r.round, meetingName: r.meetingName }));
@@ -158,7 +168,7 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
     }
     if (u === "%") { yFormat = v => fmt.pct(v); yTicksFmt = v => fmt.pct(v, 1); }
     return { series, rounds, extra, yFormat, yTicksFmt, zeroLabel, invert, includeZero, zeroLine };
-  }, [trends, metric, u, csMode, cs]);
+  }, [trends, metric, u, csMode, cs, speedMode]);
 
   const focus = useMemo(() => (topOnly ? new Set(series.slice(0, TOP_N).map(s => s.key)) : null), [series, topOnly]);
   const roundMeta = useMemo(() => Object.fromEntries(rounds.map(r => [r.round, r])), [rounds]);
@@ -175,6 +185,10 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
         {isCs && (
           <Segmented size="sm" role="radiogroup" ariaLabel="Part of the lap" value={csMode} onChange={setCsMode}
             options={[{ key: "corners", label: "Corners" }, ...(hasCurves ? [{ key: "curves" as const, label: "Fast curves" }] : []), { key: "straights", label: "Straights" }]} />
+        )}
+        {metric === "topSpeed" && (
+          <Segmented size="sm" role="radiogroup" ariaLabel="Session" value={speedMode} onChange={setSpeedMode}
+            options={[{ key: "quali", label: "Qualifying" }, { key: "race", label: "Race" }, { key: "clear", label: "Race, clear air" }]} />
         )}
         {supportsPct && (
           <Segmented size="sm" role="radiogroup" ariaLabel="Gap unit" value={u} onChange={setUnit}
@@ -202,6 +216,7 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
         {metric === "teammate" && "Positive: the driver who was quicker at their first race together is still ahead; below the dashed line the other teammate has taken over. Gaps are medians of paired laps in the same traffic state."}
         {metric === "tyre" && "Median slope of fuel-corrected lap time against tyre age per compound, race by race. Negative means the compound was still coming in."}
         {metric === "tyreLife" && "Solid: the 90th-percentile stint length on each compound that race — how long teams were prepared to run it. Dashed: the tyre age where the pooled degradation curve stepped up by 0.3 s or more, when it did."}
+        {metric === "topSpeed" && "Each team's best speed-trap reading of the weekend — its quicker driver — by round. Qualifying is the cleanest read (low fuel, DRS open, one lap); the race view includes tows, the clear-air view takes them out where the timing intervals allow. Circuits differ, so read the spread between teams at a round rather than the level."}
         {metric === "conversion" && "Mean places gained from grid to flag by each team's classified drivers. Above the line the team converted better than its grid slots; strategy, incidents and others' misfortune all land here."}
         {isCs && "A team's gap through that part of the lap on its fastest qualifying lap, against the fastest team of the weekend. Above the reference line means quicker there — which a team can manage while still losing the lap, since the corner, curve and straight gaps add up to the total."}
       </p>

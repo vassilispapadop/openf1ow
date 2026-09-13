@@ -31,7 +31,7 @@ import RaceControlTab from "../components/driver/RaceControlTab";
 import ResultsTab from "../components/driver/ResultsTab";
 import { SessionModelProvider, useSessionModel } from "../lib/useSessionModel";
 import { SelectionProvider } from "../contexts/SelectionContext";
-import { bestLapFor, type SessionModel, type EnrichedLap } from "../engine/index.ts";
+import { bestLapFor, topSpeeds, type SessionModel, type EnrichedLap } from "../engine/index.ts";
 import type { LapTrace } from "../engine/telemetry/compare.ts";
 
 const TABS = [
@@ -151,6 +151,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
   }, [comparisons, navigate, location.pathname, location.search]);
 
   const best = useMemo(() => (d ? bestLapFor(model, dnNum) : null), [model, d, dnNum]);
+  const topSpeed = useMemo(() => { const r = topSpeeds(model); return r.ok ? r.value.drivers.find(x => x.driver.driver_number === dnNum)?.trap ?? null : null; }, [model, dnNum]);
 
   // Landing on Telemetry loads the best lap once per driver/session.
   const autoTelRef = useRef("");
@@ -171,7 +172,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
 
   return (
     <>
-      <DriverInfoCard drv={d.driver} best={best} laps={d.laps.length} pits={d.pits.length} onLoadBest={best ? () => loadTel(best) : undefined} onAddBest={best ? () => addComparison(dnNum, best) : undefined} />
+      <DriverInfoCard drv={d.driver} best={best} laps={d.laps.length} pits={d.pits.length} topSpeed={topSpeed} onLoadBest={best ? () => loadTel(best) : undefined} onAddBest={best ? () => addComparison(dnNum, best) : undefined} />
 
       <StickyTabBar>
         <div style={{ overflowX: "auto" }}>

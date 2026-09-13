@@ -18,6 +18,7 @@ export const SEASON_SECTIONS = {
   tyreDeg: "tyre-deg",
   tyreLife: "tyre-life",
   conversion: "conversion",
+  topSpeed: "top-speed",
 } as const;
 
 export default function SeasonTrendsPage() {
@@ -180,6 +181,20 @@ export default function SeasonTrendsPage() {
           share={{ meta: `${year} tyre life`, filename: `openf1ow-tyre-life-${year}` }}
         >
           <SeasonTrendChart trends={trends} metric="tyreLife" />
+        </Section>
+      )}
+
+      {trends.topSpeed && trends.topSpeed.length > 0 && (
+        <Section
+          id={SEASON_SECTIONS.topSpeed}
+          title="Top speed by team"
+          hint="Straight-line speed through the year: each team's best speed-trap reading per weekend, in qualifying and in the race. The spread between teams at a round is the story; the level moves with the circuit."
+          method={{
+            summary: "Best speed-trap reading among the team's drivers on timed laps outside safety-car periods. Race readings within 1.0 s of the car ahead count as a tow; the clear-air view keeps only readings with ≥ 1.5 s to the car ahead (or an unknown gap).",
+          }}
+          share={{ meta: `${year} top speeds`, filename: `openf1ow-top-speed-${year}` }}
+        >
+          <SeasonTrendChart trends={trends} metric="topSpeed" />
         </Section>
       )}
 

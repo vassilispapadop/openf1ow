@@ -10,6 +10,7 @@ import { fmt } from "../../charts/core/scales";
 import { TC } from "../../lib/constants";
 import { C } from "../../lib/styles";
 import Pill from "../Pill";
+import LineChart from "../../charts/LineChart";
 
 const FLAG_BADGES: { flag: number; label: string; tone: "warn" | "neg" | "mute" }[] = [
   { flag: LapFlag.PIT_IN, label: "pit in", tone: "warn" }, { flag: LapFlag.PIT_OUT, label: "out-lap", tone: "warn" },
@@ -51,7 +52,41 @@ export default function LapsTab({ d, best, comparisons, selLap, onLoadTel, onAdd
       </span>
     ) : null) },
   ];
+  const speedSeries = useMemo(() => {
+    const pick = (k: "i1_speed" | "i2_speed" | "st_speed") => laps.filter(l => l[k] != null && (l[k] as number) > 0).map(l => ({ x: l.lap_number, y: l[k] as number }));
+    return [
+      { key: "st", label: "Speed trap", color: "#" + (d.driver.team_colour || "666"), points: pick("st_speed") },
+      { key: "i1", label: "Intermediate 1", color: "#7dd3fc", points: pick("i1_speed") },
+      { key: "i2", label: "Intermediate 2", color: "#fbbf24", points: pick("i2_speed") },
+    ].filter(s => s.points.length >= 2);
+  }, [laps, d.driver.team_colour]);
+
   return (
+    <>
+    {speedSeries.length > 0 && (
+      <Section
+        id="speeds"
+        title="Speeds by lap"
+        hint="Speed trap and intermediate readings on every lap. A step up on the trap line without a pace change is a tow or DRS; a drop late in a stint is usually lift-and-coast or a worn tyre out of the last corner."
+        method={{ summary: "Readings from the timing feed's speed trap and two intermediates, per lap, as published — not from car telemetry." }}
+        share={{ meta: `${d.driver.name_acronym} speeds`, filename: "openf1ow-speeds" }}
+      >
+        <LineChart
+          series={speedSeries}
+          height={220}
+          curve="linear"
+          showDots
+          endDots={false}
+          x={{ format: l => `Lap ${l}`, label: "Lap" }}
+          y={{ format: v => String(Math.round(v)), targetTicks: 5, label: "km/h" }}
+          format={v => Math.round(v) + " km/h"}
+          tipTitle={l => `Lap ${l}`}
+          legend={{ compact: true, columns: 3 }}
+          rankTooltip={false}
+          ariaLabel="Speed trap and intermediate speeds by lap"
+        />
+      </Section>
+    )}
     <Section
       id="laps"
       title="Laps and sectors"
@@ -61,5 +96,6 @@ export default function LapsTab({ d, best, comparisons, selLap, onLoadTel, onAdd
     >
       <Table columns={columns} rows={laps} rowKey={l => l.lap_number} compact maxHeight={560} highlightKey={selLap} rowStyle={l => (l.clean ? undefined : { opacity: 0.72 })} />
     </Section>
+    </>
   );
 }

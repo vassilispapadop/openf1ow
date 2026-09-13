@@ -19,6 +19,7 @@ import TruePaceCard from "./components/insights/TruePaceCard";
 import DeltaTraceCard from "./components/insights/DeltaTraceCard";
 import LapEvolutionCard from "./components/insights/LapEvolutionCard";
 import { SectorsCard, ConsistencyCard } from "./components/insights/PaceCards";
+import TopSpeedsCard from "./components/insights/TopSpeedsCard";
 import { StrategyTimelineCard, UndercutCard, TyreLifeCard, PitCrewCard } from "./components/insights/StrategyCards";
 import { DegradationCard, CompoundsCard, FuelCard } from "./components/insights/TyreCards";
 import { TeammatesCard, OvertakesCard, SCImpactCard, DirtyAirCard } from "./components/insights/BattlesCards";
@@ -76,6 +77,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                 <LapEvolutionCard />
                 <DeltaTraceCard />
                 <SectorsCard />
+                <TopSpeedsCard />
                 <ConsistencyCard />
               </>
             )}

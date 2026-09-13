@@ -7,6 +7,7 @@ import type { Verdict } from "./types.ts";
 import { bestLapsByDriver } from "../analyses/quali.ts";
 import { longRuns, compoundPrograms } from "../analyses/practice.ts";
 import { sessionClock, pushLaps, trackEvolution, sectorBests, teammateSingleLap } from "../analyses/singleLap.ts";
+import { topSpeeds } from "../analyses/speeds.ts";
 
 type Ids = Record<string, string>;
 
@@ -76,6 +77,22 @@ export function singleLapVerdicts(model: SessionModel, ids: Ids): Verdict[] {
       numbers: [{ label: "Best lap", value: lapTime(left.best) }, { label: "Theoretical", value: lapTime(left.theoretical) }, { label: "Gap", value: left.leftOnTable.toFixed(3) + " s" }],
       evidence: { tab: "pace", sectionId: ids.sectorBests, drivers: [left.driver.driver_number] },
       drivers: [left.driver.driver_number],
+    });
+  }
+
+  // --- Top speed -------------------------------------------------------------------
+  const sp = topSpeeds(model);
+  if (sp.ok && sp.value.fieldBest.trap) {
+    const t = sp.value.fieldBest.trap;
+    const slowest = sp.value.teams[sp.value.teams.length - 1];
+    out.push({
+      id: "top_speed", area: "pace", impact: 46, confidence: sp.confidence,
+      headline: `${t.driver.name_acronym} had the top speed: ${Math.round(t.speed)} km/h through the trap on lap ${t.lap}${sp.value.teams.length > 1 && slowest.trap ? `, ${Math.round(t.speed - slowest.trap.speed)} km/h more than the slowest team` : ""}.`,
+      detail: "Best speed-trap reading on a timed lap. In qualifying a tow from a car ahead is worth several km/h, and the timing feed does not publish intervals here, so readings are not split by traffic.",
+      numbers: [{ label: t.driver.name_acronym, value: Math.round(t.speed) + " km/h" }, { label: "Fastest team", value: sp.value.teams[0]?.team ?? "—" }, ...(slowest?.trap ? [{ label: "Slowest team", value: `${slowest.team} ${Math.round(slowest.trap.speed)}` }] : [])],
+      evidence: { tab: "pace", sectionId: ids.topSpeeds, drivers: [t.driver.driver_number] },
+      drivers: [t.driver.driver_number],
+      kpi: { label: "Top speed", value: Math.round(t.speed) + " km/h", sub: `${t.driver.name_acronym} · lap ${t.lap}`, accent: "accent" },
     });
   }
 
