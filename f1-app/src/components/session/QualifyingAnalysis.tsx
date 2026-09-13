@@ -3,6 +3,7 @@ import type { Driver, Lap, Stint } from "../../lib/types";
 import { api } from "../../lib/api";
 import { PendingData, isRateLimited } from "../analysis/PendingData";
 import { F, M, C, sty } from "../../lib/styles";
+import { Section } from "../../ui";
 import { ft3, podiumColor, rowBg } from "../../lib/format";
 import { TC } from "../../lib/constants";
 import { bestLapsByDriver } from "../../lib/sessionAnalysis";
@@ -120,13 +121,7 @@ export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }:
 
       {/* Track map — pole sitter's fastest lap, coloured by speed */}
       {pole && pole.bestLapDateStart && (
-        <section style={sty.card}>
-          <header style={{ marginBottom: 14 }}>
-            <h3 style={sty.sectionHead}>Pole lap — speed trace</h3>
-            <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
-              {pole.driver.full_name}'s fastest lap, drawn around the circuit. Blue = slow corners, red = top-end straights.
-            </p>
-          </header>
+        <Section title="Pole lap — speed trace" hint={<>{pole.driver.full_name}'s fastest lap, drawn around the circuit. Blue = slow corners, red = top-end straights.</>}>
           <TrackMap
             sessionKey={sessionKey}
             driverNumber={pole.driver.driver_number}
@@ -139,18 +134,12 @@ export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }:
             label={`${pole.driver.name_acronym} · L${pole.bestLapNumber}`}
             height={420}
           />
-        </section>
+        </Section>
       )}
 
       {/* Corner-by-corner profile of the pole lap */}
       {pole && pole.bestLapDateStart && (
-        <section style={sty.card}>
-          <header style={{ marginBottom: 14 }}>
-            <h3 style={sty.sectionHead}>Corner-by-corner — pole lap</h3>
-            <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
-              Apex speed, braking duration, and time-to-full-throttle for each corner of {pole.driver.full_name}'s pole lap.
-            </p>
-          </header>
+        <Section title="Corner-by-corner — pole lap" hint={<>Apex speed, braking duration, and time-to-full-throttle for each corner of {pole.driver.full_name}'s pole lap.</>}>
           <CornerAnalysis
             sessionKey={sessionKey}
             driverNumber={pole.driver.driver_number}
@@ -160,17 +149,11 @@ export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }:
               lap_number: pole.bestLapNumber,
             }}
           />
-        </section>
+        </Section>
       )}
 
       {/* Leaderboard */}
-      <section style={sty.card}>
-        <header style={{ marginBottom: 14 }}>
-          <h3 style={sty.sectionHead}>Best laps</h3>
-          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
-            Personal bests with sector breakdown. <span style={{ color: "#a855f7" }}>Purple</span> sectors are the session's overall best.
-          </p>
-        </header>
+      <Section title="Best laps" hint={<>Personal bests with sector breakdown. <span style={{ color: "#a855f7" }}>Purple</span> sectors are the session's overall best.</>}>
 
         <div style={{ overflow: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
@@ -224,16 +207,10 @@ export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }:
             </tbody>
           </table>
         </div>
-      </section>
+      </Section>
 
       {/* Race start tyre projection — top 10 */}
-      <section style={sty.card}>
-        <header style={{ marginBottom: 14 }}>
-          <h3 style={sty.sectionHead}>Race start tyre — top 10</h3>
-          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
-            Drivers in the top 10 must start on the tyre they set their best lap on. Different compounds in the points = different strategies on lap 1.
-          </p>
-        </header>
+      <Section title="Race start tyre — top 10" hint={<>Drivers in the top 10 must start on the tyre they set their best lap on. Different compounds in the points = different strategies on lap 1.</>}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8 }}>
           {top10.map((r, i) => (
             <div key={r.driver.driver_number} style={{
@@ -261,7 +238,7 @@ export default function QualifyingAnalysis({ sessionKey, drivers, sessionName }:
             </div>
           ))}
         </div>
-      </section>
+      </Section>
     </div>
   );
 }

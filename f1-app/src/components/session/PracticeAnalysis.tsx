@@ -3,6 +3,7 @@ import type { Driver, Lap, Stint } from "../../lib/types";
 import { api } from "../../lib/api";
 import { PendingData, isRateLimited } from "../analysis/PendingData";
 import { F, M, C, sty } from "../../lib/styles";
+import { Section } from "../../ui";
 import { ft3, podiumColor, rowBg } from "../../lib/format";
 import { TC } from "../../lib/constants";
 import {
@@ -74,13 +75,7 @@ export default function PracticeAnalysis({ sessionKey, drivers, sessionName }: {
       </section>
 
       {/* Best laps */}
-      <section style={sty.card}>
-        <header style={{ marginBottom: 14 }}>
-          <h3 style={sty.sectionHead}>Best laps</h3>
-          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
-            Personal bests with the tyre fitted on that lap. Don't read too much into FP1/FP2 P1 — fuel loads vary wildly.
-          </p>
-        </header>
+      <Section title="Best laps" hint={<>Personal bests with the tyre fitted on that lap. Don't read too much into FP1/FP2 P1 — fuel loads vary wildly.</>}>
         <div style={{ overflow: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead>
@@ -121,17 +116,10 @@ export default function PracticeAnalysis({ sessionKey, drivers, sessionName }: {
             </tbody>
           </table>
         </div>
-      </section>
+      </Section>
 
       {/* Long runs — only if any */}
-      <section style={sty.card}>
-        <header style={{ marginBottom: 14 }}>
-          <h3 style={sty.sectionHead}>Race-pace samples</h3>
-          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
-            Stints with ≥6 consecutive clean laps. Median pace is the most reliable race-pace indicator from FP, but slope is raw —
-            we don't know fuel load.
-          </p>
-        </header>
+      <Section title="Race-pace samples" hint={<>Stints with ≥6 consecutive clean laps. Median pace is the most reliable race-pace indicator from FP, but slope is raw — we don't know fuel load.</>}>
         {longRuns.length === 0 ? (
           <div style={{ color: C.textFaint, fontStyle: "italic", padding: "12px 0", fontSize: 12 }}>
             No long runs detected — drivers focused on single-lap pace this session.
@@ -171,16 +159,10 @@ export default function PracticeAnalysis({ sessionKey, drivers, sessionName }: {
             </table>
           </div>
         )}
-      </section>
+      </Section>
 
       {/* Compound program */}
-      <section style={sty.card}>
-        <header style={{ marginBottom: 14 }}>
-          <h3 style={sty.sectionHead}>Compound program</h3>
-          <p style={{ fontSize: 12, color: C.textMute, margin: "4px 0 0", lineHeight: 1.5 }}>
-            Laps each driver completed on each compound. Heavy hard-tyre running suggests a race-stint focus; mostly soft = quali-sim focus.
-          </p>
-        </header>
+      <Section title="Compound program" hint={<>Laps each driver completed on each compound. Heavy hard-tyre running suggests a race-stint focus; mostly soft = quali-sim focus.</>}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
           {program.map(p => {
             const tColor = p.driver.team_colour || "666";
@@ -225,7 +207,7 @@ export default function PracticeAnalysis({ sessionKey, drivers, sessionName }: {
             );
           })}
         </div>
-      </section>
+      </Section>
     </div>
   );
 }
