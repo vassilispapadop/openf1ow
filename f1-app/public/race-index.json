@@ -1557,6 +1557,24 @@
         }
       },
       {
+        "slug": "kuala-lumpur",
+        "meetingKey": 1308,
+        "meetingName": "Bahrain Grand Prix",
+        "officialName": "FORMULA 1 GULF AIR BAHRAIN GRAND PRIX IN MALAYSIA 2026",
+        "country": "Bahrain",
+        "countryCode": "BRN",
+        "location": "Kuala Lumpur",
+        "circuit": "Kuala Lumpur",
+        "dateStart": "2026-10-02",
+        "sessions": {
+          "fp1": 11727,
+          "fp2": 11728,
+          "fp3": 11729,
+          "qualifying": 11730,
+          "race": 11731
+        }
+      },
+      {
         "slug": "marina-bay",
         "meetingKey": 1296,
         "meetingName": "Singapore Grand Prix",
