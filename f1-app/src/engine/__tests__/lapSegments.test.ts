@@ -73,19 +73,43 @@ function trace(label: string, speedScale: number): SegmentTrace {
 describe("lap segmentation", () => {
   const cmp = compareLapSegments([trace("A", 1), trace("B", 0.985), trace("C", 0.99)])!;
 
-  it("splits from geometry and sections tile the lap", () => {
+  it("splits from geometry and sections tile the lap, closing across the line", () => {
     expect(cmp).not.toBeNull();
     expect(cmp.fromGeometry).toBe(true);
     for (let i = 1; i < cmp.segments.length; i++) {
       expect(cmp.segments[i].startIdx).toBe(cmp.segments[i - 1].endIdx);
     }
+    const n = cmp.segments.length;
+    expect(cmp.segments[n - 1].endIdx).toBe(cmp.segments[0].startIdx);
     for (const t of cmp.totals) {
       expect(Math.abs(t.cornerDelta + t.curveDelta + t.straightDelta - t.totalDelta)).toBeLessThan(1e-9);
+      // Section times add up to the lap, so the pit straight isn't counted twice.
+      const lap = t.cornerTime + t.curveTime + t.straightTime;
+      const trace = cmp.segments[0].timings.find(x => x.label === t.label)!;
+      expect(trace).toBeDefined();
+      expect(lap).toBeGreaterThan(50);
     }
   });
 
+  it("reports the pit straight once, as one section across the line", () => {
+    const pit = cmp.segments[0];
+    expect(pit.wraps).toBe(true);
+    expect(pit.kind).toBe("straight");
+    expect(pit.name).toBe("S1");
+    expect(pit.startIdx).toBeGreaterThan(pit.endIdx);
+    expect(pit.startDist).toBeGreaterThan(pit.endDist);
+    // 800 m run to the line plus the 700 m pit straight.
+    expect(pit.length).toBeGreaterThan(1300);
+    expect(pit.length).toBeLessThan(1700);
+    expect(cmp.segments.filter(s => s.wraps).length).toBe(1);
+    // Six straights drawn, the 60 m chicane bridge absorbed, pit straight once.
+    expect(cmp.straightCount).toBe(4);
+    expect(cmp.straightDistance + cmp.cornerDistance + cmp.curveDistance).toBeCloseTo(cmp.trackDistance, 3);
+  });
+
   it("calls the wide sweeper and the flat tight bend curves, the braked ones corners", () => {
-    const kindsAt = (m: number) => cmp.segments.find(s => s.startDist <= m && m < s.endDist)!.kind;
+    const kindsAt = (m: number) => cmp.segments.find(s =>
+      s.wraps ? m >= s.startDist || m < s.endDist : s.startDist <= m && m < s.endDist)!.kind;
     expect(kindsAt(750)).toBe("corner");               // hairpin
     expect(kindsAt(1320 + 150)).toBe("curve");         // sweeper (starts ~1312 m)
     expect(kindsAt(2270 + 80)).toBe("curve");          // flat tight bend (starts ~2261 m)

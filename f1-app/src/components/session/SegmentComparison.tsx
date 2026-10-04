@@ -190,7 +190,9 @@ export default function SegmentComparison({ traces }: Props) {
                       textAlign: "center",
                     }}>{s.name}</span>
                     <span style={{ ...sty.mono, fontSize: 10, color: C.textFaint }}>
-                      {Math.round(s.startDist).toLocaleString()}{"–"}{Math.round(s.endDist).toLocaleString()} m
+                      {s.wraps
+                        ? <>{Math.round(s.startDist).toLocaleString()} m → line → {Math.round(s.endDist).toLocaleString()} m</>
+                        : <>{Math.round(s.startDist).toLocaleString()}{"–"}{Math.round(s.endDist).toLocaleString()} m</>}
                     </span>
                   </td>
                   <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: C.textMute, fontSize: 11 }}>

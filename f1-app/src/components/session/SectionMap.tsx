@@ -16,15 +16,24 @@ interface Props {
 }
 
 export default function SectionMap({ path, segments, height = 340, hoverIndex }: Props) {
-  const runs = useMemo<TrackRun[]>(() => segments.map(seg => ({
+  const runs = useMemo<TrackRun[]>(() => segments.flatMap(seg => {
+    const style = {
+      color: SECTION_COLORS[seg.kind],
+      width: seg.kind === "corner" ? 6 : seg.kind === "curve" ? 5 : 4,
+      opacity: seg.kind === "straight" ? 0.6 : 0.95,
+      label: seg.kind !== "straight" ? seg.name : undefined,
+    };
+    // A section that crosses the line is drawn in two pieces: from its start
+    // to the end of the path, and from the path's start to its end.
+    if (seg.wraps) {
+      return [
+        { from: seg.startIdx, to: path.length - 1, ...style },
+        { from: 0, to: seg.endIdx + 1, ...style, label: undefined },
+      ];
+    }
     // Extend one point into the next section so the outline has no gaps.
-    from: seg.startIdx,
-    to: seg.endIdx + 1,
-    color: SECTION_COLORS[seg.kind],
-    width: seg.kind === "corner" ? 6 : seg.kind === "curve" ? 5 : 4,
-    opacity: seg.kind === "straight" ? 0.6 : 0.95,
-    label: seg.kind !== "straight" ? seg.name : undefined,
-  })), [segments]);
+    return [{ from: seg.startIdx, to: seg.endIdx + 1, ...style }];
+  }), [segments, path.length]);
 
   return (
     <TrackOutline

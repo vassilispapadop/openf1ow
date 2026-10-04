@@ -107,9 +107,12 @@ export interface TrackSegment {
   endDist: number;
   length: number;
   /** Index range into SegmentComparison.path, so the section can be drawn on
-   *  the track map. */
+   *  the track map. When `wraps` is set the section crosses the line:
+   *  startIdx > endIdx, and it covers [startIdx, end of path] followed by
+   *  [0, endIdx]; startDist > endDist likewise, and `length` is the sum. */
   startIdx: number;
   endIdx: number;
+  wraps: boolean;
   timings: SegmentTiming[];   // same order as the input traces
 }
 
@@ -881,6 +884,19 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
   for (let i = 0; i < raw.length - 1; i++) raw[i].end = raw[i + 1].start;
   raw[raw.length - 1].end = GRID_POINTS - 1;
 
+  // The lap is cut at the line, and the line sits on the pit straight, so the
+  // first and last runs are two halves of one section. Present them as one,
+  // listed first because the lap starts on it, covering the end of the grid
+  // and then its beginning. Otherwise every circuit reports one straight too
+  // many and the pit straight can be "won" twice.
+  const spans: { kind: SectionKind; turns: number; parts: [number, number][] }[] =
+    raw.map(r => ({ kind: r.kind, turns: r.turns, parts: [[r.start, r.end]] }));
+  const head = raw[0], tail = raw[raw.length - 1];
+  if (raw.length >= 3 && head.kind === tail.kind) {
+    spans.pop();
+    spans[0] = { kind: head.kind, turns: head.turns + tail.turns, parts: [[tail.start, tail.end], [head.start, head.end]] };
+  }
+
   // Baseline = the quickest lap; everything else reads as ± against it.
   const lapTimes = prepared.map(p => p.lapTime);
   const baselineIdx = lapTimes.indexOf(Math.min(...lapTimes));
@@ -889,7 +905,7 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
   // numbered turn on the official map — and straights are numbered separately.
   let turnNo = 0;
   let straightNo = 0;
-  const segments: TrackSegment[] = raw.map(r => {
+  const segments: TrackSegment[] = spans.map(r => {
     let name: string;
     if (r.kind === "straight") {
       name = "S" + ++straightNo;
@@ -899,17 +915,20 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
       name = first === turnNo ? "T" + first : "T" + first + "\u2013" + turnNo;
     }
 
-    const times = sampled.map(s => s.r.elapsed[r.end] - s.r.elapsed[r.start]);
+    const times = sampled.map(s =>
+      r.parts.reduce((sum, [a, b]) => sum + s.r.elapsed[b] - s.r.elapsed[a], 0));
     const best = Math.min(...times);
     const baseTime = times[baselineIdx];
 
     const timings: SegmentTiming[] = sampled.map((s, i) => {
       let minSpeed = Infinity, maxSpeed = -Infinity;
-      for (let j = r.start; j <= r.end; j++) {
-        if (!s.r.valid[j]) continue;
-        const v = s.r.speed[j];
-        if (v < minSpeed) minSpeed = v;
-        if (v > maxSpeed) maxSpeed = v;
+      for (const [a, b] of r.parts) {
+        for (let j = a; j <= b; j++) {
+          if (!s.r.valid[j]) continue;
+          const v = s.r.speed[j];
+          if (v < minSpeed) minSpeed = v;
+          if (v > maxSpeed) maxSpeed = v;
+        }
       }
       if (!isFinite(minSpeed)) { minSpeed = NaN; maxSpeed = NaN; }
       return {
@@ -923,14 +942,17 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
       };
     });
 
+    const startIdx = r.parts[0][0];
+    const endIdx = r.parts[r.parts.length - 1][1];
     return {
       kind: r.kind,
       name,
-      startDist: fractions[r.start] * lapLength,
-      endDist: fractions[r.end] * lapLength,
-      length: (fractions[r.end] - fractions[r.start]) * lapLength,
-      startIdx: r.start,
-      endIdx: r.end,
+      startDist: fractions[startIdx] * lapLength,
+      endDist: fractions[endIdx] * lapLength,
+      length: r.parts.reduce((sum, [a, b]) => sum + (fractions[b] - fractions[a]) * lapLength, 0),
+      startIdx,
+      endIdx,
+      wraps: r.parts.length > 1,
       timings,
     };
   });
