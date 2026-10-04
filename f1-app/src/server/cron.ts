@@ -107,7 +107,9 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
     }
   }
 
-  const ins = await computeInsights(sk, env, ctx);
+  // The first pass stores a "recent" artifact so the request path never has
+  // to run the engine; the second pass replaces it with the settled one.
+  const ins = await computeInsights(sk, env, ctx, { force: pass === 2 });
   report.insights = `${ins.status} ${ins.cached ? "HIT" : "computed"} (${ins.state})`;
   // Throttled or failed while building the model: no marker, so the next
   // tick comes back to this session.

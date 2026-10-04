@@ -16,12 +16,20 @@ export interface InsightsPayload extends AnalysisFacts {
   meta: { sessionKey: number; state: string; generatedAt: string; version: number; missing: string[] };
 }
 
-export async function computeInsights(sk: number, env: CacheEnv, ctx: ExecutionContext): Promise<{ status: number; body: string; state: string; cached: boolean }> {
+/** `force` skips the stored artifact and recomputes: the cron's second pass,
+ *  48 h after a session, uses it to replace what the first pass stored while
+ *  the session was still "recent" (late laps, penalties, corrected results). */
+export async function computeInsights(sk: number, env: CacheEnv, ctx: ExecutionContext, opts: { force?: boolean } = {}): Promise<{ status: number; body: string; state: string; cached: boolean }> {
   const key = `insights/${sk}.v${VERSION}.json`;
-  try {
-    const obj = await env.F1_DATA.get(key);
-    if (obj) return { status: 200, body: await obj.text(), state: "settled", cached: true };
-  } catch { /* compute */ }
+  if (!opts.force) {
+    try {
+      const obj = await env.F1_DATA.get(key);
+      // The state it was computed in rides along as object metadata, so a
+      // recent artifact is served with a recent edge TTL and the client
+      // doesn't pin it. Older objects predate the metadata and are settled.
+      if (obj) return { status: 200, body: await obj.text(), state: obj.customMetadata?.state ?? "settled", cached: true };
+    } catch { /* compute */ }
+  }
 
   const a = await assembleBundle(sk, env, ctx);
   if (!a.ok) return { status: a.status, body: a.body, state: "unknown", cached: false };
@@ -33,8 +41,15 @@ export async function computeInsights(sk: number, env: CacheEnv, ctx: ExecutionC
     meta: { sessionKey: sk, state: a.state, generatedAt: new Date().toISOString(), version: VERSION, missing: a.meta.missing },
   };
   const body = JSON.stringify(payload);
-  if (a.state === "settled" && !a.meta.partial) {
-    ctx.waitUntil(env.F1_DATA.put(key, body, { httpMetadata: { contentType: "application/json" }, customMetadata: { fetchedAt: String(Date.now()) } }));
+  // Store it for recent sessions too, not only settled ones. The engine run
+  // is far beyond what a request may spend on the Free plan (error 1102), so
+  // an unstored artifact means 48 h of 503s for the home page's latest-race
+  // card after every race. The cron's second pass recomputes it with force.
+  if ((a.state === "settled" || a.state === "recent") && !a.meta.partial) {
+    ctx.waitUntil(env.F1_DATA.put(key, body, {
+      httpMetadata: { contentType: "application/json" },
+      customMetadata: { fetchedAt: String(Date.now()), state: a.state },
+    }));
   }
   return { status: 200, body, state: a.state, cached: false };
 }
