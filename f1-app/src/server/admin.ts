@@ -4,6 +4,9 @@
 //   POST /api/admin/refresh?session_key=SK   purge, then warm the standard endpoint set
 //   POST /api/admin/cron                     run one scheduled tick now (see cron.ts)
 //   POST /api/admin/cron?session_key=SK      process that session now, whatever its age
+//   POST /api/admin/insights?session_key=SK  recompute and store the insights artifact only
+//                                            (after an engine change; the full tick's
+//                                            intervals parse is what trips the CPU limit)
 //
 // Purging writes an epoch to meta/purge/{sk}.json — the freshness floor in
 // r2-cache.ts treats any object fetched before it as stale — and deletes the
@@ -63,6 +66,12 @@ export async function handleAdminRequest(request: Request, env: AdminEnv, ctx: E
     const report = await runScheduledTick(env, ctx, { force: Number.isFinite(sk) && sk > 0 ? sk : undefined });
     return json(report);
   }
+  if (action === "insights") {
+    if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);
+    const { computeInsights } = await import("./insights");
+    const r = await computeInsights(sk, env, ctx, { force: true });
+    return json({ action, session_key: sk, status: r.status, state: r.state, stored: r.status === 200 && (r.state === "settled" || r.state === "recent") }, r.status === 200 ? 200 : 502);
+  }
   if (action !== "purge" && action !== "refresh") return json({ error: "unknown action" }, 404);
   if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);
 
@@ -71,12 +80,18 @@ export async function handleAdminRequest(request: Request, env: AdminEnv, ctx: E
   return json({ action, session_key: sk, purgeEpoch: epoch, deleted, warmed });
 }
 
-/** Write the purge epoch (freshness floor) and drop the per-session artifacts. */
-export async function purgeSession(sk: number, env: CacheEnv): Promise<{ epoch: number; deleted: Record<string, number> }> {
+/** Write the purge epoch (freshness floor) and drop the per-session artifacts.
+ *  `keepInsights` leaves the insights artifact in place for a caller that is
+ *  about to recompute it with force: if that run is killed by the CPU limit,
+ *  the previous artifact still serves rather than a 503. */
+export async function purgeSession(sk: number, env: CacheEnv, opts: { keepInsights?: boolean } = {}): Promise<{ epoch: number; deleted: Record<string, number> }> {
   const epoch = Date.now();
   await env.F1_DATA.put(`meta/purge/${sk}.json`, JSON.stringify({ epoch }), { httpMetadata: { contentType: "application/json" } });
   const deleted: Record<string, number> = {};
-  for (const p of ARTIFACT_PREFIXES(sk)) deleted[p] = await deletePrefix(env.F1_DATA, p);
+  for (const p of ARTIFACT_PREFIXES(sk)) {
+    if (opts.keepInsights && p.startsWith("insights/")) continue;
+    deleted[p] = await deletePrefix(env.F1_DATA, p);
+  }
   return { epoch, deleted };
 }
 

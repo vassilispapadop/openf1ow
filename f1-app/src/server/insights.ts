@@ -16,6 +16,13 @@ export interface InsightsPayload extends AnalysisFacts {
   meta: { sessionKey: number; state: string; generatedAt: string; version: number; missing: string[] };
 }
 
+/** The state recorded in a stored payload's meta, without parsing the whole
+ *  thing: it sits in the trailing meta object. */
+function storedState(body: string): string | null {
+  const m = /"meta":\{[^{}]*"state":"(recent|settled|live|upcoming|unknown)"/.exec(body.slice(-600));
+  return m ? m[1] : null;
+}
+
 /** `force` skips the stored artifact and recomputes: the cron's second pass,
  *  48 h after a session, uses it to replace what the first pass stored while
  *  the session was still "recent" (late laps, penalties, corrected results). */
@@ -24,10 +31,14 @@ export async function computeInsights(sk: number, env: CacheEnv, ctx: ExecutionC
   if (!opts.force) {
     try {
       const obj = await env.F1_DATA.get(key);
-      // The state it was computed in rides along as object metadata, so a
-      // recent artifact is served with a recent edge TTL and the client
-      // doesn't pin it. Older objects predate the metadata and are settled.
-      if (obj) return { status: 200, body: await obj.text(), state: obj.customMetadata?.state ?? "settled", cached: true };
+      // The state it was computed in is in the payload's meta (and, for
+      // Worker-written objects, in the object metadata too), so a recent
+      // artifact is served with a recent edge TTL and the client doesn't pin
+      // it. Objects from before the state was recorded are settled.
+      if (obj) {
+        const body = await obj.text();
+        return { status: 200, body, state: obj.customMetadata?.state ?? storedState(body) ?? "settled", cached: true };
+      }
     } catch { /* compute */ }
   }
 

@@ -76,8 +76,10 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
   report.picked = { session_key: sk, session_name: row.session_name, pass };
 
   // Second pass: drop what the first pass cached so corrections come through.
+  // The insights artifact stays until the forced recompute below replaces it
+  // — a run the CPU limit kills must not leave the session with none.
   if (pass === 2) {
-    await purgeSession(sk, env);
+    await purgeSession(sk, env, { keepInsights: true });
     const m = await readDone(env.F1_DATA, sk);
     delete m.intervalsAttemptedAt;
     await env.F1_DATA.put(`meta/done/${sk}.json`, JSON.stringify(m), { httpMetadata: { contentType: "application/json" } });
