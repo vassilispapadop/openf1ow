@@ -101,8 +101,13 @@ describe.each(fixtures.map(f => [f.slug, f] as const))("fixture %s", (_slug, fx)
   it("safety-car windows match the race-control deployments", () => {
     const rc = fx.inputs.raceControl ?? [];
     const deployed = rc.filter(m => (m.category || "").toLowerCase() === "safetycar" && /DEPLOYED/i.test(m.message)).length;
+    // A start behind the safety car is announced as "SAFETY CAR LIGHTS ON"
+    // with no DEPLOYED (Kuala Lumpur 2026) and is a window of its own; when
+    // a DEPLOYED does follow LIGHTS ON they are one window.
+    const lightsOn = rc.filter(m => (m.category || "").toLowerCase() === "other" && /SAFETY CAR LIGHTS ON/i.test(m.message)).length;
     const windows = model.neutralisations.filter(n => n.kind === "SC" || n.kind === "VSC").length;
-    expect(windows).toBe(deployed);
+    expect(windows).toBeGreaterThanOrEqual(deployed);
+    expect(windows).toBeLessThanOrEqual(deployed + lightsOn);
   });
 
   it("retired drivers have no clean laps after their retirement lap and lap 1 is never clean in a race", () => {

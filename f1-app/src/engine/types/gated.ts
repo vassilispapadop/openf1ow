@@ -17,7 +17,8 @@ export type GateReason =
   | "fit_unstable"       // regression had no variance or diverged from the robust estimate
   | "weather_stale"
   | "single_driver_team"
-  | "no_telemetry";
+  | "no_telemetry"
+  | "mixed_conditions";  // a stint run in other conditions (wet tyres, damp track): the track set the lap time, not the tyre
 
 export type Confidence = "high" | "medium" | "low";
 
@@ -67,6 +68,7 @@ export function describeGate(g: { reason: GateReason; n: number; need: number })
     case "weather_stale": return "weather samples too far from the laps";
     case "single_driver_team": return "only one driver with data on this team";
     case "no_telemetry": return "car telemetry not available";
+    case "mixed_conditions": return "a stint ran in different conditions from the rest of the race — wet-weather tyres or a damp track — so its pace can't be extended on paper";
     case "no_data":
     default: return "no data";
   }

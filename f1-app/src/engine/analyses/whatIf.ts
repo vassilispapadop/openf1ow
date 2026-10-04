@@ -57,6 +57,16 @@ function stintsAround(d: DriverSummary, pitLap: number): { a: EnrichedStint; b: 
   return a && b ? { a, b } : null;
 }
 
+/** A stint whose clean laps are this much slower than the driver's race
+ *  median ran in other conditions. Compound and tyre-age differences between
+ *  stints are a percent or two; a damp track is ten. */
+const DIFFERENT_CONDITIONS_FRAC = 1.04;
+
+function isWetWeather(compound: string | null | undefined): boolean {
+  const c = (compound || "").toUpperCase();
+  return c === "INTERMEDIATE" || c === "WET";
+}
+
 /** The shifts a stop can take without leaving either stint shorter than two laps. */
 export function whatIfRange(model: SessionModel, driverNumber: number, stopIndex = 0): [number, number] | null {
   const d = model.byDriver[driverNumber];
@@ -95,6 +105,22 @@ export function whatIfPitShift(model: SessionModel, opts: WhatIfOptions): Gated<
   const st = stintsAround(d, p);
   if (!st) return gate("no_stints");
   const { a, b } = st;
+  // A stint run in different conditions from the rest of the race is set by
+  // the track, not the tyre, and can't be extended on paper. Wet-weather
+  // tyres say so directly; a damp or drying track on slicks shows as the
+  // stint's clean laps sitting well off the driver's own race pace — at Kuala
+  // Lumpur 2026 the opening stint ran 112 s against a 101 s dry pace, and
+  // "stay out 44 laps longer" extended that intercept into +249 s.
+  if (isWetWeather(a.compound) || isWetWeather(b.compound)) return gate("mixed_conditions");
+  const racePace = median(d.laps.filter(l => l.clean && l.fuelCorrected != null).map(l => l.fuelCorrected as number));
+  const stintPace = (s: EnrichedStint) => {
+    const v = s.laps.filter(l => l.clean && l.fuelCorrected != null).map(l => l.fuelCorrected as number);
+    return v.length ? median(v) : null;
+  };
+  for (const s of [a, b]) {
+    const pace = stintPace(s);
+    if (pace != null && racePace > 0 && pace > racePace * DIFFERENT_CONDITIONS_FRAC) return gate("mixed_conditions");
+  }
 
   const range = whatIfRange(model, opts.driverNumber, stopIndex) as [number, number];
   const k = Math.max(range[0], Math.min(range[1], Math.round(opts.shiftLaps)));
