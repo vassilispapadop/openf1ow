@@ -207,9 +207,11 @@ export default function SegmentComparison({ traces }: Props) {
                         color: t.fastest ? C.text : C.textDim,
                       }}>{t.time.toFixed(2)}s</div>
                       <div style={{ ...sty.mono, fontSize: 10, color: C.textFaint, marginTop: 1 }}>
-                        {s.kind === "corner"
-                          ? "min " + Math.round(t.minSpeed)
-                          : "top " + Math.round(t.maxSpeed)}
+                        {!Number.isFinite(t.minSpeed)
+                          ? "no speed"      // car_data feed frozen through this section
+                          : s.kind === "corner"
+                            ? "min " + Math.round(t.minSpeed)
+                            : "top " + Math.round(t.maxSpeed)}
                       </div>
                     </td>
                   ))}

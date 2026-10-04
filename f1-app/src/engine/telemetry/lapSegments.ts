@@ -30,8 +30,19 @@
 //      at every 2026 circuit. Radius is used rather than lateral g because
 //      v^2/R dips at the apex, where speed falls faster than radius does, and
 //      that splits one corner into several runs (Suzuka: 21 turns becomes 30).
+//      Wider bends count as curves when the field carries them at CURVE_MIN_G.
 //   5. Merge curvature runs that sit close together (chicanes, esses) into one
 //      section and call everything left over a straight.
+//   6. Re-read the corners against the field's speed through them: a corner
+//      the cars take without lifting — Eau Rouge / Raidillon, Pouhon, Copse,
+//      Sepang T5–T6 — is a curve for lap-time purposes, however tight its
+//      radius, because drag and power decide it rather than grip. Curves too
+//      short to be a section (a corner's own entry band, fix jitter on a fast
+//      straight) are folded into whatever they sit beside.
+//
+// The speed used for steps 4 and 6 is the field's median at each point, not
+// the reference lap's, because OpenF1's car_data feed freezes now and then
+// (see frozenCarDataMask) and one stale trace must not decide the split.
 //
 // The geometric definition replaced an earlier one that ran each corner from
 // its braking point to the point the car was back at full throttle. That read
@@ -47,12 +58,15 @@
 // — exact at Monza (80%), Spielberg (72%) and Budapest (51%). Circuits with
 // fast corners taken flat sit above that line, which is the point.
 
+import { frozenCarDataMask } from "./telemetry.ts";
+
 interface Sample {
   date: string;
   distance?: number;
   speed?: number;
   throttle?: number;
   brake?: number;
+  rpm?: number;
   x?: number;
   y?: number;
 }
@@ -72,8 +86,10 @@ export interface SegmentTiming {
   color: string;
   time: number;        // seconds through the section
   delta: number;       // seconds vs. the baseline trace (0 for the baseline)
-  minSpeed: number;    // km/h
-  maxSpeed: number;    // km/h
+  /** km/h. NaN when this trace's speed channel was frozen for the whole
+   *  section (see frozenCarDataMask) — its time is still good. */
+  minSpeed: number;
+  maxSpeed: number;
   fastest: boolean;    // quickest through this section
 }
 
@@ -173,6 +189,24 @@ const MIN_CORNER_M = 25;
  *  the 2026 calendar, against 4.0 at 90 m and 4.8 at 130 m — merge harder and
  *  the short straights between chicane elements get eaten by the corners. */
 const MERGE_GAP_M = 60;
+/** A fast curve has to be at least this long to stand as a section — about a
+ *  second flat out; Eau Rouge–Raidillon, Pouhon and Blanchimont are several
+ *  times that. The radius band between CORNER_RADIUS_M and CURVE_MAX_RADIUS_M
+ *  is also what a corner's entry and exit pass through while the car is still
+ *  quick, and fix jitter on a 330 km/h straight reads as 1.6 g at a 450 m
+ *  radius (Spa's Kemmel straight grew three 23 m "curves"); both leave slivers
+ *  that aren't sections. A shorter curve joins the corner beside it if there
+ *  is one, else the straight. */
+const MIN_CURVE_M = 80;
+/** A geometric corner the field carries without lifting is a curve. The test
+ *  is the largest speed loss inside the section against its peak, so a corner
+ *  the car accelerates all the way through passes with any entry speed. In
+ *  2026 qualifying Eau Rouge / Raidillon loses ~28 km/h of 329 (8.5%), Pouhon
+ *  ~13 of 279, Sepang T5–T6 ~14 of 262, Copse ~25 of 307; Maggotts–Becketts,
+ *  Stowe and Parabolica all lose 20% or more. The speed floor keeps slow
+ *  corners that happen to be taken at a steady speed out. */
+const FLAT_CORNER_DROP = 0.10;
+const CURVE_MIN_SPEED = 200;
 /** Position fixes are decimetres — mirrors LOC_TO_METERS in lib/telemetry.ts. */
 const LOC_TO_METERS = 10;
 /** How far either side of the predicted position to look when matching a
@@ -199,6 +233,8 @@ interface Point {
   brake: number;
   x: number;
   y: number;
+  /** False where the car_data feed was frozen (see frozenCarDataMask). */
+  valid: boolean;
 }
 
 interface Prepared {
@@ -216,6 +252,7 @@ interface Resampled {
   brake: number[];
   x: number[];
   y: number[];
+  valid: boolean[];
 }
 
 /** Where a lap closes on itself: the point past the 70% mark that comes back
@@ -277,21 +314,27 @@ function prepare(trace: SegmentTrace): Prepared | null {
   if (data.length < 20) return null;
 
   const t0 = new Date(data[0].date).getTime();
+  const frozen = frozenCarDataMask(data);
   const pts: Point[] = [];
-  for (const p of data) {
+  for (let i = 0; i < data.length; i++) {
+    const p = data[i];
     const dist = p.distance ?? 0;
     // mergeDistance snaps several car_data samples onto the same location
     // point, so distance repeats; keep the first of each run to leave the
     // distance axis strictly increasing.
     if (pts.length && dist <= pts[pts.length - 1].dist) continue;
+    // A frozen sample's throttle and brake are the 104 sentinel, which the
+    // driving-based fallback would read as flat out and hard on the brakes
+    // at once; zero them and flag the speed as stale.
     pts.push({
       dist,
       elapsed: (new Date(p.date).getTime() - t0) / 1000,
       speed: p.speed ?? 0,
-      throttle: p.throttle ?? 0,
-      brake: p.brake ?? 0,
+      throttle: frozen[i] ? 0 : p.throttle ?? 0,
+      brake: frozen[i] ? 0 : p.brake ?? 0,
       x: p.x ?? 0,
       y: p.y ?? 0,
+      valid: !frozen[i],
     });
   }
   if (pts.length < 10) return null;
@@ -335,6 +378,7 @@ function resample(p: Prepared, fractions: number[]): Resampled {
   const brake: number[] = [];
   const x: number[] = [];
   const y: number[] = [];
+  const valid: boolean[] = [];
   for (const u of fractions) {
     const d = p.startDist + u * span;
     let lo: number, frac: number;
@@ -360,11 +404,12 @@ function resample(p: Prepared, fractions: number[]): Resampled {
     // truer than a ramp — take the sample we're sitting on.
     throttle.push(a.throttle);
     brake.push(a.brake);
+    valid.push(a.valid && b.valid);
   }
   // The axis is anchored on the lap's own duration, so pin the final elapsed
   // value rather than letting interpolation drift off it.
   elapsed[elapsed.length - 1] = p.lapTime;
-  return { elapsed, speed, throttle, brake, x, y };
+  return { elapsed, speed, throttle, brake, x, y, valid };
 }
 
 /** A reference racing line: position plus cumulative arc length, in metres. */
@@ -402,8 +447,10 @@ function buildRefLine(p: Prepared): RefLine | null {
  *  The search walks forward only, within a window of the last match, so a
  *  circuit that crosses or doubles back on itself can't snap a sample to the
  *  wrong passage. */
-function projectOntoRefLine(p: Prepared, ref: RefLine): { s: number; elapsed: number; speed: number }[] | null {
-  const out: { s: number; elapsed: number; speed: number }[] = [];
+interface Projected { s: number; elapsed: number; speed: number; valid: boolean }
+
+function projectOntoRefLine(p: Prepared, ref: RefLine): Projected[] | null {
+  const out: Projected[] = [];
   const spacing = ref.length / Math.max(1, ref.s.length - 1);
   let cursor = 0;
   let prevDist: number | null = null;
@@ -432,7 +479,7 @@ function projectOntoRefLine(p: Prepared, ref: RefLine): { s: number; elapsed: nu
     const sHere = ref.s[bestI];
     // Monotonic by construction, but guard against a repeated match.
     if (out.length && sHere <= out[out.length - 1].s) continue;
-    out.push({ s: sHere, elapsed: pt.elapsed, speed: pt.speed });
+    out.push({ s: sHere, elapsed: pt.elapsed, speed: pt.speed, valid: pt.valid });
   }
   return out.length >= 20 ? out : null;
 }
@@ -481,11 +528,17 @@ function classifyGeometric(
   });
 }
 
-/** Runs of one kind, with slivers absorbed into their neighbours and corner
- *  runs split by a very short straight (a chicane) rejoined into one section.
- *  `turns` counts how many distinct turns a section swallowed, for naming. */
-function buildRuns(kinds: SectionKind[], step: number): { kind: SectionKind; start: number; end: number; turns: number }[] {
+interface Run { kind: SectionKind; start: number; end: number; turns: number }
+
+/** Runs of one kind, with slivers absorbed into their neighbours, split
+ *  sections rejoined, flat-out corners re-read as curves and curves too short
+ *  to be a section folded away. `turns` counts how many distinct turns a
+ *  section swallowed, for naming. `speed` is the field's profile along the
+ *  grid; null on the driving-based fallback, which can't produce curves. */
+function buildRuns(kinds: SectionKind[], step: number, speed: number[] | null): Run[] {
   const minLen = Math.max(1, Math.round(MIN_CORNER_M / step));
+  const minCurve = Math.max(1, Math.round(MIN_CURVE_M / step));
+  const gap = Math.max(1, Math.round(MERGE_GAP_M / step));
   const k = [...kinds];
 
   // Despeckle: a run too short to be real becomes whatever its longer
@@ -507,24 +560,73 @@ function buildRuns(kinds: SectionKind[], step: number): { kind: SectionKind; sta
     if (!changed) break;
   }
 
-  const runs = runsOf(k).map(r => ({ ...r, turns: 1 }));
+  let runs = mergeRuns(runsOf(k).map(r => ({ ...r, turns: 1 })), gap);
 
-  // Chicanes and esses arrive as corner / short straight / corner. Rejoin them
-  // so they read as one section, while still counting as two turns.
-  const gap = Math.max(1, Math.round(MERGE_GAP_M / step));
-  const out: typeof runs = [];
+  // Flat-out corners are curves. Judged on the rejoined section rather than
+  // the raw curvature runs: a double-apex corner arrives as two runs, and its
+  // exit half, accelerating all the way, would pass on its own.
+  if (speed) {
+    for (const r of runs) {
+      if (r.kind === "corner" && flatThrough(speed, r.start, r.end)) r.kind = "curve";
+    }
+    runs = mergeRuns(runs, gap);
+  }
+
+  // A curve too short to stand is a corner's entry or exit band if it sits
+  // beside a corner, otherwise a kink in a straight. It brings no turn of its
+  // own to the section that absorbs it.
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    for (let i = 0; i < runs.length; i++) {
+      const r = runs[i];
+      if (r.kind !== "curve" || r.end - r.start + 1 >= minCurve) continue;
+      const prev = runs[i - 1], next = runs[i + 1];
+      r.kind = prev?.kind === "corner" || next?.kind === "corner" ? "corner" : "straight";
+      r.turns = 0;
+      changed = true;
+    }
+    if (!changed) break;
+    runs = mergeRuns(runs, gap);
+  }
+  return runs;
+}
+
+/** The largest speed loss inside [start, end] is small against the peak, and
+ *  the car never slows below CURVE_MIN_SPEED: taken flat, or near enough. */
+function flatThrough(speed: number[], start: number, end: number): boolean {
+  let max = -Infinity, min = Infinity, drawdown = 0;
+  for (let i = start; i <= end; i++) {
+    const v = speed[i];
+    if (v > max) max = v;
+    if (v < min) min = v;
+    if (max - v > drawdown) drawdown = max - v;
+  }
+  return min >= CURVE_MIN_SPEED && drawdown <= FLAT_CORNER_DROP * max;
+}
+
+/** Join adjacent runs of one kind, and rejoin corner / short bridge / corner
+ *  into one section: that is a chicane or esses, and the bridge may be a
+ *  straight or a curve sliver. Curves are not bridged — two jitter slivers on
+ *  Spa's Kemmel straight, 23 m apart, would add up to a "curve" long enough
+ *  to stand — and a real sweeper arrives as one run or as adjacent ones. The
+ *  joined section keeps counting every turn it took in. */
+function mergeRuns(runs: Run[], gap: number): Run[] {
+  const out: Run[] = [];
   for (const r of runs) {
     const prev = out[out.length - 1];
-    const bridge = out[out.length - 1];
+    if (prev && prev.kind === r.kind) {
+      prev.end = r.end;
+      prev.turns += r.turns;
+      continue;
+    }
+    const before = out[out.length - 2];
     if (
-      prev && r.kind === "corner" && out.length >= 2 &&
-      out[out.length - 2].kind === "corner" &&
-      bridge.kind !== "corner" && bridge.end - bridge.start + 1 <= gap
+      prev && before && r.kind === "corner" && before.kind === "corner" &&
+      prev.end - prev.start + 1 <= gap
     ) {
       out.pop();                                   // drop the bridging run
-      const target = out[out.length - 1];
-      target.end = r.end;
-      target.turns += r.turns;
+      before.end = r.end;
+      before.turns += r.turns;
       continue;
     }
     out.push({ ...r });
@@ -670,6 +772,7 @@ function resampleOnRefLine(p: Prepared, ref: RefLine, fractions: number[]): Resa
       s: target,
       elapsed: proj[lo].elapsed + f * (proj[hi].elapsed - proj[lo].elapsed),
       speed: proj[lo].speed + f * (proj[hi].speed - proj[lo].speed),
+      valid: proj[lo].valid && proj[hi].valid,
     };
   };
 
@@ -682,11 +785,13 @@ function resampleOnRefLine(p: Prepared, ref: RefLine, fractions: number[]): Resa
   const elapsed: number[] = [], speed: number[] = [];
   const throttle: number[] = [], brake: number[] = [];
   const x: number[] = [], y: number[] = [];
+  const valid: boolean[] = [];
   for (const u of fractions) {
     const target = u * ref.length;
     const v = at(target);
     elapsed.push((v.elapsed - base) * scale);
     speed.push(v.speed);
+    valid.push(v.valid);
     // Interpolate the position along the line rather than snapping to the
     // nearest fix. The grid is finer than the reference points, so snapping
     // would quantise the line into steps and the curvature pass would read
@@ -702,7 +807,7 @@ function resampleOnRefLine(p: Prepared, ref: RefLine, fractions: number[]): Resa
     throttle.push(0); brake.push(0);
   }
   elapsed[elapsed.length - 1] = p.lapTime;
-  return { elapsed, speed, throttle, brake, x, y };
+  return { elapsed, speed, throttle, brake, x, y, valid };
 }
 
 export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | null {
@@ -738,24 +843,37 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
   // are no usable position fixes.
   const geoRef = sampled.reduce((best, cur) =>
     countPositioned(cur.r) > countPositioned(best.r) ? cur : best);
-  let kinds = classifyGeometric(geoRef.r.x, geoRef.r.y, geoRef.r.speed, step);
+
+  // One speed profile for the classification: the field's median at each
+  // grid point, over the traces whose car_data was live there. The curve and
+  // flat-corner tests ask how fast a current car carries a section, which the
+  // field answers better than any one lap — and a frozen feed on one trace
+  // (see frozenCarDataMask) can't decide the split. Falls back to every
+  // trace where none is live.
+  const fieldSpeed = fractions.map((_, i) => {
+    let vs = sampled.filter(t => t.r.valid[i]).map(t => t.r.speed[i]);
+    if (!vs.length) vs = sampled.map(t => t.r.speed[i]);
+    vs.sort((a, b) => a - b);
+    const mid = vs.length >> 1;
+    return vs.length % 2 ? vs[mid] : (vs[mid - 1] + vs[mid]) / 2;
+  });
+
+  let kinds = classifyGeometric(geoRef.r.x, geoRef.r.y, fieldSpeed, step);
   const fromGeometry = kinds != null;
 
   if (!kinds) {
     // No usable position fixes — read the corners off the driving instead.
     // That route can't tell a flat-out curve from a straight, so it only ever
     // produces two kinds.
-    const profile = fractions.map((_, i) =>
-      sampled.reduce((sum, t) => sum + t.r.speed[i], 0) / sampled.length);
     const brakeMax = fractions.map((_, i) => Math.max(...sampled.map(t => t.r.brake[i])));
     const throttleMin = fractions.map((_, i) => Math.min(...sampled.map(t => t.r.throttle[i])));
-    const zones = findCornerZonesFromDriving(profile, brakeMax, throttleMin, step);
+    const zones = findCornerZonesFromDriving(fieldSpeed, brakeMax, throttleMin, step);
     if (!zones.length) return null;
     kinds = new Array<SectionKind>(GRID_POINTS).fill("straight");
     for (const z of zones) for (let i = z.start; i <= z.end; i++) kinds[i] = "corner";
   }
 
-  const raw = buildRuns(kinds, step);
+  const raw = buildRuns(kinds, step, fromGeometry ? fieldSpeed : null);
   if (raw.length < 2) return null;
   // Sections share their boundaries: each ends where the next begins. Leaving
   // a one-step gap would drop that step's distance from the totals and its
@@ -788,10 +906,12 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
     const timings: SegmentTiming[] = sampled.map((s, i) => {
       let minSpeed = Infinity, maxSpeed = -Infinity;
       for (let j = r.start; j <= r.end; j++) {
+        if (!s.r.valid[j]) continue;
         const v = s.r.speed[j];
         if (v < minSpeed) minSpeed = v;
         if (v > maxSpeed) maxSpeed = v;
       }
+      if (!isFinite(minSpeed)) { minSpeed = NaN; maxSpeed = NaN; }
       return {
         label: s.trace.label,
         color: s.trace.color,
