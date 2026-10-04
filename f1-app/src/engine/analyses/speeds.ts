@@ -35,9 +35,27 @@ export interface TopSpeeds {
 }
 
 /** Laps whose speeds count: timed, not under a red flag or the safety car
- *  (a trap reading behind the safety car is not a top speed). */
+ *  (a trap reading behind the safety car is not a top speed), and not the
+ *  opening lap or a restart lap — full tanks, a bunched field and no DRS, so
+ *  a "tow" there is a slipstream at race-start speeds, not a DRS tow. At
+ *  Kuala Lumpur 2026 those laps were also wet, and put 262 km/h "in a tow"
+ *  against 347 in clear air. */
 function usable(l: EnrichedLap): boolean {
-  return !!l.lap_duration && l.lap_duration > 0 && !hasFlag(l.flags, LapFlag.RED | LapFlag.SC | LapFlag.VSC);
+  return !!l.lap_duration && l.lap_duration > 0 &&
+    !hasFlag(l.flags, LapFlag.RED | LapFlag.SC | LapFlag.VSC | LapFlag.LAP1 | LapFlag.RESTART);
+}
+
+/** A reading also has to come from a lap the driver was actually pushing on:
+ *  within 7% of their own best usable lap, the qualifying cut-off. That drops
+ *  in- and out-laps in qualifying and practice, and in a race the laps on a
+ *  damp or drying track, cruising to the flag, or nursing damage — a tow on a
+ *  112 s lap at a 101 s circuit tells you nothing about the tow. */
+const REPRESENTATIVE_FRAC = 1.07;
+
+function representative(laps: EnrichedLap[]): EnrichedLap[] {
+  let best = Infinity;
+  for (const l of laps) if ((l.lap_duration as number) < best) best = l.lap_duration as number;
+  return isFinite(best) ? laps.filter(l => (l.lap_duration as number) <= best * REPRESENTATIVE_FRAC) : laps;
 }
 
 function best(laps: EnrichedLap[], key: "st_speed" | "i1_speed" | "i2_speed"): SpeedReading | null {
@@ -53,7 +71,7 @@ export function topSpeeds(model: SessionModel): Gated<TopSpeeds> {
   const towSplit = model.coverage.intervals;
   const drivers: DriverSpeeds[] = [];
   for (const d of model.drivers) {
-    const laps = d.laps.filter(usable);
+    const laps = representative(d.laps.filter(usable));
     const withTrap = laps.filter(l => l.st_speed != null && l.st_speed > 0);
     if (!withTrap.length && !laps.some(l => l.i1_speed || l.i2_speed)) continue;
     const clear = towSplit ? withTrap.filter(l => l.gapAhead == null || l.gapAhead >= DIRTY_AIR_THRESHOLD) : withTrap;

@@ -38,7 +38,26 @@ function stintFor(stints: Stint[], driver: number, lap: number): Stint | null {
 
 export function enrichLaps(laps: Lap[], ctx: EnrichContext): { laps: EnrichedLap[]; fuel: FuelModel } {
   const pitLaps = new Set(ctx.pits.map(p => `${p.driver_number}-${p.lap_number}`));
-  const redRestartSeen = new Set<string>();   // `${driver}|${redIndex}`
+
+  // Restart laps: for each driver, the first lap that starts once a safety
+  // car, VSC or red-flag window has closed. Cold tyres and brakes, a bunched
+  // field and no DRS make it as unrepresentative as an opening lap — and
+  // after a start behind the safety car that went to the grid, it *is* the
+  // opening lap. Found by earliest start rather than first-seen, so the
+  // order laps arrive in doesn't matter.
+  const restartKeys = new Set<string>();
+  for (const n of ctx.neutralisations) {
+    if (n.kind === "YELLOW") continue;
+    const firstAfter = new Map<number, { t: number; key: string }>();
+    for (const l of laps) {
+      const key = `${l.driver_number}-${l.lap_number}`;
+      const t = ctx.times[key];
+      if (!t || !Number.isFinite(t.tStart) || t.tStart < n.tEnd) continue;
+      const cur = firstAfter.get(l.driver_number);
+      if (!cur || t.tStart < cur.t) firstAfter.set(l.driver_number, { t: t.tStart, key });
+    }
+    for (const v of firstAfter.values()) restartKeys.add(v.key);
+  }
 
   const out: EnrichedLap[] = laps.map(l => {
     const key = `${l.driver_number}-${l.lap_number}`;
@@ -56,19 +75,13 @@ export function enrichLaps(laps: Lap[], ctx: EnrichContext): { laps: EnrichedLap
     const cls = ctx.classification[l.driver_number];
     if (cls?.retiredLap != null && l.lap_number > cls.retiredLap) flags |= LapFlag.RETIRED_AFTER;
 
+    if (restartKeys.has(key)) flags |= LapFlag.RESTART;
+
     let neutralisation: number | null = null;
     if (Number.isFinite(t.tStart) && t.tEnd != null) {
       ctx.neutralisations.forEach((n, i) => {
         const frac = overlapFraction(t.tStart, t.tEnd as number, n.tStart, n.tEnd);
-        if (frac <= 0) {
-          // First flying lap after a red flag restarts: it begins at or after
-          // the window closed and is the driver's first such lap.
-          if (n.kind === "RED" && t.tStart >= n.tEnd && !redRestartSeen.has(`${l.driver_number}|${i}`)) {
-            redRestartSeen.add(`${l.driver_number}|${i}`);
-            flags |= LapFlag.RESTART;
-          }
-          return;
-        }
+        if (frac <= 0) return;
         if (n.kind === "YELLOW") {
           if (frac >= YELLOW_MIN_OVERLAP) { flags |= LapFlag.YELLOW; neutralisation ??= i; }
           return;

@@ -58,7 +58,7 @@ export default function TopSpeedsCard() {
         ? "Speed trap and intermediate speeds over the session's timed laps — which car has the straight-line speed, and who set the fastest readings."
         : "Speed trap and intermediate speeds over the race. A car in a tow reads several km/h quicker than the same car in clear air, so the two are ranked apart where the timing intervals allow."}
       method={{
-        summary: `Readings from the timing feed's speed trap and intermediates on timed laps, excluding safety-car, VSC and red-flag laps. ${towSplit ? "Clear air = ≥ 1.5 s to the car ahead at the start of the lap (or gap unknown); tow = within 1.0 s." : "Intervals are not available, so readings are not split by traffic."} Team best = the quicker of its drivers.`,
+        summary: `Readings from the timing feed's speed trap and intermediates on timed laps within 7% of the driver's own best, excluding safety-car, VSC and red-flag laps, the opening lap and restart laps. ${towSplit ? "Clear air = ≥ 1.5 s to the car ahead at the start of the lap (or gap unknown); tow = within 1.0 s. A tow reading below the clear-air one means the driver was only that close to a car on slower laps — early in the race, on a damp track or in a bunched field — not that the tow cost speed." : "Intervals are not available, so readings are not split by traffic."} Team best = the quicker of its drivers.`,
         caveats: result.ok ? result.notes : undefined,
       }}
       confidence={result.ok ? result.confidence : undefined}

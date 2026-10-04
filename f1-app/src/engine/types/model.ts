@@ -21,7 +21,7 @@ export const LapFlag = {
   VSC: 32,               // overlaps a virtual safety-car window
   RED: 64,               // overlaps a red-flag stoppage
   YELLOW: 128,           // ≥ 20 % of the lap under a sector yellow
-  RESTART: 256,          // first flying lap after a red flag
+  RESTART: 256,          // first lap after a red flag, safety car or VSC window closes
   RETIRED_AFTER: 512,    // driver classified as retired before/at this lap
   NO_TIME: 1024,         // no lap_duration
   OUTLIER: 2048,         // robust per-stint outlier (traffic, mistake, damage)
@@ -88,6 +88,9 @@ export interface Neutralisation {
   lapStart: number;          // leader lap numbers (best effort)
   lapEnd: number;
   sector: 1 | 2 | 3 | null;  // sector yellows only
+  /** A start behind the safety car that ended with the field lined up on the
+   *  grid for a standing start, so the lap after it is an opening lap. */
+  standingRestart?: boolean;
   messages: RaceControlMsg[];
 }
 

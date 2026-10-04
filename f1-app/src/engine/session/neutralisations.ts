@@ -8,10 +8,19 @@
 //   category "Flag", flag "GREEN", scope "Track"          (also the restart)
 //   category "Flag", flag "YELLOW" | "DOUBLE YELLOW", scope "Sector", sector n
 //   category "Flag", flag "CLEAR",  scope "Sector" | "Track"
+//   category "Other":                 "SAFETY CAR LIGHTS ON"   (start behind the SC —
+//                                      no DEPLOYED follows; Kuala Lumpur 2026)
+//                                     "STANDING START"         (field brought to the
+//                                      grid; the race proper starts next lap)
+//                                     "SAFETY CAR LIGHTS OFF"  (rolling release, or an
+//                                      echo after IN THIS LAP)
 //
 // "IN THIS LAP" means the cars are still behind the safety car for the rest
 // of that lap, so an SC/VSC closes at the start of the leader's *next* lap;
-// a red flag closes on the next track-wide GREEN.
+// a red flag closes on the next track-wide GREEN. A start behind the safety
+// car opens on LIGHTS ON and closes the same way, on STANDING START or LIGHTS
+// OFF — without it, the formation laps read as racing laps (Kuala Lumpur:
+// 162 s and 232 s against a 101 s race pace).
 
 import type { RaceControlMsg } from "../types/raw.ts";
 import type { Neutralisation } from "../types/model.ts";
@@ -46,6 +55,7 @@ export function buildNeutralisations(
 
   const out: Neutralisation[] = [];
   let openSC: Neutralisation | null = null;
+  let scFromLights = false;          // openSC came from LIGHTS ON, not DEPLOYED
   let openRed: Neutralisation | null = null;
   const openYellow: Record<number, Neutralisation> = {};
 
@@ -53,6 +63,14 @@ export function buildNeutralisations(
     n.tEnd = Math.max(n.tStart, t);
     n.lapEnd = Math.max(n.lapStart, leaderLapAt(n.tEnd, leaderLaps));
     out.push(n);
+  };
+  // The pack is released at the start of the next lap.
+  const releaseSC = (m: RaceControlMsg, t: number) => {
+    if (!openSC) return;
+    openSC.messages.push(m);
+    close(openSC, nextLapStartAfter(t, leaderLaps) ?? t);
+    openSC = null;
+    scFromLights = false;
   };
 
   for (const { m, t } of msgs) {
@@ -63,6 +81,8 @@ export function buildNeutralisations(
 
     if (cat === "safetycar") {
       if (/DEPLOYED/.test(text)) {
+        // A DEPLOYED after LIGHTS ON is the same safety car, not a new one.
+        if (openSC && scFromLights) { openSC.messages.push(m); scFromLights = false; continue; }
         if (openSC) close(openSC, t);
         openSC = {
           kind: /VIRTUAL/.test(text) ? "VSC" : "SC",
@@ -71,10 +91,26 @@ export function buildNeutralisations(
           sector: null, messages: [m],
         };
       } else if (/IN THIS LAP|ENDING|WITHDRAWN/.test(text) && openSC) {
+        releaseSC(m, t);
+      } else if (openSC) {
         openSC.messages.push(m);
-        // The pack is released at the start of the next lap.
-        close(openSC, nextLapStartAfter(t, leaderLaps) ?? t);
-        openSC = null;
+      }
+      continue;
+    }
+
+    if (cat === "other" && /SAFETY CAR|STANDING START/.test(text)) {
+      if (/LIGHTS ON/.test(text) && !openSC) {
+        openSC = {
+          kind: "SC", tStart: t, tEnd: t,
+          lapStart: m.lap_number ?? Math.max(1, leaderLapAt(t, leaderLaps)), lapEnd: 0,
+          sector: null, messages: [m],
+        };
+        scFromLights = true;
+      } else if (/STANDING START/.test(text) && openSC) {
+        openSC.standingRestart = true;
+        releaseSC(m, t);
+      } else if (/LIGHTS OFF/.test(text) && openSC) {
+        releaseSC(m, t);
       } else if (openSC) {
         openSC.messages.push(m);
       }

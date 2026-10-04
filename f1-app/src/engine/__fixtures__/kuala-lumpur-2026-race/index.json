@@ -1,0 +1,25 @@
+{
+  "sessionKey": 11731,
+  "slug": "kuala-lumpur-2026-race",
+  "recordedAt": "2026-10-04T17:03:36.666Z",
+  "source": "https://www.openf1ow.com/api/f1",
+  "sessionName": "Race",
+  "sessionType": "Race",
+  "dateStart": "2026-10-04T07:00:00+00:00",
+  "dateEnd": "2026-10-04T09:00:00+00:00",
+  "counts": {
+    "session": 1,
+    "meeting": 1,
+    "drivers": 22,
+    "laps": 1145,
+    "stints": 97,
+    "pit": 73,
+    "position": 880,
+    "intervals": 3793,
+    "race_control": 328,
+    "session_result": 22,
+    "weather": 254,
+    "starting_grid": 0,
+    "overtakes": 505
+  }
+}
