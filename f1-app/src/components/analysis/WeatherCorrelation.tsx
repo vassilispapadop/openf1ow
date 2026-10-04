@@ -6,7 +6,6 @@ import { ft3, ft1, ftn, rowBg } from "../../lib/format";
 import { median } from "../../engine/stats.ts";
 import type { EnrichedLap } from "../../engine/index.ts";
 import useTooltip from "./useTooltip";
-import ShareButton from "../ShareButton";
 
 const LEFT_MARGIN = 56;
 const RIGHT_PAD = 16;
@@ -262,9 +261,6 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
           </div>
           <div ref={wrapRef} style={{ position: "relative" }}>
             {wxTipEl}
-            <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
-              <ShareButton canvasRef={cvRef} filename="openf1ow-weather" />
-            </div>
             <canvas ref={cvRef} style={{ display: "block", borderRadius: 8 }}
               onMouseMove={(e) => {
                 if (!analysis || !wrapRef.current) return;

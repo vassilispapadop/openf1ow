@@ -24,7 +24,8 @@ export interface SectionProps {
   actions?: ReactNode;
   method?: Method;
   confidence?: Confidence;
-  /** Render a share button that captures the body. */
+  /** Render a share button that captures the whole card — title, hint, the
+   *  method disclosure as it stands and the body — minus the actions slot. */
   share?: { meta?: string; filename?: string } | boolean;
   collapsible?: boolean;
   defaultOpen?: boolean;
@@ -70,9 +71,10 @@ export default function Section({
         {hint && <p className={s.hint}>{hint}</p>}
       </div>
       {(actions || shareProps) && (
-        <div className={s.actions}>
+        // Controls aren't part of the picture; captureDom skips this slot.
+        <div className={s.actions} data-no-capture>
           {actions}
-          {shareProps && <ShareButton domRef={ref} meta={shareProps.meta} filename={shareProps.filename} />}
+          {shareProps && <ShareButton domRef={rootRef} meta={shareProps.meta} filename={shareProps.filename} />}
         </div>
       )}
     </header>

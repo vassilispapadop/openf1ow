@@ -1,8 +1,6 @@
-import { useRef } from "react";
 import { F, M } from "../../lib/styles";
 import { ft1, ft3, podiumColor } from "../../lib/format";
 import useTooltip from "./useTooltip";
-import ShareButton from "../ShareButton";
 
 function percentile(sorted: number[], p: number): number {
   const idx = (p / 100) * (sorted.length - 1);
@@ -33,7 +31,6 @@ function BoxPlotChart({ rows, valueFmt }: {
 }) {
   const fmt1 = valueFmt || ft1;
   const fmt3 = valueFmt || ft3;
-  const contentRef = useRef<HTMLDivElement>(null);
   const { containerRef, show, hide, el } = useTooltip();
 
   if (!rows.length) return null;
@@ -64,10 +61,7 @@ function BoxPlotChart({ rows, valueFmt }: {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
-        <ShareButton domRef={contentRef} filename="openf1ow-pace-chart" />
-      </div>
-      <div ref={contentRef}>
+      <div>
       <div ref={containerRef as React.RefObject<HTMLDivElement>} style={{ position: "relative" }}>
       {el}
       {/* X-axis labels */}

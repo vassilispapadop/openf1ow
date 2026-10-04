@@ -114,6 +114,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                   id="weather"
                   title="Weather and lap time"
                   hint="Did the track temperature move the field? Lap times against the weather feed, and which drivers coped best with shifting conditions."
+                  share={{ filename: "openf1ow-weather" }}
                 >
                   <WeatherCorrelation allLaps={allLaps} drivers={drivers} weather={weather} />
                 </Section>

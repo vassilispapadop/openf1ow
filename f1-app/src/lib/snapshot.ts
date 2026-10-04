@@ -95,7 +95,10 @@ export async function captureCanvasStack(
   });
 }
 
-/** Capture a DOM element as PNG with branding */
+/** Capture a DOM element as PNG with branding. Anything marked
+ *  `data-no-capture` (the share button itself, filter controls) is left out
+ *  of the picture, so a card can be captured whole — title, explanation and
+ *  content — without its chrome. */
 export async function captureDom(
   element: HTMLElement,
   meta?: string,
@@ -104,6 +107,7 @@ export async function captureDom(
   const dataUrl = await toPng(element, {
     pixelRatio: 2,
     backgroundColor: "#050508",
+    filter: node => !(node instanceof HTMLElement && node.dataset.noCapture != null),
   });
 
   // Load into an image, then composite with branding on canvas

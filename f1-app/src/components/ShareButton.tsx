@@ -99,7 +99,8 @@ export default function ShareButton({ canvasRef, canvasRefs, domRef, meta, filen
     "rgba(255,255,255,0.35)";
 
   return (
-    <div style={{ position: "relative", display: "inline-block" }}>
+    // data-no-capture keeps the button out of its own snapshot (see captureDom).
+    <div data-no-capture style={{ position: "relative", display: "inline-block" }}>
       <button
         onClick={() => setShowMenu(!showMenu)}
         style={{

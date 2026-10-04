@@ -4,7 +4,6 @@ import { drawWatermark, getCtx } from "../../lib/canvas";
 import { useResponsiveCanvas, adaptiveMargins } from "../../lib/useResponsiveCanvas";
 import useTooltip from "./useTooltip";
 import type { ScatterPoint } from "./useTooltip";
-import ShareButton from "../ShareButton";
 
 export type { ScatterPoint };
 
@@ -184,9 +183,6 @@ function ScatterPlot({ data, xLabel, yLabel, xFmt, yFmt, diagonal }: {
   return (
     <div ref={wrapRef} style={{ position: "relative", touchAction: "manipulation" }}>
       {el}
-      <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
-        <ShareButton canvasRef={canvasRef} filename="openf1ow-scatter" />
-      </div>
       <canvas
         ref={canvasRef}
         style={{ display: "block", borderRadius: 8 }}

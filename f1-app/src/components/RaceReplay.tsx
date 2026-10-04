@@ -51,6 +51,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
   }, [sessionKey]);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const shareRef = useRef<HTMLDivElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const animRef = useRef(0);
 
@@ -525,14 +526,17 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
   const secs = Math.floor(elapsed % 60);
 
   return (
-    <div>
+    // The share captures the whole block — heading and map — minus the
+    // transport controls, so the picture says what it is.
+    <div ref={shareRef}>
+      <div style={sty.sectionHead}>Race Replay · lap {currentState.lap}/{totalRaceLaps}</div>
       <div ref={wrapRef} style={{ position: "relative", marginBottom: 14 }}>
         <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
-          <ShareButton canvasRef={canvasRef} filename="openf1ow-race-replay" />
+          <ShareButton domRef={shareRef} filename="openf1ow-race-replay" />
         </div>
         <canvas ref={canvasRef} style={{ display: "block", borderRadius: 12 }} />
       </div>
-      <div style={{
+      <div data-no-capture style={{
         display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap",
         padding: "12px 16px", background: "rgba(12,12,24,0.6)", borderRadius: 12,
         border: "1px solid rgba(255,255,255,0.05)",
