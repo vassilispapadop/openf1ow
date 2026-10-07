@@ -22,7 +22,7 @@ export type { Verdict, VerdictArea, VerdictNumber } from "./types.ts";
 
 /** Section ids the race page uses as evidence anchors — public API. */
 export const SECTION_IDS = {
-  verdicts: "verdicts", kpis: "kpis", raceShape: "race-shape", start: "start", gridFinish: "grid-finish", narrative: "narrative",
+  verdicts: "verdicts", kpis: "kpis", drivers: "drivers", raceShape: "race-shape", start: "start", gridFinish: "grid-finish", narrative: "narrative",
   truePace: "true-pace", lapEvolution: "lap-evolution", deltaTrace: "delta-trace", sectors: "sectors", consistency: "consistency", topSpeeds: "top-speeds",
   strategyTimeline: "strategy-timeline", undercut: "undercut", tyreLife: "tyre-life", degradation: "degradation", fuel: "fuel", pitCrew: "pit-crew", whatIfPit: "what-if-pit",
   overtakes: "overtakes", teammates: "teammates", constructors: "constructors", dirtyAir: "dirty-air", scImpact: "sc-impact",

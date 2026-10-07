@@ -42,7 +42,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [weather, setWeather] = useState<Weather[]>([]);
   const [rc, setRc] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
-  const [loading, setLoading] = useState("");
+  // One flag per fetch. The derived `loading` string stays set until every
+  // in-flight request has settled: with a single shared flag, whichever of the
+  // three finished first cleared it, so on a deep link the page rendered while
+  // the selector bar above it was still waiting for meetings — and shifted the
+  // whole page down when it arrived (the main CLS source on session pages).
+  const [loadingMeetings, setLoadingMeetings] = useState("");
+  const [loadingSessions, setLoadingSessions] = useState("");
+  const [loadingDrivers, setLoadingDrivers] = useState("");
+  const loading = loadingMeetings || loadingSessions || loadingDrivers;
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
 
@@ -56,10 +64,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setMeetings([]);
     setSessions([]);
     setDrivers([]);
-    setLoading("Loading " + year + " races...");
+    setLoadingMeetings("Loading " + year + " races...");
     api("/meetings?year=" + year)
-      .then(d => { setMeetings(d); setLoading(""); })
-      .catch(e => { setError(e.message); setLoading(""); });
+      .then(d => { setMeetings(d); setLoadingMeetings(""); })
+      .catch(e => { setError(e.message); setLoadingMeetings(""); });
   }, [year, retryCount]);
 
   useEffect(() => {
@@ -68,10 +76,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     loadedMk.current = mk;
     setSessions([]);
     setDrivers([]);
-    setLoading("Loading sessions...");
+    setLoadingSessions("Loading sessions...");
     api("/sessions?meeting_key=" + mk)
-      .then(d => { setSessions(d); setLoading(""); })
-      .catch(e => { setError(e.message); setLoading(""); });
+      .then(d => { setSessions(d); setLoadingSessions(""); })
+      .catch(e => { setError(e.message); setLoadingSessions(""); });
   }, [mk, retryCount]);
 
   useEffect(() => {
@@ -79,7 +87,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (loadedSk.current === sk) return;
     loadedSk.current = sk;
     setDrivers([]);
-    setLoading("Loading drivers...");
+    setLoadingDrivers("Loading drivers...");
     Promise.all([
       api("/drivers?session_key=" + sk),
       api("/weather?session_key=" + sk).catch(() => []),
@@ -90,8 +98,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setWeather(w as Weather[]);
       setRc(r);
       setResults(sr);
-      setLoading("");
-    }).catch(e => { setError(e.message); setLoading(""); });
+      setLoadingDrivers("");
+    }).catch(e => { setError(e.message); setLoadingDrivers(""); });
   }, [sk, retryCount]);
 
   const clearError = useCallback(() => setError(""), []);

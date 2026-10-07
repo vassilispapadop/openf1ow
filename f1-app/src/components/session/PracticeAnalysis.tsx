@@ -6,6 +6,7 @@ import { C, sty } from "../../lib/styles";
 import ModelGate from "../insights/ModelGate";
 import AnalysisTabBar from "../shell/AnalysisTabBar";
 import Verdicts, { KpiRow } from "../insights/Verdicts";
+import DriversCard from "../insights/DriversCard";
 import TopSpeedsCard from "../insights/TopSpeedsCard";
 import SuperClipping from "../analysis/SuperClipping";
 import {
@@ -33,6 +34,7 @@ export default function PracticeAnalysis({ sessionKey, sessionName, subTab, onSu
                 <p style={{ fontSize: 12, color: C.textMute, margin: "8px 0 0", lineHeight: 1.6, maxWidth: 760 }}>{sessionIntro(model)}</p>
               </section>
               <Verdicts onOpenTab={onSubTabChange} />
+              <DriversCard />
               <BestLapsCard />
               <LongRunsCard />
             </>

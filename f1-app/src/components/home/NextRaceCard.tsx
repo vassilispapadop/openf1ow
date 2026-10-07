@@ -52,7 +52,9 @@ export default function NextRaceCard({ year }: { year: number }) {
     return () => clearInterval(id);
   }, []);
 
-  if (!sessions) return null;
+  // Same footprint as the rendered card, so the dashboard below it does not
+  // jump when the calendar arrives.
+  if (!sessions) return <div style={{ height: 266, marginBottom: 12 }} aria-busy="true" />;
   const upcoming = sessions
     .filter(s => s.date_start && new Date(s.date_start).getTime() > now)
     .sort((a, b) => a.date_start.localeCompare(b.date_start));

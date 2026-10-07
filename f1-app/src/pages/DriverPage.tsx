@@ -227,6 +227,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
         )}
       </Section>
 
+      <div style={{ minHeight: 360 }}>
       {telLoading ? <Spinner label={telLoading} /> : (
         <>
           {currentTab === "laps" && <LapsTab d={d} best={best} comparisons={cmpIds} selLap={selLap} onLoadTel={loadTel} onAddComparison={l => addComparison(dnNum, l)} />}
@@ -238,6 +239,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
           {currentTab === "results" && <ResultsTab results={results} drivers={drivers} dn={dn} />}
         </>
       )}
+      </div>
     </>
   );
 }

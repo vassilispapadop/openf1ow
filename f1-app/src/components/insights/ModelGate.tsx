@@ -23,7 +23,7 @@ export default function ModelGate({ children, loading = "Loading session data…
   }
   if (!model) {
     return (
-      <div style={sty.card}>
+      <div style={{ ...sty.card, minHeight: 280, display: "flex", alignItems: "center", justifyContent: "center" }} aria-busy="true">
         <div style={{ textAlign: "center", padding: 36, color: C.textDim, fontSize: 13 }}>{loading}</div>
       </div>
     );

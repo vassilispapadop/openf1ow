@@ -7,7 +7,7 @@ import SelectorBar from "../components/shell/SelectorBar";
 import DriverGrid from "../components/shell/DriverGrid";
 import Footer from "../components/shell/Footer";
 import LiveSessionBanner from "../components/LiveSessionBanner";
-import { SkeletonAnalysis, SkeletonHome } from "../components/Skeleton";
+import { SkeletonAnalysis } from "../components/Skeleton";
 import { F, C, sty } from "../lib/styles";
 import { paths } from "../lib/constants";
 import { Segmented } from "../ui";
@@ -51,6 +51,9 @@ function LayoutInner() {
         padding: "clamp(12px, 3vw, 24px) clamp(12px, 4vw, 28px)",
         maxWidth: 1400,
         margin: "0 auto",
+        // Keeps the footer below the fold while a page is still loading, so
+        // content arriving above it does not register as a layout shift.
+        minHeight: "calc(100vh - var(--header-h, 60px))",
       }}>
         <LiveSessionBanner />
 
@@ -114,11 +117,14 @@ function LayoutInner() {
         )}
 
         {/* Layout-matching skeleton keeps the page shape during navigation
-            instead of collapsing to a centered spinner. Analysis-shaped when a
-            meeting is selected, season-dashboard-shaped on the home route. */}
-        {loading && (mk ? <SkeletonAnalysis label={loading} /> : <SkeletonHome />)}
+            instead of collapsing to a centered spinner. Only on meeting routes,
+            and never alongside the page it stands in for: the home dashboard
+            renders straight away (its tiles reserve their own space), and a
+            session page waits until meetings, sessions and drivers are all in,
+            so nothing above it appears later and pushes it down. */}
+        {loading && mk && <SkeletonAnalysis label={loading} />}
 
-        <Outlet />
+        {!(loading && mk) && <Outlet />}
       </main>
 
       <Footer />

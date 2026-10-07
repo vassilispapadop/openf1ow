@@ -9,7 +9,7 @@ import { api } from "../../lib/api";
 import { findLatestRace } from "../../lib/latestRace";
 import { loadRaceIndex } from "../../lib/raceIndex";
 import { Section, Segmented, Table, EmptyState, type Column } from "../../ui";
-import { C } from "../../lib/styles";
+import { C, isNarrowViewport } from "../../lib/styles";
 import { podiumColor } from "../../lib/format";
 
 interface DriverRow { driver_number: number; position_current: number | null; position_start: number | null; points_current: number; points_start: number }
@@ -73,7 +73,8 @@ export default function StandingsCard({ year }: { year: number }) {
     { key: "dpos", label: "Moved", render: r => signed(r.position_start != null && r.position_current != null ? r.position_start - r.position_current : null), mono: true, align: "right", hideBelow: 640 },
   ], [data]);
 
-  if (data.state === "loading") return <div style={{ height: 120 }} aria-busy="true" />;
+  // Measured footprint of the rendered card (desktop / phone).
+  if (data.state === "loading") return <div style={{ height: isNarrowViewport() ? 650 : 588 }} aria-busy="true" />;
 
   return (
     <Section

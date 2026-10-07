@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { F, C, R } from "../../lib/styles";
+import { F, C, R, isNarrowViewport } from "../../lib/styles";
 import { fd } from "../../lib/format";
 import { loadRaceIndex } from "../../lib/raceIndex";
 
@@ -36,7 +36,8 @@ export default function SeasonGrid({ year }: { year: number }) {
     return () => { cancelled = true; };
   }, [year]);
 
-  if (!races) return <div style={{ height: 200 }} />;
+  // Measured footprint of the rendered grid (desktop / phone).
+  if (!races) return <section style={{ marginTop: 36, height: isNarrowViewport() ? 1448 : 332 }} aria-busy="true" />;
 
   return (
     <section style={{ marginTop: 36, fontFamily: F }}>

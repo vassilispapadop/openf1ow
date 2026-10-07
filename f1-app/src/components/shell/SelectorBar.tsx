@@ -63,7 +63,9 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
     }
   }, []);
 
-  if (!races.length) return null;
+  // Same footprint as the race strip, so the page below does not move when
+  // the season's meetings arrive.
+  if (!races.length) return <div style={{ marginBottom: 16, height: 48 }} aria-busy="true" />;
 
   return (
     <div style={{ marginBottom: 16 }}>

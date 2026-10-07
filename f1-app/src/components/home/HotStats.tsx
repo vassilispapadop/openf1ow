@@ -1,3 +1,4 @@
+import { isNarrowViewport } from "../../lib/styles";
 // Three "interesting" cross-cutting stats from the most-recent race in the
 // season-trends artifact. Builds the homepage's "second-screen worthy"
 // content layer above the trend tiles — turns the page from sparse-
@@ -28,7 +29,8 @@ export default function HotStats({ year }: { year: number }) {
     return () => { cancelled = true; };
   }, [year]);
 
-  if (stats === null) return <div style={{ height: 110 }} />;
+  // Measured footprint of the rendered tiles (desktop / phone).
+  if (stats === null) return <section style={{ marginTop: 14, height: isNarrowViewport() ? 309 : 104 }} aria-busy="true" />;
   if (stats.length === 0) return null;
 
   return (

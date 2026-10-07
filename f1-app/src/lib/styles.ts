@@ -31,6 +31,10 @@ export const C = {
 
 export const R = { sm: 6, md: 10, lg: 14 };
 
+/** Phone-width viewport, for loading placeholders that reserve the space a
+ *  block takes once its data arrives (so its arrival is not a layout shift). */
+export const isNarrowViewport = () => typeof window !== "undefined" && window.innerWidth < 600;
+
 /** Canvas chart palette — the JS mirror of the --chart-* tokens in
  *  src/ui/tokens.css. Charts used to carry their own navy plot palette
  *  (#0a0e14 / #1c2333 / #e63946); this puts them on the brand surfaces. */

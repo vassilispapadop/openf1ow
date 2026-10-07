@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { F, C, R } from "../../lib/styles";
+import { F, C, R, isNarrowViewport } from "../../lib/styles";
 import { shareUrl, canShareUrl } from "../../lib/share";
 import { fd } from "../../lib/format";
 import { findLatestRace } from "../../lib/latestRace";
@@ -21,7 +21,7 @@ interface LatestRace {
   fastestTeamGap?: string;
   poleTeam?: string;          // P1 in the constructor-pace ranking, if available
   verdicts?: { id: string; headline: string; confidence: string; tab: string }[];
-  podium?: { pos: number; driver: string; team: string; gap: string | number | null; grid: number | null }[];
+  podium?: { pos: number; driver: string; dn?: number; team: string; gap: string | number | null; grid: number | null }[];
 }
 
 export default function LatestRaceCard({ year }: { year: number }) {
@@ -79,7 +79,8 @@ export default function LatestRaceCard({ year }: { year: number }) {
 
   if (loading) {
     return (
-      <div style={{ ...wrapperStyle, height: 220 }} aria-busy="true" />
+      // Measured footprint of the rendered card (desktop / phone).
+      <div style={{ ...wrapperStyle, height: isNarrowViewport() ? 570 : 389 }} aria-busy="true" />
     );
   }
   if (!race) {
@@ -131,13 +132,25 @@ export default function LatestRaceCard({ year }: { year: number }) {
       </div>
       {race.podium && race.podium.length > 0 && (
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
-          {race.podium.map(p => (
-            <div key={p.pos} style={{ flex: "1 1 160px", padding: "10px 12px", borderRadius: 10, background: C.surfaceAlt, border: "1px solid " + C.border, display: "flex", alignItems: "baseline", gap: 10 }}>
-              <span style={{ fontSize: 18, fontWeight: 800, color: p.pos === 1 ? "#FFD700" : p.pos === 2 ? "#C0C0C0" : "#CD7F32", fontFamily: "var(--mono)" }}>P{p.pos}</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{p.driver}</span>
-              <span style={{ fontSize: 11, color: C.textMute, marginLeft: "auto", fontFamily: "var(--mono)" }}>{p.pos === 1 ? (p.grid != null ? `from P${p.grid}` : "") : typeof p.gap === "number" ? `+${p.gap.toFixed(3)}` : p.gap ?? ""}</span>
-            </div>
-          ))}
+          {race.podium.map(p => {
+            // Each podium tile opens that driver's page (laps, telemetry,
+            // stints) — the pages readers spend the longest on.
+            const href = p.dn != null && race.raceSk ? paths.driver(race.year, String(race.meetingKey), String(race.raceSk), String(p.dn)) : null;
+            const tile = (
+              <>
+                <span style={{ fontSize: 18, fontWeight: 800, color: p.pos === 1 ? "#FFD700" : p.pos === 2 ? "#C0C0C0" : "#CD7F32", fontFamily: "var(--mono)" }}>P{p.pos}</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{p.driver}</span>
+                <span style={{ fontSize: 11, color: C.textMute, marginLeft: "auto", fontFamily: "var(--mono)" }}>{p.pos === 1 ? (p.grid != null ? `from P${p.grid}` : "") : typeof p.gap === "number" ? `+${p.gap.toFixed(3)}` : p.gap ?? ""}</span>
+                {href && <span style={{ fontSize: 13, color: C.textDim, flexShrink: 0 }} aria-hidden="true">→</span>}
+              </>
+            );
+            const style: React.CSSProperties = { flex: "1 1 160px", padding: "10px 12px", borderRadius: 10, background: C.surfaceAlt, border: "1px solid " + C.border, display: "flex", alignItems: "baseline", gap: 10, textDecoration: "none", transition: "border-color 0.15s ease" };
+            return href ? (
+              <a key={p.pos} href={href} title={`${p.driver}: laps, telemetry and stints`} style={style}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}>{tile}</a>
+            ) : <div key={p.pos} style={style}>{tile}</div>;
+          })}
         </div>
       )}
       {race.verdicts && race.verdicts.length > 0 && (

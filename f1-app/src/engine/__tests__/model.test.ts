@@ -78,10 +78,13 @@ describe.each(fixtures.map(f => [f.slug, f] as const))("fixture %s", (_slug, fx)
     }
   });
 
-  it("every pit lap is PIT_IN and the lap after is PIT_OUT", () => {
+  it("every pit record marks an in-lap PIT_IN and the lap after it PIT_OUT", () => {
+    // A race pit record sits on the in-lap; a qualifying or practice one on
+    // the out-lap (the car leaving the garage).
     for (const p of fx.inputs.pits ?? []) {
-      const inLap = model.lapByKey[`${p.driver_number}-${p.lap_number}`];
-      const outLap = model.lapByKey[`${p.driver_number}-${p.lap_number + 1}`];
+      const inLapNumber = model.kind === "race" ? p.lap_number : p.lap_number - 1;
+      const inLap = model.lapByKey[`${p.driver_number}-${inLapNumber}`];
+      const outLap = model.lapByKey[`${p.driver_number}-${inLapNumber + 1}`];
       if (inLap) expect(hasFlag(inLap.flags, LapFlag.PIT_IN)).toBe(true);
       if (outLap) expect(hasFlag(outLap.flags, LapFlag.PIT_OUT)).toBe(true);
     }

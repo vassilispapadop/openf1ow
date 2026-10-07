@@ -36,7 +36,7 @@ export function buildFacts(model: SessionModel): AnalysisFacts {
 
   tables.results = model.drivers
     .slice().sort((a, b) => (a.classification.position ?? 99) - (b.classification.position ?? 99))
-    .map(d => ({ pos: d.classification.position, driver: d.driver.name_acronym, team: d.team, grid: d.gridPosition, status: d.classification.status, laps: d.classification.lapsCompleted, gap: d.classification.gapToLeader, stops: d.pits.length, strategy: d.stints.map(s => s.compound[0]).join("→") }));
+    .map(d => ({ pos: d.classification.position, driver: d.driver.name_acronym, dn: d.driver.driver_number, team: d.team, grid: d.gridPosition, status: d.classification.status, laps: d.classification.lapsCompleted, gap: d.classification.gapToLeader, stops: d.pits.length, strategy: d.stints.map(s => s.compound[0]).join("→") }));
 
   const pace = paceRanking(model);
   if (pace.ok) tables.pace = pace.value.ranked.map((r, i) => ({ rank: i + 1, driver: r.driver.name_acronym, team: r.team, median: r3(r.medianRaw), fuelCorrected: r3(r.medianPace), gap: r3(r.gapToFastest), ci: [r3(r.ci95[0]), r3(r.ci95[1])], sigma: r3(r.consistency), n: r.n }));

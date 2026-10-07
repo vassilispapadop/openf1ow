@@ -37,7 +37,19 @@ function stintFor(stints: Stint[], driver: number, lap: number): Stint | null {
 }
 
 export function enrichLaps(laps: Lap[], ctx: EnrichContext): { laps: EnrichedLap[]; fuel: FuelModel } {
-  const pitLaps = new Set(ctx.pits.map(p => `${p.driver_number}-${p.lap_number}`));
+  // Which lap a pit record sits on depends on the session: in a race it is the
+  // in-lap (the stop happens during it, the next lap is the out-lap) — also
+  // for back-to-back stops, where a lap is both; in qualifying and practice it
+  // is the out-lap itself (the car leaving the garage). Assuming the race
+  // convention everywhere flagged every qualifying push lap as a pit-out lap
+  // and dropped it from "best lap".
+  const pitInKeys = new Set<string>();
+  const pitOutKeys = new Set<string>();
+  for (const p of ctx.pits) {
+    const inLap = ctx.kind === "race" ? p.lap_number : p.lap_number - 1;
+    pitInKeys.add(`${p.driver_number}-${inLap}`);
+    pitOutKeys.add(`${p.driver_number}-${inLap + 1}`);
+  }
 
   // Restart laps: for each driver, the first lap that starts once a safety
   // car, VSC or red-flag window has closed. Cold tyres and brakes, a bunched
@@ -69,8 +81,8 @@ export function enrichLaps(laps: Lap[], ctx: EnrichContext): { laps: EnrichedLap
       flags |= LapFlag.NO_TIME;
       if (l.lap_number === 1) flags |= LapFlag.FORMATION;
     }
-    if (pitLaps.has(key)) flags |= LapFlag.PIT_IN;
-    if (l.is_pit_out_lap || pitLaps.has(`${l.driver_number}-${l.lap_number - 1}`)) flags |= LapFlag.PIT_OUT;
+    if (pitInKeys.has(key)) flags |= LapFlag.PIT_IN;
+    if (l.is_pit_out_lap || pitOutKeys.has(key)) flags |= LapFlag.PIT_OUT;
 
     const cls = ctx.classification[l.driver_number];
     if (cls?.retiredLap != null && l.lap_number > cls.retiredLap) flags |= LapFlag.RETIRED_AFTER;
