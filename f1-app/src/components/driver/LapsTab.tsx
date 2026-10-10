@@ -14,7 +14,7 @@ import LineChart from "../../charts/LineChart";
 
 const FLAG_BADGES: { flag: number; label: string; tone: "warn" | "neg" | "mute" }[] = [
   { flag: LapFlag.PIT_IN, label: "pit in", tone: "warn" }, { flag: LapFlag.PIT_OUT, label: "out-lap", tone: "warn" },
-  { flag: LapFlag.SC, label: "SC", tone: "warn" }, { flag: LapFlag.VSC, label: "VSC", tone: "warn" }, { flag: LapFlag.RED, label: "red", tone: "neg" },
+  { flag: LapFlag.SC, label: "SC", tone: "warn" }, { flag: LapFlag.VSC, label: "VSC", tone: "warn" }, { flag: LapFlag.RED, label: "red", tone: "neg" }, { flag: LapFlag.DELETED, label: "deleted", tone: "neg" },
   { flag: LapFlag.YELLOW, label: "yellow", tone: "warn" }, { flag: LapFlag.RESTART, label: "restart", tone: "mute" }, { flag: LapFlag.OUTLIER, label: "outlier", tone: "mute" },
   { flag: LapFlag.LAPPED, label: "lapped", tone: "mute" }, { flag: LapFlag.DIRTY, label: "traffic", tone: "mute" },
 ];

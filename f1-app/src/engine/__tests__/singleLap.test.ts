@@ -3,6 +3,8 @@ import { loadAllFixtures } from "./fixtures.ts";
 import { buildSessionModel } from "../session/build.ts";
 import { sessionClock, pushLaps, trackEvolution, sectorBests, teammateSingleLap, runPlan } from "../analyses/singleLap.ts";
 import { generateVerdicts } from "../verdicts/index.ts";
+import { bestLapsByDriver } from "../analyses/quali.ts";
+import { LapFlag } from "../types/model.ts";
 
 const fixtures = loadAllFixtures();
 
@@ -93,5 +95,72 @@ describe.each(fixtures.map(f => [f.slug, f] as const))("single-lap analyses on %
     } else {
       expect(vs.some(v => v.id === "race_winner" && v.kpi)).toBe(true);
     }
+  });
+});
+
+// Marina Bay 2026 sprint qualifying: a red flag six minutes into SQ1 opened a
+// 10-minute gap, longer than the SQ2→SQ3 break. Phases must come from race
+// control, not from the two largest gaps in running.
+describe("qualifying phases follow race control", () => {
+  const fx = fixtures.find(f => f.slug === "marina-bay-2026-sprint-quali");
+  if (!fx) return;
+  const model = buildSessionModel(fx.inputs);
+  const clock = sessionClock(model)!;
+  const pl = pushLaps(model, clock);
+
+  it("names the segments SQ1–SQ3 at the green lights", () => {
+    expect(model.segments.length).toBe(3);
+    expect(clock.phases.map(p => p.name)).toEqual(["SQ1", "SQ2", "SQ3"]);
+    // SQ2 opened at 13:11:00 UTC; the first lap of the session started at 12:30:10.
+    expect(clock.phases[1].fromMin).toBeCloseTo(40.82, 1);
+    expect(clock.phases[2].fromMin).toBeCloseTo(57.82, 1);
+  });
+
+  it("only the drivers who progressed have a time in each segment", () => {
+    expect(pl.ok).toBe(true);
+    if (!pl.ok) return;
+    const inPhase = (i: number) => pl.value.filter(d => d.phaseBests[i] != null);
+    // 22 ran SQ1; LIN (41) progressed but set no SQ2 time; HAD and GAS reached
+    // SQ3 but had their only flying laps deleted.
+    expect(inPhase(0).length).toBe(22);
+    expect(inPhase(1).length).toBe(16);
+    expect(inPhase(2).length).toBe(8);
+    const alo = pl.value.find(d => d.driver.driver_number === 14)!;
+    expect(alo.phaseBests[2]).toBeNull();
+    expect(alo.phaseBests[1]).toBeCloseTo(93.734, 3);
+  });
+
+  it("matches the timing feed's per-segment bests", () => {
+    if (!pl.ok) return;
+    // HAD and GAS had their SQ3 laps deleted for track limits: the feed shows
+    // no SQ3 time, and neither should we. Three SQ1 bests (LEC, HUL, PER) were
+    // set on the lap the red flag interrupted; the laps feed has no duration
+    // for them, so ours can only be slower, never quicker, than the feed's.
+    let exact = 0, nonNull = 0;
+    for (const r of fx.inputs.results ?? []) {
+      const d = pl.value.find(x => x.driver.driver_number === r.driver_number);
+      const feed = Array.isArray(r.duration) ? (r.duration as (number | null)[]) : null;
+      if (!d || !feed) continue;
+      feed.forEach((t, i) => {
+        if (t == null) { expect(d.phaseBests[i]).toBeNull(); return; }
+        nonNull++;
+        expect(d.phaseBests[i]).not.toBeNull();
+        expect(d.phaseBests[i] as number).toBeGreaterThanOrEqual(t - 1e-3);
+        if (Math.abs((d.phaseBests[i] as number) - t) < 1e-3) exact++;
+      });
+    }
+    expect(nonNull).toBe(46);
+    expect(exact).toBe(43);
+  });
+
+  it("flags deleted laps and keeps them out of the best-lap table", () => {
+    const had = model.byDriver[6];
+    const deleted = had.laps.filter(l => l.flags & LapFlag.DELETED);
+    expect(deleted.map(l => l.lap_duration)).toEqual([92.048]);
+    const rows = bestLapsByDriver(model);
+    expect(rows.ok).toBe(true);
+    if (!rows.ok) return;
+    expect(rows.value.find(r => r.driver.driver_number === 6)!.bestLap).toBeCloseTo(92.947, 3);
+    expect(rows.value.find(r => r.driver.driver_number === 10)!.bestLap).toBeCloseTo(93.155, 3);
   });
 });

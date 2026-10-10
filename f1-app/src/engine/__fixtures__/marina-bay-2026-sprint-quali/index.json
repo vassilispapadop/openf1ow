@@ -1,0 +1,25 @@
+{
+  "sessionKey": 11379,
+  "slug": "marina-bay-2026-sprint-quali",
+  "recordedAt": "2026-10-10T07:39:23.752Z",
+  "source": "https://www.openf1ow.com/api/f1",
+  "sessionName": "Sprint Qualifying",
+  "sessionType": "Qualifying",
+  "dateStart": "2026-10-09T12:30:00+00:00",
+  "dateEnd": "2026-10-09T13:14:00+00:00",
+  "counts": {
+    "session": 1,
+    "meeting": 1,
+    "drivers": 22,
+    "laps": 287,
+    "stints": 74,
+    "pit": 74,
+    "position": 998,
+    "intervals": 0,
+    "race_control": 75,
+    "session_result": 22,
+    "weather": 98,
+    "starting_grid": 22,
+    "overtakes": 0
+  }
+}

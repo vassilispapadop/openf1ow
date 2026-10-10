@@ -6,6 +6,8 @@ import type {
   Driver, Lap, Stint, Pit, Weather, SessionInfo, MeetingInfo, RaceControlMsg,
 } from "./raw.ts";
 import type { Fit, Gated } from "./gated.ts";
+import type { SessionSegment } from "../session/timeline.ts";
+export type { SessionSegment };
 
 export type SessionKind = "race" | "qualifying" | "practice" | "unknown";
 
@@ -30,6 +32,7 @@ export const LapFlag = {
   LAPPING: 16384,        // the car ahead is a lap (or more) down
   WET: 32768,            // rain reported by the joined weather sample
   DRS_RANGE: 65536,      // < 1.0 s behind the car ahead
+  DELETED: 131072,       // time deleted by race control (track limits, yellow flag); the lap is still real pace
 } as const;
 
 export type LapFlagName = keyof typeof LapFlag;
@@ -182,6 +185,9 @@ export interface SessionModel {
   totalLaps: number;         // the winner's lap count (race), else the max lap seen
   raceStart: number | null;  // epoch ms of the first timed lap's start
   chequered: number | null;
+  /** Qualifying segments from race control (Q1/Q2/Q3 green light → chequered
+   *  flag). Empty when race control is missing or the session has no segments. */
+  segments: SessionSegment[];
   drivers: DriverSummary[];
   byDriver: Record<number, DriverSummary>;
   laps: EnrichedLap[];

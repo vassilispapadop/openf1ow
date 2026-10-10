@@ -7,7 +7,7 @@ import type {
   SessionModel, DriverSummary, EnrichedLap, EnrichedPit, TeamSummary, Coverage,
 } from "../types/model.ts";
 import { classifySession, isSprint } from "./classify.ts";
-import { lapTimes, sessionStart, chequeredAt, parseTs } from "./timeline.ts";
+import { lapTimes, sessionStart, chequeredAt, sessionSegments, deletedLapKeys, parseTs } from "./timeline.ts";
 import { buildNeutralisations } from "./neutralisations.ts";
 import { buildTrafficIndex } from "./intervalsJoin.ts";
 import { buildWeatherIndex } from "./weatherJoin.ts";
@@ -27,6 +27,7 @@ export function buildSessionModel(inputs: SessionInputs): SessionModel {
   const times = lapTimes(laps);
   const raceStart = sessionStart(laps, times);
   const chequered = chequeredAt(inputs.raceControl, times);
+  const segments = kind === "qualifying" ? sessionSegments(inputs.raceControl) : [];
 
   const { byDriver: classification, totalLaps, fromResults } = classifyDrivers(drivers, laps, inputs.results, kind);
   if (kind === "race" && !fromResults) warnings.push("No classification from the timing feed — retirements inferred from lap counts.");
@@ -53,6 +54,7 @@ export function buildSessionModel(inputs: SessionInputs): SessionModel {
 
   const { laps: enriched, fuel } = enrichLaps(laps, {
     kind, times, stints, pits, neutralisations, classification, traffic, weather, fuel: fuel0,
+    deleted: deletedLapKeys(inputs.raceControl, laps),
   });
 
   const lapByKey: Record<string, EnrichedLap> = {};
@@ -160,6 +162,7 @@ export function buildSessionModel(inputs: SessionInputs): SessionModel {
     totalLaps,
     raceStart,
     chequered,
+    segments,
     drivers: summaries,
     byDriver,
     laps: enriched,

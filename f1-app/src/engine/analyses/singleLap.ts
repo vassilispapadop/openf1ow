@@ -1,6 +1,6 @@
 // Single-lap sessions — qualifying and practice — read on a time axis, not a
 // lap axis. Everything here is keyed to minutes since the first timed lap:
-// the phases (Q1/Q2/Q3 from the gaps in running), each driver's push laps,
+// the phases (Q1/Q2/Q3 from race control, else from the gaps in running), each driver's push laps,
 // how much the track came to the field over the session, the best sectors
 // that add up to the ultimate lap, and the teammate gap on a single lap.
 
@@ -47,9 +47,24 @@ export function sessionClock(model: SessionModel): SessionClock | null {
   const endMin = (endMs - originMs) / 60_000;
 
   const phases: SessionPhase[] = [];
-  if (model.kind === "qualifying") {
-    // Boundaries are the gaps in running. A red flag opens a gap too, so keep
-    // only the two largest — a qualifying session has three segments.
+  const prefix = /sprint/i.test(model.info.session_name || "") ? "SQ" : "Q";
+  const toMin = (ms: number) => (ms - originMs) / 60_000;
+  if (model.kind === "qualifying" && model.segments.length >= 2) {
+    // Race control marks each segment: green light (pit exit open) to its
+    // chequered flag. A lap belongs to the segment whose green light was the
+    // last one before it started, so in-laps after the flag stay with their
+    // segment and a red-flag restart inside a segment does not split it.
+    model.segments.forEach((s, i) => {
+      const last = i === model.segments.length - 1;
+      const from = i === 0 ? 0 : Math.max(0, toMin(s.tStart));
+      const to = last ? endMin : Math.max(from, Math.min(toMin(s.tEnd ?? model.segments[i + 1].tStart), toMin(model.segments[i + 1].tStart)));
+      phases.push({ index: i, name: `${prefix}${i + 1}`, fromMin: from, toMin: to });
+    });
+  } else if (model.kind === "qualifying") {
+    // No race control: boundaries are the gaps in running. A red flag opens a
+    // gap too, so keep only the two largest — a qualifying session has three
+    // segments. (This is why race control is preferred: a long stoppage in
+    // Q1 can out-gap the Q2→Q3 break.)
     const gaps: { at: number; size: number }[] = [];
     for (let i = 1; i < starts.length; i++) {
       const size = (starts[i] - starts[i - 1]) / 60_000;
@@ -57,7 +72,6 @@ export function sessionClock(model: SessionModel): SessionClock | null {
     }
     gaps.sort((a, b) => b.size - a.size);
     const cuts = gaps.slice(0, 2).map(g => g.at).sort((a, b) => a - b);
-    const prefix = /sprint/i.test(model.info.session_name || "") ? "SQ" : "Q";
     let from = 0;
     cuts.forEach((c, i) => {
       // The phase ends at the last lap start before the gap plus a nominal lap.
@@ -73,8 +87,13 @@ export function sessionClock(model: SessionModel): SessionClock | null {
   return { originMs, endMin, phases };
 }
 
+/** The phase a lap starting at `minute` belongs to: the last phase that had
+ *  opened by then. Laps in the break after a chequered flag (in-laps) stay
+ *  with the segment that just ended. */
 export function phaseOf(clock: SessionClock, minute: number): SessionPhase {
-  return clock.phases.find(p => minute >= p.fromMin - 0.01 && minute <= p.toMin + 0.01) ?? clock.phases[clock.phases.length - 1];
+  let found = clock.phases[0];
+  for (const p of clock.phases) if (minute >= p.fromMin - 0.01) found = p;
+  return found;
 }
 
 // --- Push laps ---------------------------------------------------------------------

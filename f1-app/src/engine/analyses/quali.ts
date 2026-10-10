@@ -26,7 +26,7 @@ export interface BestLapRow {
  *  award, which is a different thing. */
 export function eligibleForBest(l: EnrichedLap): boolean {
   return !!l.lap_duration && l.lap_duration > 0 && !(l.flags & LapFlag.PIT_OUT) && l.lap_number > 1
-    && !(l.flags & (LapFlag.RED | LapFlag.SC | LapFlag.VSC));
+    && !(l.flags & (LapFlag.RED | LapFlag.SC | LapFlag.VSC | LapFlag.DELETED));
 }
 
 export function bestLapsByDriver(model: SessionModel): Gated<BestLapRow[]> {

@@ -27,6 +27,8 @@ export interface EnrichContext {
   traffic: TrafficIndex;
   weather: WeatherIndex;
   fuel: FuelModel;
+  /** Lap keys whose time race control deleted. */
+  deleted?: Set<string>;
 }
 
 function stintFor(stints: Stint[], driver: number, lap: number): Stint | null {
@@ -88,6 +90,7 @@ export function enrichLaps(laps: Lap[], ctx: EnrichContext): { laps: EnrichedLap
     if (cls?.retiredLap != null && l.lap_number > cls.retiredLap) flags |= LapFlag.RETIRED_AFTER;
 
     if (restartKeys.has(key)) flags |= LapFlag.RESTART;
+    if (ctx.deleted?.has(key)) flags |= LapFlag.DELETED;
 
     let neutralisation: number | null = null;
     if (Number.isFinite(t.tStart) && t.tEnd != null) {

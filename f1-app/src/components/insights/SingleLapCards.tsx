@@ -5,7 +5,7 @@
 import { useMemo, useState } from "react";
 import { useSessionModel } from "../../lib/useSessionModel";
 import {
-  bestLapsByDriver, sessionClock, pushLaps, trackEvolution, sectorBests, teammateSingleLap, runPlan, longRuns, compoundPrograms,
+  bestLapsByDriver, sessionClock, phaseOf, pushLaps, trackEvolution, sectorBests, teammateSingleLap, runPlan, longRuns, compoundPrograms,
   SECTION_IDS, PUSH_LAP_FACTOR, TRACK_EVOLUTION_MIN_LAPS, TRACK_EVOLUTION_MIN_DRIVERS,
   type BestLapRow, type SectorBestRow, type SingleLapPair, type LongRun, type CompoundProgram, type SessionModel,
 } from "../../engine/index.ts";
@@ -218,7 +218,7 @@ export function SessionEvolutionCard() {
             onHover={k => sel.setHovered(k ? Number(k) : null)}
             onSelect={k => sel.toggle(Number(k))}
             format={y => fmt.lapTime(y)}
-            tipTitle={m => `${minuteLabel(m)} into the session${clock && clock.phases.length > 1 ? ` · ${clock.phases.find(p => m >= p.fromMin - 0.01 && m <= p.toMin + 0.01)?.name ?? ""}` : ""}`}
+            tipTitle={m => `${minuteLabel(m)} into the session${clock && clock.phases.length > 1 ? ` · ${phaseOf(clock, m).name}` : ""}`}
             legend={{ columns: 2, compact: true, hint: true }}
             ariaLabel="Push-lap times through the session"
           />
