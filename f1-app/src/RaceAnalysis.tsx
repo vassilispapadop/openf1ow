@@ -2,7 +2,6 @@
 // the evidence. Every card is an engine card over the shared SessionModel;
 // this file only decides which cards a tab shows.
 
-import AIAnalysis from "./components/AIAnalysis";
 import RaceReplay from "./components/RaceReplay";
 import type { Driver, Lap, Weather } from "./lib/types";
 import { sty } from "./lib/styles";
@@ -28,13 +27,10 @@ import WhatIfCard from "./components/insights/WhatIfCard";
 import { StartCard, GridFinishCard } from "./components/insights/OverviewCards";
 import DriversCard from "./components/insights/DriversCard";
 
-export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl = [], results = [], raceMeta, subTab, onSubTabChange }: {
+export default function RaceAnalysis({ sessionKey, drivers, weather, subTab, onSubTabChange }: {
   sessionKey: string;
   drivers: Driver[];
   weather: Weather[];
-  raceControl?: any[];
-  results?: any[];
-  raceMeta?: { meetingName?: string; circuit?: string; country?: string; year?: number; sessionName?: string };
   subTab: ViewKey;
   onSubTabChange: (tab: ViewKey) => void;
 }) {
@@ -45,7 +41,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
         // EnrichedLap is a Lap, so they read straight off the model.
         const allLaps: Lap[] = model.laps;
         const exportJson = () => {
-          // The same facts the verdicts and the AI narrative are built from.
+          // The same facts the verdicts are built from.
           const facts = buildFacts(model);
           const blob = new Blob([JSON.stringify(facts, null, 2)], { type: "application/json" });
           const url = URL.createObjectURL(blob);
@@ -68,7 +64,6 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, raceControl
                 <DriversCard />
                 <StartCard />
                 <GridFinishCard />
-                <AIAnalysis key={sessionKey} allLaps={allLaps} drivers={drivers} stints={[]} pits={[]} weather={weather} raceControl={raceControl} results={results} raceMeta={raceMeta} />
               </>
             )}
 

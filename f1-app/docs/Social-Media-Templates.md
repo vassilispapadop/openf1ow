@@ -10,7 +10,7 @@ Tweet 1/4:
 🏁 [Year] [GP Name] — Race Analysis
 • [Key stat #1, e.g. "Max gained 3.2s in Sector 2 after pit window"]
 • [Key stat #2, e.g. "Leclerc's tire deg was 0.15s/lap worse than Norris"]
-• Full telemetry + AI analysis → openf1ow.com/[year]/[mk]/[sk]/analysis/overview
+• Full telemetry + engine analysis → openf1ow.com/[year]/[mk]/[sk]/analysis/overview
 📊 [Attach SocialShareCard image]
 
 Tweet 2/4:
@@ -22,8 +22,8 @@ Tweet 3/4:
 [Paste a sector-specific insight — who was fastest in which sector and why]
 
 Tweet 4/4:
-🤖 AI VERDICT
-[Paste the AI race analysis summary — it's already great content]
+🏎️ ENGINE VERDICT
+[Paste the engine-computed race analysis summary — it's already great content]
 
 All analysis powered by OpenF1ow — free, open-source F1 telemetry.
 ```
@@ -93,7 +93,7 @@ Full interactive analysis: [openf1ow.com link]
 
 [3:00-4:00] STRATEGY: "The pit window at lap [N] was the turning point..."
 
-[4:00-5:00] AI ANALYSIS: "An AI analysis of this race reveals..."
+[4:00-5:00] ENGINE ANALYSIS: "An engine-computed analysis of this race reveals..."
 
 [5:00-5:30] OUTRO: "Full interactive analysis at [openf1ow.com] — free forever. Subscribe for more data-driven F1 content."
 ```

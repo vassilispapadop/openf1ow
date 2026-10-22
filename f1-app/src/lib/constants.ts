@@ -85,7 +85,6 @@ export const DEFAULT_ANALYSIS_TAB: ViewKey = ANALYSIS_VIEWS[0].key;
 
 // Legacy tab slug → new view. Old URLs keep working.
 export const TAB_REDIRECT: Record<string, ViewKey> = {
-  ai: "overview",
   commentary: "overview",
   sectors: "pace",
   evolution: "pace",

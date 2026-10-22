@@ -683,7 +683,7 @@ function DriverCard({ data }: { data: DriverData }) {
           display: "flex",
         }}
       >
-        OPENF1OW.COM · TELEMETRY · STRATEGY · AI ANALYSIS
+        OPENF1OW.COM · TELEMETRY · STRATEGY · ENGINE ANALYSIS
       </div>
 
       {/* Bottom accent bar */}

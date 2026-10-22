@@ -29,7 +29,7 @@ Add these topics to your repository (Settings → Properties → Add topic):
 ### Description
 Set the repo description to:
 ```
-Free F1 telemetry dashboard & race analysis — lap-by-lap timing, tire strategies, sector analysis, and AI-powered commentary.
+Free F1 telemetry dashboard & race analysis — lap-by-lap timing, tire strategies, sector analysis, and engine-computed insights.
 ```
 
 ### Pinned Repositories
@@ -98,7 +98,7 @@ Add any other context or screenshots.
 Create a `help wanted` label and add some starter issues:
 - "Add telemetry for Sprint races"
 - "Improve mobile layout for analysis pages"
-- "Add more AI analysis insights"
+- "Add more engine-computed analysis insights"
 - "Support for F1 2026 new regulations"
 
 ## 5. Contribution Guide
@@ -137,7 +137,7 @@ npm run dev
 
 Create a v1.0.0 tag for the current state:
 ```bash
-git tag -a v1.0.0 -m "Initial release with full race analysis, AI commentary, and telemetry"
+git tag -a v1.0.0 -m "Initial release with full race analysis, engine insights, and telemetry"
 git push origin v1.0.0
 ```
 

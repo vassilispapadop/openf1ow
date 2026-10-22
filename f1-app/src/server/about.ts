@@ -7,7 +7,7 @@ const ABOUT_HTML = `<!doctype html>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>About OpenF1ow — methodology, data sources, open source</title>
-<meta name="description" content="OpenF1ow is a free open-source Formula 1 telemetry analysis platform. Methodology: clean-lap median pace, fuel-corrected tyre degradation, dirty-air time loss, and AI-written race verdicts." />
+<meta name="description" content="OpenF1ow is a free open-source Formula 1 telemetry analysis platform. Methodology: clean-lap median pace, fuel-corrected tyre degradation, dirty-air time loss, and engine-computed race verdicts." />
 <link rel="canonical" href="https://www.openf1ow.com/about" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <meta property="og:type" content="website" />
@@ -44,14 +44,14 @@ footer.site { margin-top: 60px; padding: 20px 0; border-top: 1px solid rgba(255,
 
   <h1>About OpenF1ow</h1>
 
-  <p class="lead">A free, open-source Formula 1 analysis platform. Per-race recaps, season trends, fuel-corrected tyre degradation, dirty-air time loss, and AI-written race verdicts. Built on the <a href="https://openf1.org" rel="noopener">OpenF1 API</a>.</p>
+  <p class="lead">A free, open-source Formula 1 analysis platform. Per-race recaps, season trends, fuel-corrected tyre degradation, dirty-air time loss, and engine-computed race verdicts. Built on the <a href="https://openf1.org" rel="noopener">OpenF1 API</a>.</p>
 
   <h2>What it does</h2>
   <p>OpenF1ow turns raw F1 timing into the kind of analysis that until recently lived only on broadcast booths and team engineering screens. Every Grand Prix from 2023 onward gets:</p>
   <ul>
     <li><strong>A race recap</strong> with classification, top race pace, biggest gainers, prose summary.</li>
     <li><strong>Full session analysis</strong> — race pace ranking, sector deltas, tyre degradation per stint, teammate gaps, dirty-air time loss, pit stop efficiency.</li>
-    <li><strong>An AI race verdict</strong> — a Llama 3.3 70B narrative built from the structured data. Not a recap regurgitation; an opinionated read of what actually happened.</li>
+    <li><strong>Engine-computed race verdicts</strong> — data-driven assessments built from the structured analysis. Not a recap regurgitation; an opinionated read of what actually happened.</li>
     <li><strong>Driver telemetry</strong> with multi-driver comparison, dominance maps, corner-by-corner breakdown.</li>
     <li><strong>Season trends</strong> — constructor pace evolution, teammate gap shifts, tyre-deg by compound across the year.</li>
   </ul>
@@ -78,7 +78,6 @@ footer.site { margin-top: 60px; padding: 20px 0; border-top: 1px solid rgba(255,
 
   <h2>Data sources</h2>
   <p><strong>OpenF1.org</strong> — telemetry, lap timing, sectors, stints, pit stops, weather, race control, session results. Cached aggressively in Cloudflare R2 so most page loads serve from cache and the OpenF1 API isn't hit on the hot path.</p>
-  <p><strong>Groq</strong> — Llama 3.3 70B for the race verdicts. Streamed via a Cloudflare Worker so the API key never reaches the browser.</p>
 
   <h2>Open source</h2>
   <p>Source code at <a href="https://github.com/vassilispapadop/openf1ow" rel="noopener">github.com/vassilispapadop/openf1ow</a>. MIT licensed. React 18, TypeScript, Vite 6, Cloudflare Workers + Pages, R2.</p>

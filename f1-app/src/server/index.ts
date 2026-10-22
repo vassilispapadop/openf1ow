@@ -68,7 +68,7 @@ async function fetchCached(path: string, r2?: R2Bucket): Promise<any> {
 }
 
 const SUB_TAB_LABELS: Record<string, string> = {
-  ai: "AI Analysis", replay: "Race Replay", pace: "Race Pace",
+  replay: "Race Replay", pace: "Race Pace",
   sectors: "Sectors", constructors: "Constructors", evolution: "Lap Evolution",
   degradation: "Tire Degradation", fuel: "Fuel", dirtyair: "Dirty Air",
   teammates: "Teammates", pitstops: "Pit Stops", weather: "Weather",
@@ -227,7 +227,7 @@ async function buildOgTags(url: URL, r2?: R2Bucket): Promise<{ title: string; de
   const title = parts.join(" — ") + " | OpenF1ow";
   const driverInfo = driver ? ` — ${driver.full_name || driver.name_acronym}` : "";
   const sessionInfo = session?.session_name ? ` | ${session.session_name}` : "";
-  const description = `Deep F1 telemetry analysis: ${driverInfo}${sessionInfo} — lap-by-lap timing, speed traces, sector splits, tire degradation, pit strategies and AI-powered race commentary for the ${year} ${raceName}.`;
+  const description = `Deep F1 telemetry analysis: ${driverInfo}${sessionInfo} — lap-by-lap timing, speed traces, sector splits, tire degradation, pit strategies and engine-computed race analysis for the ${year} ${raceName}.`;
   const ogUrl = url.origin + url.pathname + url.search;
 
   // Build the og:image URL the same way injectOgTags does, so JSON-LD `image` matches.
@@ -305,7 +305,6 @@ function injectOgTags(html: string, og: { title: string; description: string; og
 
 async function generateRaceSitemap(
   env: Env,
-  ctx: ExecutionContext,
 ): Promise<Response | null> {
   try {
     const [meetingsRes] = await Promise.all([
@@ -390,120 +389,13 @@ function generateOgImageSvg(title: string, subtitle: string): string {
 }
 
 // ============================================================================
-// GROQ AI ANALYSIS
+// BOT PROBE FILTER — paths that only vulnerability scanners request
 // ============================================================================
-
-const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
-const DEFAULT_GROQ_MODEL = "llama-3.3-70b-versatile";
-
-const SYSTEM_PROMPT = `You are an expert Formula 1 race analyst and strategist — think Martin Brundle meets a data scientist. You produce broadcast-quality race summaries from telemetry-derived data.
-
-## F1 Domain Knowledge
-- Tire compounds: SOFT (fastest, ~0.7s/lap advantage, high degradation), MEDIUM (balanced), HARD (slowest, most durable), INTERMEDIATE (light rain), WET (heavy rain)
-- Fuel effect: Cars start with ~110kg fuel. Each kg costs ~0.055s/lap. Cars get faster as fuel burns off.
-- "Deg/Lap" values are fuel-corrected — they show TRUE tire wear with fuel effect removed. Values above 0.08 s/lap = high degradation.
-- DRS (Drag Reduction System): Available when within 1 second of the car ahead in designated zones. Gives ~0.3s/lap advantage.
-- Dirty air: Following within ~1.5s causes aerodynamic loss, hurting cornering performance. This is why overtaking is difficult.
-- Undercut: Pitting before a rival to gain track position via fresh-tire pace advantage on the out-lap.
-- Overcut: Staying out longer on old tires, hoping the rival's out-lap in traffic is slow.
-- Safety Car: Bunches up the field, erasing gaps. Strategic pit stops under SC are nearly "free."
-- Gap values: Positive = slower than leader. A gap of 0.3s in median pace is significant over a race distance.
-
-## Data You Will Receive
-You will receive a JSON object with data from ALL analysis tabs (except weather). Cross-reference every section to build a complete picture:
-- **results**: Final race classification — positions, gaps, DNFs/retirements. START HERE to anchor your narrative.
-- **paceRanking**: Each driver's median race pace on clean laps, gap to leader, best lap. This reveals who was genuinely fast vs. who just finished well.
-- **constructorPace**: Team-level pace — which car was fastest? Compare both drivers within each team.
-- **tireDegradation**: Per-stint degradation rates by compound. Who destroyed their tires? Who made them last? Look at compound choices and stint lengths.
-- **teammateGaps**: Head-to-head within each team on comparable laps. The gap reveals driver quality since the car is identical.
-- **pitStops**: Pit crew efficiency — average and best stop times per team. Did a slow stop cost anyone a position?
-- **dirtyAir**: Who spent the most time stuck in traffic? How much time did they lose per lap in dirty air? This explains why some fast drivers finished lower.
-- **raceControl**: Safety cars, flags, penalties, investigations, retirements — the key incidents that shaped the race.
-
-## Output Structure
-Produce these sections with markdown headers:
-
-1. **Race Summary** — 3-4 sentences. Who won, the margin of victory, headline story. Mention any DNFs, safety cars, or dramatic incidents from raceControl. Set the scene.
-
-2. **Winner & Podium** — Analyze the top 3 finishers. For each: their pace ranking vs. finishing position, strategy, tire management. Did they win on pure pace or strategy? Reference specific data.
-
-3. **Exceptional Drives** — Highlight 2-3 drivers who overperformed relative to their car's pace. Look for: large gap between constructorPace ranking and finishing position (e.g. car ranked P6 but finished P4), strong teammate battles won against the odds, excellent tire management (low deg), clean air mastery. Also mention any remarkable recovery drives.
-
-4. **Key Battles & Moments** — The most interesting intra-team fights (use teammateGaps), wheel-to-wheel battles (use dirtyAir for who was stuck behind whom), and pivotal strategy calls. Reference penalties or incidents from raceControl that changed outcomes.
-
-5. **Pit Stop & Strategy Analysis** — Which teams nailed strategy? Compare stint lengths and compound choices. Highlight the fastest and slowest pit crews. Did anyone clearly gain or lose positions through pit stop timing?
-
-6. **Who Left Performance on the Table?** — 2-3 drivers or teams who underperformed. Look for: fast pace but poor result (high paceRanking but low finishing position), high tire degradation, slow pit stops, too much time in dirty air, or penalties.
-
-## Rules
-- Cross-reference ALL data sections — don't analyze each in isolation
-- ALWAYS cite specific numbers: lap times, gaps, deg rates, pit durations, dirty air time loss
-- Compare pace ranking to actual finishing position — the delta tells the story
-- Name specific drivers and teams in every point — no generic statements
-- Keep it ~600-800 words total
-- Format lap times as M:SS.sss when referencing specific times
-- If a data section is empty or has limited entries, skip that angle rather than speculating
-- Write with personality — this should read like expert TV commentary, not a spreadsheet summary`;
-
-// Shrink the summary before sending to the LLM — Groq free tier has a 12k TPM
-// cap on 70B. Full-grid sector/speed/dirty-air breakdowns are ~23k tokens;
-// we cap the long-tail sections to the interesting entries and drop
-// over-precise decimals, keeping ~90% of the analytical signal.
-function compactSummary(s: any): any {
-  if (!s || typeof s !== "object") return s;
-  const round3 = (x: unknown) => typeof x === "number" ? +x.toFixed(3) : x;
-  const mapRound = <T extends Record<string, unknown>>(o: T): T => {
-    const out: Record<string, unknown> = {};
-    for (const k in o) out[k] = typeof o[k] === "number" ? round3(o[k]) : o[k];
-    return out as T;
-  };
-
-  const cap = <T>(arr: T[] | undefined, n: number): T[] | undefined =>
-    Array.isArray(arr) ? arr.slice(0, n) : arr;
-
-  return {
-    ...s,
-    tireDegradation: Array.isArray(s.tireDegradation) ? s.tireDegradation.map(mapRound) : s.tireDegradation,
-    dirtyAir: cap(Array.isArray(s.dirtyAir) ? s.dirtyAir.map(mapRound) : s.dirtyAir, 12),
-    sectorAnalysis: s.sectorAnalysis
-      ? { ...s.sectorAnalysis, drivers: cap(s.sectorAnalysis.drivers, 10) }
-      : s.sectorAnalysis,
-    topSpeeds: cap(Array.isArray(s.topSpeeds) ? s.topSpeeds.map(mapRound) : s.topSpeeds, 10),
-  };
-}
-
-function buildPrompt(payload: any): string {
-  const meta = payload?.raceMeta;
-  const header = meta
-    ? `Race: ${meta.year ?? ""} ${meta.meetingName ?? ""}${meta.country ? " (" + meta.country + ")" : ""}${meta.sessionName ? " — " + meta.sessionName : ""}`.trim()
-    : "";
-  const body = { ...payload };
-  delete body.raceMeta;
-
-  // Engine facts (schemaVersion 1): the verdicts are already computed with
-  // their confidence and sample — the narrative should lead with them and
-  // expand, not re-derive. Tables follow for supporting numbers.
-  if (body.schemaVersion === 1 && Array.isArray(body.verdicts)) {
-    const verdicts = body.verdicts
-      .filter((v: any) => v.id !== "data_quality")
-      .map((v: any) => `- [${v.confidence}] ${v.headline} ${v.detail} (${(v.numbers ?? []).map((n: any) => `${n.label}: ${n.value}`).join("; ")})`)
-      .join("\n");
-    const warnings = Array.isArray(body.warnings) && body.warnings.length ? `\n\nData notes: ${body.warnings.join(" ")}` : "";
-    return `Write the race analysis from the pre-computed findings and tables below. The findings come from a statistical engine (clean-lap filtering, fuel correction, fitted degradation, real timing gaps) — treat them as established facts, lead with the highest-impact ones, and cite their numbers. Do not invent figures that are not in the data.${header ? "\n\n" + header : ""}\n\n## Findings\n${verdicts}${warnings}\n\n## Tables\n${JSON.stringify(body.tables)}`;
-  }
-  return `Analyze this Formula 1 race using the data below. The data has been pre-computed from telemetry — trust the numbers.${header ? "\n\n" + header : ""}\n\n${JSON.stringify(compactSummary(body))}`;
-}
-
-const CORS_HEADERS = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-};
 
 // Paths that only vulnerability scanners request — this is a static React app
 // on Cloudflare, so any .php, WordPress path, or exposed-dotfile probe is junk.
 const BOT_PROBE_RE =
-  /(\.php($|[?/])|\/wp-(admin|includes|content|login)|xmlrpc|\/\.(env|git|aws|ssh)|\/vendor\/|\/phpmyadmin)/i;
+  /\.(php($|[?/])|\/wp-(admin|includes|content|login)|xmlrpc|\/\.(env|git|aws|ssh)|\/vendor\/|\/phpmyadmin)/i;
 
 export default {
   // Cron Trigger (wrangler.jsonc): one settled session per tick — warm its
@@ -526,7 +418,7 @@ export default {
     }
 
     if (request.method === "OPTIONS") {
-      return new Response(null, { headers: CORS_HEADERS });
+      return new Response(null);
     }
 
     // OG image endpoint — returns SVG with race/driver branding
@@ -557,7 +449,7 @@ export default {
 
     // Sitemap — dynamic race pages list (generated on each request)
     if (url.pathname === "/sitemap-races.xml" && request.method === "GET") {
-      const raceSitemap = await generateRaceSitemap(env, ctx);
+      const raceSitemap = await generateRaceSitemap(env);
       if (raceSitemap) return raceSitemap;
       return new Response(null, { status: 404 });
     }
@@ -683,121 +575,17 @@ export default {
       }
     }
 
-    if (url.pathname !== "/api/analyze") {
-      // Delegate non-Worker routes (static assets + SPA fallback) to ASSETS.
-      // The asset binding's `not_found_handling: single-page-application` will
-      // serve index.html for any unmatched path.
-      if (env.ASSETS) {
-        return env.ASSETS.fetch(request);
-      }
-      // Dev fallback when ASSETS isn't bound (e.g. plain `wrangler dev` without
-      // build): proxy index.html from the Vite dev server.
-      try {
-        return await fetch(new Request(url.origin + "/"));
-      } catch { /* fall through */ }
-      return new Response(null, { status: 404 });
+    // Delegate routes (static assets + SPA fallback) to ASSETS.
+    // The asset binding's `not_found_handling: single-page-application` will
+    // serve index.html for any unmatched path.
+    if (env.ASSETS) {
+      return env.ASSETS.fetch(request);
     }
-
-    if (request.method !== "POST") {
-      return new Response("Method not allowed", { status: 405, headers: CORS_HEADERS });
-    }
-
-    if (!env.GROQ_API_KEY) {
-      return new Response("GROQ_API_KEY not configured", { status: 500, headers: CORS_HEADERS });
-    }
-
-    let body: any;
+    // Dev fallback when ASSETS isn't bound (e.g. plain `wrangler dev` without
+    // build): proxy index.html from the Vite dev server.
     try {
-      body = await request.json();
-    } catch {
-      return new Response("Invalid JSON body", { status: 400, headers: CORS_HEADERS });
-    }
-
-    const groqBody = {
-      model: env.GROQ_MODEL || DEFAULT_GROQ_MODEL,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: buildPrompt(body) },
-      ],
-      temperature: 0.3,
-      max_tokens: 8192,
-      stream: true,
-    };
-
-    const groqRes = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${env.GROQ_API_KEY}`,
-      },
-      body: JSON.stringify(groqBody),
-    });
-
-    if (!groqRes.ok) {
-      const err = await groqRes.text();
-      return new Response(`Groq API error: ${groqRes.status} ${err}`, {
-        status: 502,
-        headers: CORS_HEADERS,
-      });
-    }
-
-    // Stream the Groq SSE response back to the client, normalizing OpenAI-style
-    // chunks into the { text } shape AIAnalysis.tsx already parses.
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const encoder = new TextEncoder();
-
-    const processLine = async (line: string) => {
-      if (!line.startsWith("data: ")) return;
-      const data = line.slice(6).trim();
-      if (!data || data === "[DONE]") return;
-      try {
-        const parsed = JSON.parse(data);
-        const text = parsed?.choices?.[0]?.delta?.content;
-        if (text) {
-          await writer.write(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
-        }
-      } catch {
-        // skip unparseable chunks
-      }
-    };
-
-    (async () => {
-      try {
-        if (!groqRes.body) throw new Error("No response body from Groq");
-        const reader = groqRes.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            await processLine(line);
-          }
-        }
-
-        // Process remaining buffer
-        await processLine(buffer);
-        await writer.write(encoder.encode("data: [DONE]\n\n"));
-      } catch (e) {
-        try { await writer.write(encoder.encode(`data: ${JSON.stringify({ error: String(e) })}\n\n`)); } catch {}
-      } finally {
-        try { await writer.close(); } catch {}
-      }
-    })();
-
-    return new Response(readable, {
-      headers: {
-        ...CORS_HEADERS,
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-      },
-    });
+      return await fetch(new Request(url.origin + "/"));
+    } catch { /* fall through */ }
+    return new Response(null, { status: 404 });
   },
 };

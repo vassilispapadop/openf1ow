@@ -540,7 +540,7 @@ footer.site a { color: rgba(255,255,255,0.5); }
     <h2>What you can dig into next</h2>
     <p style="font-size:14px;color:rgba(255,255,255,0.7);line-height:1.6">
       Median race pace, sector-by-sector deltas, fuel-corrected tyre degradation per stint,
-      teammate head-to-heads, dirty-air time loss, pit crew efficiency, and an AI-written race verdict —
+      teammate head-to-heads, dirty-air time loss, pit crew efficiency, and engine-computed race verdicts —
       all in the <a href="${escHtml(sessionLink)}">full analysis view</a>.
     </p>
   </section>

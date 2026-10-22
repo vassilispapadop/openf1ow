@@ -173,7 +173,7 @@ export default function LatestRaceCard({ year }: { year: number }) {
           Race recap
         </CtaPill>
         <CtaPill href={analysisHref}>
-          Full analysis & AI verdict
+          Full analysis
         </CtaPill>
         <CtaPill href={trendsHref}>
           {race.year} season trends

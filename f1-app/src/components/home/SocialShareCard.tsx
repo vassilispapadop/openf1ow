@@ -104,7 +104,7 @@ export default function SocialShareCard() {
     setTimeout(() => setDownloaded(false), 2000);
   }
 
-  const selectedMeeting = meetings.find(m => m.meeting_key === selectedKey);
+  // selectedMeeting is intentionally not used — the OG endpoint handles meeting details
   // selectedSession is intentionally not used — the OG endpoint handles session details
 
   return (

@@ -69,12 +69,12 @@ Use [Google's Rich Results Test](https://search.google.com/test/rich-results) to
 ### Race Pages (Highest Priority)
 Each race session generates a unique page that Google indexes. These are your primary traffic drivers:
 - **Title format**: `[Session] — [Driver] | [Year] [GP Name] | OpenF1ow`
-- **Description format**: `Deep F1 telemetry analysis: [driver] [session] — lap-by-lap timing, speed traces, sector splits, tire degradation, pit strategies and AI-powered race commentary for the [year] [GP Name].`
+- **Description format**: `Deep F1 telemetry analysis: [driver] [session] — lap-by-lap timing, speed traces, sector splits, tire degradation, pit strategies and engine-computed race analysis for the [year] [GP Name].`
 - These are automatically set by the Worker's OG/JSON-LD injection
 
 ### Homepage
 - Title: "OpenF1ow — Free F1 Telemetry Dashboard & Race Analysis"
-- Description: "Live F1 telemetry, lap-by-lap timing, tire strategies, AI race commentary. Free forever."
+- Description: "Live F1 telemetry, lap-by-lap timing, tire strategies, engine-computed insights. Free forever."
 
 ### Season Pages
 - Title: "[Year] F1 Season — OpenF1ow"
@@ -93,7 +93,7 @@ After every Grand Prix:
 | Competitor | What They Rank For | OpenF1ow Opportunity |
 |-----------|-------------------|---------------------|
 | F1.com | Live timing, results | Deep telemetry, analysis |
-| StatsF1 | Historical data | Real-time analysis, AI insights |
+| StatsF1 | Historical data | Real-time analysis, engine insights |
 | Formula1.com | News, highlights | Telemetry, sector analysis |
 | The Race (TheF1) | Analysis articles | Interactive telemetry |
 | PitPass | Fan analysis | Professional-grade data |
