@@ -152,3 +152,9 @@ button:focus-visible {
 /* Row with the same hover-border treatment as pills, for non-pill surfaces */
 .hover-border-strong { transition: border-color 0.15s ease; }
 .hover-border-strong:hover { border-color: rgba(255,255,255,0.12) !important; }
+
+/* ── Pulse animation for live/active indicators ── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.15); }
+}

@@ -6,6 +6,7 @@ import { paths } from "../lib/constants";
 import { useLastRace } from "../lib/retention";
 import LatestRaceCard from "../components/home/LatestRaceCard";
 import NextRaceCard from "../components/home/NextRaceCard";
+import RaceCountdown from "../components/home/RaceCountdown";
 import HotStats from "../components/home/HotStats";
 import ConstructorPaceTile from "../components/home/ConstructorPaceTile";
 import TeammateGapTile from "../components/home/TeammateGapTile";
@@ -58,6 +59,9 @@ export default function HomePage() {
         <span style={{ width: 6, height: 6, borderRadius: "50%", background: C.accent }} />
         <span>F1 · {year} season</span>
       </div>
+
+      {/* Sticky race countdown banner — only during race weekends (±2h–48h) */}
+      <RaceCountdown />
 
       <NextRaceCard year={year} />
 

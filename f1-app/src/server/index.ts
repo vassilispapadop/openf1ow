@@ -225,7 +225,9 @@ async function buildOgTags(url: URL, r2?: R2Bucket): Promise<{ title: string; de
   parts.push(`${year} ${raceName}`);
 
   const title = parts.join(" — ") + " | OpenF1ow";
-  const description = `F1 telemetry and race analysis for the ${year} ${raceName}. Lap times, sector splits, tire strategies, and more on OpenF1ow.`;
+  const driverInfo = driver ? ` — ${driver.full_name || driver.name_acronym}` : "";
+  const sessionInfo = session?.session_name ? ` | ${session.session_name}` : "";
+  const description = `Deep F1 telemetry analysis: ${driverInfo}${sessionInfo} — lap-by-lap timing, speed traces, sector splits, tire degradation, pit strategies and AI-powered race commentary for the ${year} ${raceName}.`;
   const ogUrl = url.origin + url.pathname + url.search;
 
   // Build the og:image URL the same way injectOgTags does, so JSON-LD `image` matches.
@@ -295,6 +297,58 @@ function injectOgTags(html: string, og: { title: string; description: string; og
   }
 
   return result;
+}
+
+// ============================================================================
+// RACE SITEMAP — generate per-race URLs for Google Search Console
+// ============================================================================
+
+async function generateRaceSitemap(
+  env: Env,
+  ctx: ExecutionContext,
+): Promise<Response | null> {
+  try {
+    const [meetingsRes] = await Promise.all([
+      fetchCached("/meetings", env.F1_DATA),
+    ]);
+    const meetings = Array.isArray(meetingsRes) ? meetingsRes : [];
+    if (!meetings.length) return null;
+
+    const urls = new Set<string>();
+    const now = new Date();
+    for (const m of meetings) {
+      const year = m.year;
+      const mk = m.meeting_key;
+      if (!year || !mk) continue;
+
+      urls.add(`<url><loc>https://www.openf1ow.com/${year}</loc><lastmod>${now.toISOString().split("T")[0]}</lastmod><priority>0.7</priority></url>`);
+      urls.add(`<url><loc>https://www.openf1ow.com/${year}/${mk}</loc><lastmod>${m.date_start ? new Date(m.date_start).toISOString().split("T")[0] : now.toISOString().split("T")[0]}</lastmod><priority>0.9</priority></url>`);
+
+      for (const s of meetings) {
+        if (s.meeting_key === mk) {
+          const sk = s.session_key;
+          if (sk) {
+            urls.add(`<url><loc>https://www.openf1ow.com/${year}/${mk}/${sk}/analysis/overview</loc><lastmod>${s.date_start ? new Date(s.date_start).toISOString().split("T")[0] : now.toISOString().split("T")[0]}</lastmod><priority>0.8</priority></url>`);
+          }
+        }
+      }
+    }
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  ${Array.from(urls).join("\n  ")}
+</urlset>`;
+
+    return new Response(xml, {
+      headers: {
+        "Content-Type": "application/xml",
+        "Cache-Control": "public, max-age=3600",
+      },
+    });
+  } catch (e) {
+    console.error("sitemap error:", e);
+    return null;
+  }
 }
 
 // ============================================================================
@@ -492,6 +546,20 @@ export default {
           "Cache-Control": "public, max-age=86400",
         },
       });
+    }
+
+    // Sitemap endpoint — static XML index
+    if (url.pathname === "/sitemap.xml" && request.method === "GET") {
+      const staticIdx = env.ASSETS ? await env.ASSETS.fetch(new Request(url.origin + "/sitemap-index.xml")) : null;
+      if (staticIdx?.ok) return staticIdx;
+      return new Response(null, { status: 404 });
+    }
+
+    // Sitemap — dynamic race pages list (generated on each request)
+    if (url.pathname === "/sitemap-races.xml" && request.method === "GET") {
+      const raceSitemap = await generateRaceSitemap(env, ctx);
+      if (raceSitemap) return raceSitemap;
+      return new Response(null, { status: 404 });
     }
 
     // OpenF1 API proxy — serve from R2 cache (must be before OG/SPA handlers)

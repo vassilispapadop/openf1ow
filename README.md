@@ -1,28 +1,17 @@
 # OpenF1ow
 
-Formula 1 telemetry dashboard and race analysis platform powered by the [OpenF1 API](https://openf1.org).
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange)](https://workers.cloudflare.com/)
 
-**Live:** [www.openf1ow.com](https://www.openf1ow.com) · **Source:** [github.com/vassilispapadop/openf1ow](https://github.com/vassilispapadop/openf1ow)
+**Live demo:** [openf1ow.com](https://www.openf1ow.com) · **Source:** [github.com/vassilispapadop/openf1ow](https://github.com/vassilispapadop/openf1ow)
 
-## Screenshots
+A free, open-source Formula 1 telemetry dashboard and race analysis platform powered by the [OpenF1 API](https://openf1.org). Analyze every Grand Prix session with detailed lap-by-lap data, tire strategy breakdowns, AI-powered race commentary, and interactive visualizations.
 
-<!-- Drop images into docs/images/ with the names below and they'll render here. -->
-
-| Home | Race Analysis |
-|---|---|
-| ![Home](docs/images/home.png) | ![Race Analysis](docs/images/analysis.png) |
-
-| Driver View | AI Race Analysis |
-|---|---|
-| ![Driver View](docs/images/driver.png) | ![AI Analysis](docs/images/ai-analysis.png) |
-
-![Telemetry](docs/images/telemetry.png)
-*Single-lap telemetry — speed, throttle, brake, gear, DRS.*
-
-## Features
+## ✨ Features
 
 ### Driver View
-- **Lap-by-lap data** with sector times, speeds, and pit stop info
+- **Lap-by-lap data** — sector times, speeds, and pit stop info
 - **Live telemetry** — speed, throttle, brake, gear, DRS traces per lap
 - **Multi-driver comparison** — overlay telemetry from different drivers/laps
 - **Position tracking** and race control messages
@@ -30,11 +19,11 @@ Formula 1 telemetry dashboard and race analysis platform powered by the [OpenF1 
 ### Race Analysis
 - **Race Pace Ranking** — median pace with box plot distributions and consistency metrics
 - **Sector Analysis** — sector deltas, speed traps, theoretical best laps, consistency heatmap
-- **Tire Degradation** — fuel-corrected deg/lap per stint, compound comparison summary
+- **Tire Degradation** — fuel-corrected deg/lap per stint, compound comparison
 - **Constructor Pace** — team-level aggregation with intra-team driver gap analysis
 - **Teammate Battles** — head-to-head lap wins and pace comparison
 - **Pit Stop Efficiency** — crew rankings, pit window timeline
-- **Dirty Air Analysis** — traffic heatmap, time loss quantification, gap vs loss scatter
+- **Dirty Air Analysis** — traffic heatmap, time loss quantification
 - **Weather Correlation** — temperature vs pace scatter, driver adaptability
 - **Fuel Model** — estimated fuel load curve and cumulative time gain
 - **Scatter plots** across all tabs for deeper correlation analysis
@@ -49,16 +38,31 @@ Formula 1 telemetry dashboard and race analysis platform powered by the [OpenF1 
 - **JSON export** — download race summary data for external analysis
 - **API response caching** — instant navigation on revisit
 - **Hover tooltips** on all charts and graphs
+- **Shareable race cards** — generate beautiful images to share on social media
+
+## Screenshots
+
+| Home | Race Analysis |
+|---|---|
+| ![Home](docs/images/home.png) | ![Race Analysis](docs/images/analysis.png) |
+
+| Driver View | AI Race Analysis |
+|---|---|
+| ![Driver View](docs/images/driver.png) | ![AI Analysis](docs/images/ai-analysis.png) |
+
+![Telemetry](docs/images/telemetry.png)
+*Single-lap telemetry — speed, throttle, brake, gear, DRS.*
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | Frontend | React 18 + TypeScript + Vite 6 + React Router 7 |
-| Hosting | Cloudflare Workers + Pages |
+| Hosting | Cloudflare Workers + Pages + R2 |
 | Data | [OpenF1 API](https://openf1.org) |
 | AI | Groq API, `llama-3.3-70b-versatile` (via Cloudflare Worker proxy) |
 | Charts | Custom canvas rendering (no chart library) |
+| Analytics | Google Analytics 4 + Cloudflare Analytics Engine |
 
 ## Getting Started
 
