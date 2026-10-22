@@ -178,9 +178,9 @@ const CORNER_RADIUS_M = 250;
  *  Lateral load is what separates a fast sweeper from a lazy kink at the same
  *  radius — Eau Rouge sits at ~370 m and pulls 2.0 g, a slow wide bend at the
  *  same radius pulls a fraction of that. Measured noise on known straights is
- *  0.05 g median and 0.24 g at p99, so 1.6 g clears it by an order of
- *  magnitude. The radius cap stops the rule reaching onto genuine straights. */
-const CURVE_MIN_G = 1.6;
+ *  0.05 g median and 0.24 g at p99, so 1.2 g clears it comfortably. The
+ *  radius cap stops the rule reaching onto genuine straights. */
+const CURVE_MIN_G = 1.2;
 const CURVE_MAX_RADIUS_M = 600;
 /** Baseline either side of a point when measuring heading change. Long enough
  *  to ride over position-fix jitter, short enough to resolve a chicane. */
@@ -546,7 +546,7 @@ function buildRuns(kinds: SectionKind[], step: number, speed: number[] | null): 
   // Despeckle: a run too short to be real becomes whatever its longer
   // neighbour is. Repeat until stable, since absorbing one run can leave
   // another short.
-  for (let pass = 0; pass < 4; pass++) {
+  for (;;) {
     const runs = runsOf(k);
     let changed = false;
     for (let i = 0; i < runs.length; i++) {
@@ -594,14 +594,20 @@ function buildRuns(kinds: SectionKind[], step: number, speed: number[] | null): 
 }
 
 /** The largest speed loss inside [start, end] is small against the peak, and
- *  the car never slows below CURVE_MIN_SPEED: taken flat, or near enough. */
+ *  the car never slows below CURVE_MIN_SPEED: taken flat, or near enough.
+ *  Two-pass: first compute the overall peak, then the drawdown from it so
+ *  a re-acceleration at exit doesn't inflate the measured drop. */
 function flatThrough(speed: number[], start: number, end: number): boolean {
-  let max = -Infinity, min = Infinity, drawdown = 0;
+  let max = -Infinity, min = Infinity;
   for (let i = start; i <= end; i++) {
     const v = speed[i];
     if (v > max) max = v;
     if (v < min) min = v;
-    if (max - v > drawdown) drawdown = max - v;
+  }
+  let drawdown = 0;
+  for (let i = start; i <= end; i++) {
+    const d = max - speed[i];
+    if (d > drawdown) drawdown = d;
   }
   return min >= CURVE_MIN_SPEED && drawdown <= FLAT_CORNER_DROP * max;
 }
@@ -891,7 +897,7 @@ export function compareLapSegments(traces: SegmentTrace[]): SegmentComparison | 
   const spans: { kind: SectionKind; turns: number; parts: [number, number][] }[] =
     raw.map(r => ({ kind: r.kind, turns: r.turns, parts: [[r.start, r.end]] }));
   const head = raw[0], tail = raw[raw.length - 1];
-  if (raw.length >= 3 && head.kind === tail.kind) {
+  if (raw.length >= 2 && head.kind === tail.kind) {
     spans.pop();
     spans[0] = { kind: head.kind, turns: head.turns + tail.turns, parts: [[tail.start, tail.end], [head.start, head.end]] };
   }
