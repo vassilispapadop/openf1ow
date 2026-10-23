@@ -6,12 +6,32 @@ import { useSessionModel } from "../../lib/useSessionModel";
 import { PendingData } from "../analysis/PendingData";
 import type { SessionModel } from "../../engine/index.ts";
 import { sty } from "../../lib/styles";
+import { useSession } from "../../contexts/SessionContext";
+import EmptyState from "../../ui/EmptyState";
 
 export default function ModelGate({ children, loading = "Loading session data…" }: {
   children: (model: SessionModel) => ReactNode;
   loading?: string;
 }) {
   const { model, status, error, pendingCount, retry } = useSessionModel();
+  const { sessions, sk } = useSession();
+
+  // A session that hasn't started has no data to wait for: say when it runs
+  // rather than blaming the data source's rate limit.
+  const session = sessions.find((x: any) => String(x.session_key) === sk);
+  const start = session?.date_start ? new Date(session.date_start) : null;
+  if (start && start.getTime() > Date.now()) {
+    const when = start.toLocaleString(undefined, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+    return (
+      <div style={sty.card}>
+        <EmptyState
+          kind="no-data"
+          title={`${session.session_name} hasn't run yet`}
+          detail={`Scheduled for ${when} (your local time). Timing and telemetry appear here once the session is over.`}
+        />
+      </div>
+    );
+  }
   if (status === "pending") return <PendingData onRetry={retry} checking={false} exhausted={pendingCount > 4} />;
   if (status === "error") {
     return (
