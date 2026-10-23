@@ -1,5 +1,7 @@
+// Selector bar — flat race strip + session pills.
+// Replaced by simple session tabs in SessionLayout, but still available for older layouts.
+
 import { useRef, useEffect, useMemo, useCallback } from "react";
-import { F, M, C } from "../../lib/styles";
 
 interface SelectorBarProps {
   meetings: any[];
@@ -33,15 +35,12 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
     }
   }, []);
 
-  // No setPointerCapture: it can swallow the click on the inner button.
-  // 8px threshold tolerates 1–3px of normal click drift without flagging
-  // the gesture as a drag.
   const DRAG_THRESHOLD = 8;
   const dragState = useRef({ active: false, startX: 0, scrollLeft: 0, suppressClick: false });
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (!scrollRef.current) return;
-    if (e.pointerType === "touch") return;       // native scroll on touch
-    if (e.button !== 0) return;                  // primary button only
+    if (e.pointerType === "touch") return;
+    if (e.button !== 0) return;
     dragState.current = { active: true, startX: e.clientX, scrollLeft: scrollRef.current.scrollLeft, suppressClick: false };
     scrollRef.current.style.cursor = "grabbing";
   }, []);
@@ -63,13 +62,10 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
     }
   }, []);
 
-  // Same footprint as the race strip, so the page below does not move when
-  // the season's meetings arrive.
   if (!races.length) return <div style={{ marginBottom: 16, height: 48 }} aria-busy="true" />;
 
   return (
     <div style={{ marginBottom: 16 }}>
-      {/* Race strip — flatter, quieter */}
       <div
         ref={scrollRef}
         onWheel={onWheel}
@@ -80,14 +76,11 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
         onPointerCancel={onPointerUp}
         onClickCapture={onClickCapture}
         style={{
-          display: "flex",
-          gap: 6,
-          overflowX: "auto",
+          display: "flex", gap: 6, overflowX: "auto",
           padding: "2px 0 10px",
           scrollbarWidth: "none",
           cursor: "grab",
           userSelect: "none",
-          // Native horizontal touch scroll without page-level vertical interference
           touchAction: "pan-x",
           WebkitOverflowScrolling: "touch",
         }}
@@ -102,13 +95,11 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
               onClick={() => onMeeting(String(m.meeting_key))}
               style={{
                 flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
+                display: "flex", alignItems: "center", gap: 8,
                 padding: "5px 12px 5px 5px",
                 borderRadius: 999,
-                border: "1px solid " + (selected ? C.borderStrong : C.border),
-                background: selected ? C.surfaceHi : C.surface,
+                border: "1px solid " + (selected ? "var(--border-strong)" : "var(--border)"),
+                background: selected ? "var(--surface-alt)" : "var(--surface)",
                 cursor: "pointer",
                 transition: "border-color 0.15s ease, background 0.15s ease",
                 outline: "none",
@@ -116,29 +107,14 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
               }}
             >
               {m.country_flag && (
-                <img
-                  src={m.country_flag}
-                  alt=""
-                  style={{ width: 22, height: 15, borderRadius: 2, objectFit: "cover" }}
-                />
+                <img src={m.country_flag} alt=""
+                  style={{ width: 22, height: 15, borderRadius: 2, objectFit: "cover" }} />
               )}
-              <div style={{ textAlign: "left" }}>
-                <div style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  fontFamily: F,
-                  color: selected ? C.text : C.textDim,
-                  whiteSpace: "nowrap",
-                }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: selected ? "var(--text)" : "var(--text-muted)", whiteSpace: "nowrap" }}>
                   {m.circuit_short_name || m.location || m.country_name}
                 </div>
-                <div style={{
-                  fontSize: 9,
-                  fontFamily: M,
-                  color: selected ? C.textMute : C.textFaint,
-                  whiteSpace: "nowrap",
-                  marginTop: 1,
-                }}>
+                <div style={{ fontSize: 9, color: selected ? "var(--text-muted)" : "var(--text-faint)", whiteSpace: "nowrap", marginTop: 1, fontFamily: "var(--mono)" }}>
                   {new Date(m.date_start).toLocaleDateString("en", { month: "short", day: "numeric" })}
                 </div>
               </div>
@@ -147,29 +123,23 @@ export default function SelectorBar({ meetings, mk, sessions, sk, onMeeting, onS
         })}
       </div>
 
-      {/* Session pills — same family as race pills, no red/gradient */}
       {sessions.length > 0 && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {sessions.map(s => {
             const selected = String(s.session_key) === sk;
             return (
-              <button
-                key={s.session_key}
-                onClick={() => onSession(String(s.session_key))}
+              <button key={s.session_key} onClick={() => onSession(String(s.session_key))}
                 style={{
                   padding: "5px 14px",
                   borderRadius: 999,
-                  border: "1px solid " + (selected ? C.borderStrong : C.border),
-                  background: selected ? C.surfaceHi : "transparent",
-                  color: selected ? C.text : C.textDim,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  fontFamily: F,
+                  border: "1px solid " + (selected ? "var(--border-strong)" : "var(--border)"),
+                  background: selected ? "var(--surface-alt)" : "transparent",
+                  color: selected ? "var(--text)" : "var(--text-muted)",
+                  fontSize: 11, fontWeight: 600,
                   cursor: "pointer",
                   transition: "border-color 0.15s ease, background 0.15s ease, color 0.15s ease",
                   outline: "none",
-                }}
-              >
+                }}>
                 {s.session_name}
               </button>
             );

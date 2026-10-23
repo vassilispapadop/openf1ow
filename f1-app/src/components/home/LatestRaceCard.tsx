@@ -1,11 +1,12 @@
+// Latest race card — flat, data-forward.
+// No gradients, no decorative chrome. Just the facts.
+
 import { useCallback, useEffect, useState } from "react";
-import { F, C, R, isNarrowViewport } from "../../lib/styles";
 import { shareUrl, canShareUrl } from "../../lib/share";
 import { fd } from "../../lib/format";
 import { findLatestRace } from "../../lib/latestRace";
 import { loadSeasonTrends } from "../../lib/seasonClient";
 import { fetchInsights } from "../../lib/api";
-import { paths } from "../../lib/constants";
 import type { ConstructorPaceRace } from "../../lib/seasonUtils";
 
 interface LatestRace {
@@ -19,7 +20,6 @@ interface LatestRace {
   dateStart: string;
   fastestTeam?: string;
   fastestTeamGap?: string;
-  poleTeam?: string;          // P1 in the constructor-pace ranking, if available
   verdicts?: { id: string; headline: string; confidence: string; tab: string }[];
   podium?: { pos: number; driver: string; dn?: number; team: string; gap: string | number | null; grid: number | null }[];
 }
@@ -39,7 +39,6 @@ export default function LatestRaceCard({ year }: { year: number }) {
         c => c.slug === latest.slug,
       );
 
-      // The engine's top findings for the race, from the Worker-side run.
       let verdicts: LatestRace["verdicts"] = undefined;
       let podium: LatestRace["podium"] = undefined;
       if (latest.raceSk) {
@@ -70,7 +69,6 @@ export default function LatestRaceCard({ year }: { year: number }) {
         fastestTeamGap: trendRow?.teams[1]
           ? `+${trendRow.teams[1].gapToFastest.toFixed(3)}s`
           : undefined,
-        poleTeam: trendRow?.teams[0]?.team,
       });
       setLoading(false);
     })();
@@ -79,18 +77,19 @@ export default function LatestRaceCard({ year }: { year: number }) {
 
   if (loading) {
     return (
-      // Measured footprint of the rendered card (desktop / phone).
-      <div style={{ ...wrapperStyle, height: isNarrowViewport() ? 570 : 389 }} aria-busy="true" />
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: 24, minHeight: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading...</span>
+      </div>
     );
   }
   if (!race) {
     return (
-      <div style={wrapperStyle}>
-        <div style={{ fontSize: 12, color: C.textMute, fontWeight: 600, letterSpacing: "0.08em", marginBottom: 8 }}>
-          {String(year).toUpperCase()} SEASON
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: 24 }}>
+        <div style={{ fontSize: 11, color: "var(--text-faint)", fontWeight: 600, letterSpacing: "0.08em", marginBottom: 8 }}>
+          {String(year).toUpperCase()}
         </div>
-        <div style={{ fontSize: 18, color: C.textDim, fontFamily: F }}>
-          No completed races yet — pick a session below.
+        <div style={{ fontSize: 16, color: "var(--text-muted)" }}>
+          No completed races yet.
         </div>
       </div>
     );
@@ -99,93 +98,134 @@ export default function LatestRaceCard({ year }: { year: number }) {
   const formatted = fd(race.dateStart);
   const recapHref = `/recap/${race.year}/${race.slug}`;
   const analysisHref = race.raceSk
-    ? paths.analysis(race.year, String(race.meetingKey), String(race.raceSk))
+    ? `/${race.year}/${race.meetingKey}/analysis?sessionKey=${race.raceSk}`
     : `/${race.year}/${race.meetingKey}`;
   const trendsHref = `/${race.year}/trends`;
 
   return (
-    <div style={{ ...wrapperStyle }}>
-      <div style={{ fontSize: 11, color: C.textMute, fontWeight: 600, letterSpacing: "0.12em", marginBottom: 10 }}>
-        LATEST · {formatted.toUpperCase()}
+    <div style={{
+      background: "var(--surface)",
+      border: "1px solid var(--border)",
+      borderRadius: "var(--radius-md)",
+      padding: "24px 28px",
+    }}>
+      {/* Date header — flat, minimal */}
+      <div style={{ fontSize: 11, color: "var(--text-faint)", fontWeight: 600, letterSpacing: "0.1em", marginBottom: 6 }}>
+        {formatted.toUpperCase()}
       </div>
+
+      {/* Race name — large, bold */}
       <h2 style={{
-        fontSize: "clamp(32px, 5.5vw, 52px)",
+        fontSize: "clamp(28px, 5vw, 42px)",
         fontWeight: 800,
-        margin: "0 0 12px",
-        lineHeight: 1.02,
-        letterSpacing: "-0.03em",
-        color: C.text,
+        margin: "0 0 6px",
+        lineHeight: 1.05,
+        letterSpacing: "-0.02em",
+        color: "var(--text)",
       }}>
         {race.meetingName}
       </h2>
-      <div style={{ fontSize: 14, color: C.textDim, marginBottom: 22, lineHeight: 1.5 }}>
+
+      {/* Location + fastest team — muted */}
+      <div style={{ fontSize: 14, color: "var(--text-muted)", marginBottom: 20, lineHeight: 1.5 }}>
         {race.location}, {race.country}
         {race.fastestTeam && (
           <>
             {" · "}
-            <span style={{ color: C.text, fontWeight: 600 }}>{race.fastestTeam}</span>
+            <span style={{ color: "var(--text)", fontWeight: 600 }}>{race.fastestTeam}</span>
             {race.fastestTeamGap && (
-              <span style={{ color: C.textMute }}> {race.fastestTeamGap} ahead of P2</span>
+              <span style={{ color: "var(--text-muted)" }}> {race.fastestTeamGap}</span>
             )}
           </>
         )}
       </div>
+
+      {/* Podium — flat tiles, bold position numbers */}
       {race.podium && race.podium.length > 0 && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 18 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
           {race.podium.map(p => {
-            // Each podium tile opens that driver's page (laps, telemetry,
-            // stints) — the pages readers spend the longest on.
-            const href = p.dn != null && race.raceSk ? paths.driver(race.year, String(race.meetingKey), String(race.raceSk), String(p.dn)) : null;
+            const medalColor = p.pos === 1 ? "#FFD700" : p.pos === 2 ? "#C0C0C0" : "#CD7F32";
+            const href = p.dn != null && race.raceSk
+              ? `/${race.year}/${race.meetingKey}/driver/${p.dn}?sessionKey=${race.raceSk}`
+              : null;
             const tile = (
               <>
-                <span style={{ fontSize: 18, fontWeight: 800, color: p.pos === 1 ? "#FFD700" : p.pos === 2 ? "#C0C0C0" : "#CD7F32", fontFamily: "var(--mono)" }}>P{p.pos}</span>
-                <span style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{p.driver}</span>
-                <span style={{ fontSize: 11, color: C.textMute, marginLeft: "auto", fontFamily: "var(--mono)" }}>{p.pos === 1 ? (p.grid != null ? `from P${p.grid}` : "") : typeof p.gap === "number" ? `+${p.gap.toFixed(3)}` : p.gap ?? ""}</span>
-                {href && <span style={{ fontSize: 13, color: C.textDim, flexShrink: 0 }} aria-hidden="true">→</span>}
+                <span style={{ fontSize: 16, fontWeight: 800, color: medalColor, minWidth: 24 }}>P{p.pos}</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", flex: 1 }}>{p.driver}</span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--mono)" }}>
+                  {p.pos === 1 ? (p.grid != null ? `from P${p.grid}` : "") : typeof p.gap === "number" ? `+${p.gap.toFixed(3)}` : p.gap ?? ""}
+                </span>
               </>
             );
-            const style: React.CSSProperties = { flex: "1 1 160px", padding: "10px 12px", borderRadius: 10, background: C.surfaceAlt, border: "1px solid " + C.border, display: "flex", alignItems: "baseline", gap: 10, textDecoration: "none", transition: "border-color 0.15s ease" };
+            const style: React.CSSProperties = {
+              flex: "1 1 150px",
+              padding: "8px 10px",
+              background: "var(--surface-alt)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--radius-sm)",
+              display: "flex",
+              alignItems: "baseline",
+              gap: 8,
+              textDecoration: "none",
+              transition: "border-color 0.15s ease",
+            };
             return href ? (
-              <a key={p.pos} href={href} title={`${p.driver}: laps, telemetry and stints`} style={style}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}>{tile}</a>
+              <a key={p.pos} href={href} style={style}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; }}>{tile}</a>
             ) : <div key={p.pos} style={style}>{tile}</div>;
           })}
         </div>
       )}
+
+      {/* Key insights — minimal list */}
       {race.verdicts && race.verdicts.length > 0 && (
-        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 20px", display: "grid", gap: 8 }}>
+        <ul style={{ listStyle: "none", padding: 0, margin: "0 0 18px", display: "flex", flexDirection: "column", gap: 6 }}>
           {race.verdicts.map(v => (
-            <li key={v.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", fontSize: 13.5, color: C.text, lineHeight: 1.45 }}>
-              <span style={{ width: 3, alignSelf: "stretch", borderRadius: 2, background: C.accent, flexShrink: 0, minHeight: 16 }} aria-hidden="true" />
-              <a href={race.raceSk ? paths.analysis(race.year, String(race.meetingKey), String(race.raceSk), v.tab as any) : analysisHref}
+            <li key={v.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, color: "var(--text)", lineHeight: 1.4 }}>
+              <span style={{ width: 2, alignSelf: "stretch", borderRadius: 1, background: "var(--accent)", flexShrink: 0, marginTop: 6 }} aria-hidden="true" />
+              <a href={race.raceSk ? `${analysisHref}&tab=${v.tab}` : analysisHref}
                 style={{ color: "inherit", textDecoration: "none" }}>{v.headline}</a>
             </li>
           ))}
         </ul>
       )}
-      <div style={{
-        display: "flex",
-        gap: 8,
-        flexWrap: "wrap",
-      }}>
-        <CtaPill href={recapHref} accent="primary">
-          Race recap
-        </CtaPill>
-        <CtaPill href={analysisHref}>
-          Full analysis
-        </CtaPill>
-        <CtaPill href={trendsHref}>
-          {race.year} season trends
-        </CtaPill>
-        <ShareCta url={`${typeof window !== "undefined" ? window.location.origin : "https://www.openf1ow.com"}${recapHref}`} title={`${race.meetingName} — F1 race analysis`} />
+
+      {/* Actions — flat buttons */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <a href={recapHref} style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "7px 14px",
+          background: "var(--accent)", color: "#fff",
+          borderRadius: "var(--radius-sm)",
+          fontSize: 12, fontWeight: 600,
+          textDecoration: "none",
+        }}>Race recap</a>
+        <a href={analysisHref} style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "7px 14px",
+          background: "transparent", color: "var(--text)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-sm)",
+          fontSize: 12, fontWeight: 600,
+          textDecoration: "none",
+        }}>Analysis</a>
+        <a href={trendsHref} style={{
+          display: "inline-flex", alignItems: "center", gap: 6,
+          padding: "7px 14px",
+          background: "transparent", color: "var(--text-muted)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius-sm)",
+          fontSize: 12, fontWeight: 500,
+          textDecoration: "none",
+        }}>{race.year} trends</a>
+        <ShareCta url={`${typeof window !== "undefined" ? window.location.origin : ""}${recapHref}`} title={`${race.meetingName} — F1 race analysis`} />
       </div>
     </div>
   );
 }
 
-// One-tap share of the race recap. Native share sheet on mobile, clipboard copy
-// on desktop — the low-friction path that turns a race page into a referral.
+// ── Share button ────────────────────────────────────────────────────
 function ShareCta({ url, title }: { url: string; title: string }) {
   const [status, setStatus] = useState<"idle" | "copied" | "shared">("idle");
   const onClick = useCallback(async () => {
@@ -205,25 +245,19 @@ function ShareCta({ url, title }: { url: string; title: string }) {
     <button
       onClick={onClick}
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 7,
-        padding: "9px 16px",
-        background: "transparent",
-        color: C.text,
-        border: "1px solid " + C.border,
-        borderRadius: 999,
-        fontSize: 13,
-        fontWeight: 600,
+        display: "inline-flex", alignItems: "center", gap: 6,
+        padding: "7px 12px",
+        background: "transparent", color: "var(--text-muted)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-sm)",
+        fontSize: 11, fontWeight: 500,
         cursor: "pointer",
-        fontFamily: F,
-        transition: "border-color 0.15s ease",
+        transition: "border-color 0.15s ease, color 0.15s ease",
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
-      aria-label="Share this race"
+      onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.14)"; e.currentTarget.style.color = "var(--text)"; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; }}
     >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
         <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /><line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
       </svg>
@@ -231,44 +265,3 @@ function ShareCta({ url, title }: { url: string; title: string }) {
     </button>
   );
 }
-
-function CtaPill({ href, accent, children }: { href: string; accent?: "primary" | "default"; children: React.ReactNode }) {
-  const isPrimary = accent === "primary";
-  return (
-    <a
-      href={href}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "9px 16px",
-        background: isPrimary ? C.accent : "transparent",
-        color: isPrimary ? "#fff" : C.text,
-        border: isPrimary ? "none" : "1px solid " + C.border,
-        borderRadius: 999,
-        fontSize: 13,
-        fontWeight: 600,
-        textDecoration: "none",
-        fontFamily: F,
-        transition: "background 0.15s ease, border-color 0.15s ease",
-      }}
-      onMouseEnter={e => {
-        if (!isPrimary) e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)";
-      }}
-      onMouseLeave={e => {
-        if (!isPrimary) e.currentTarget.style.borderColor = C.border;
-      }}
-    >
-      {children} →
-    </a>
-  );
-}
-
-const wrapperStyle: React.CSSProperties = {
-  background: `linear-gradient(135deg, ${C.surface} 0%, ${C.surfaceAlt} 100%)`,
-  border: "1px solid " + C.border,
-  borderRadius: R.lg,
-  padding: "clamp(20px, 4vw, 32px)",
-  fontFamily: F,
-  transition: "border-color 0.15s ease",
-};

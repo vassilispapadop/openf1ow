@@ -16,10 +16,11 @@
   --border: rgba(255, 255, 255, 0.06);
   --border-strong: rgba(255, 255, 255, 0.12);
 
-  /* ink */
+  /* ink — canonical names + aliases for components that spell it "muted" */
   --text: #f4f4f6;
   --text-dim: #a0a0ac;
   --text-mute: #8a8a94;
+  --text-muted: var(--text-mute);
   --text-faint: #63636d;
 
   /* accent + status */
@@ -37,10 +38,13 @@
   --font: 'Inter', 'SF Pro Display', system-ui, sans-serif;
   --mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', 'Consolas', monospace;
 
-  /* radii */
-  --r-sm: 6px;
-  --r-md: 10px;
-  --r-lg: 14px;
+  /* radii — canonical names + legacy aliases */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --r-sm: var(--radius-sm);
+  --r-md: var(--radius-md);
+  --r-lg: var(--radius-lg);
 
   /* spacing scale */
   --sp-1: 4px;

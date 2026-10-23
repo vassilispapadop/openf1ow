@@ -1,141 +1,79 @@
-import { useCallback, useEffect } from "react";
-import { Outlet, useParams, useNavigate, useMatch } from "react-router-dom";
-import { recordLastRace } from "../lib/retention";
-import { SessionProvider, useSession } from "../contexts/SessionContext";
-import Header from "../components/shell/Header";
-import SelectorBar from "../components/shell/SelectorBar";
-import DriverGrid from "../components/shell/DriverGrid";
-import Footer from "../components/shell/Footer";
-import LiveSessionBanner from "../components/LiveSessionBanner";
-import { SkeletonAnalysis } from "../components/Skeleton";
-import { F, C, sty } from "../lib/styles";
-import { paths } from "../lib/constants";
-import { Segmented } from "../ui";
+// Analysis page layout — minimal session tabs above content.
+// Navigation is URL-driven (year / meetingKey / sessionKey), no setters.
 
-function LayoutInner() {
-  const { year, meetings, sessions, drivers, mk, sk, loading, error, clearError, retry } = useSession();
-  const params = useParams();
-  const navigate = useNavigate();
+import { useSession } from "../contexts/SessionContext";
+import Segmented from "../ui/Segmented";
+import type { ReactNode } from "react";
 
-  const dn = params.driverNumber || "";
-  const isDriver = !!useMatch("/:year/:mk/:sk/driver/:dn/:tab");
+// ── Session tabs ────────────────────────────────────────────────────
+function SessionTabs() {
+  const { sessions, mk } = useSession();
 
-  // Remember the last race/session viewed so the home page can offer "Resume".
-  useEffect(() => {
-    if (!mk || !sk) return;
-    const meeting = meetings.find((m: any) => String(m.meeting_key) === mk);
-    if (!meeting) return;
-    const session = sessions.find((s: any) => String(s.session_key) === sk);
-    const label = `${meeting.meeting_name}${session?.session_name ? " · " + session.session_name : ""}`;
-    recordLastRace({ path: window.location.pathname + window.location.search, label, ts: Date.now() });
-  }, [mk, sk, meetings, sessions]);
-
-  const onReset = useCallback(() => navigate(paths.home()), [navigate]);
-  const onMeeting = useCallback((meetingKey: string) => navigate(paths.meeting(year, meetingKey)), [navigate, year]);
-  const onSession = useCallback((sessionKey: string) => navigate(paths.analysis(year, mk, sessionKey)), [navigate, year, mk]);
-  const onDriver = useCallback((driverNumber: string) => navigate(paths.driver(year, mk, sk, driverNumber)), [navigate, year, mk, sk]);
+  if (!sessions.length) return null;
 
   return (
-    <div style={sty.bg}>
-      <Header
-        meetings={meetings}
-        mk={mk}
-        sessions={sessions}
-        sk={sk}
-        drivers={isDriver ? drivers : undefined}
-        dn={isDriver ? dn : undefined}
-        onReset={onReset}
-      />
-
-      <main style={{
-        padding: "clamp(12px, 3vw, 24px) clamp(12px, 4vw, 28px)",
-        maxWidth: 1400,
-        margin: "0 auto",
-        // Keeps the footer below the fold while a page is still loading, so
-        // content arriving above it does not register as a layout shift.
-        minHeight: "calc(100vh - var(--header-h, 60px))",
-      }}>
-        <LiveSessionBanner />
-
-        {error && (
-          <div style={sty.err}>
-            <span style={{ flex: 1 }}>{error}</span>
-            <button onClick={retry} style={{
-              background: "transparent",
-              border: "1px solid " + C.border,
-              color: "#ffb5ab",
-              cursor: "pointer",
-              fontSize: 11,
-              fontWeight: 600,
-              padding: "4px 12px",
-              borderRadius: 6,
-              fontFamily: F,
-            }}>Retry</button>
-            <button onClick={clearError} style={{
-              background: "none",
-              border: "none",
-              color: "#ffb5ab",
-              cursor: "pointer",
-              fontSize: 16,
-              fontWeight: 500,
-              padding: 4,
-              lineHeight: 1,
-            }}>×</button>
-          </div>
-        )}
-
-        <SelectorBar
-          meetings={meetings}
-          mk={mk}
-          sessions={sessions}
-          sk={sk}
-          onMeeting={onMeeting}
-          onSession={onSession}
-        />
-
-        {drivers.length > 0 && !loading && sk && (
-          <div style={{ marginBottom: 16 }}>
-            <Segmented
-              size="lg"
-              variant="inverted"
-              ariaLabel="Page"
-              options={[{ key: "analysis", label: "Race analysis" }, { key: "driver", label: "Driver view" }]}
-              value={isDriver ? "driver" : "analysis"}
-              onChange={key => {
-                if (key === "analysis") navigate(paths.analysis(year, mk, sk));
-                else if (dn) navigate(paths.driver(year, mk, sk, dn));
-                else if (drivers.length > 0) navigate(paths.driver(year, mk, sk, String(drivers[0].driver_number)));
-              }}
-            />
-          </div>
-        )}
-
-        {/* Driver picker belongs to Driver view only — on Race analysis it added
-            two rows of chips that selected nothing on the page below. */}
-        {drivers.length > 0 && !loading && isDriver && (
-          <DriverGrid drivers={drivers} dn={dn} onDriver={onDriver} />
-        )}
-
-        {/* Layout-matching skeleton keeps the page shape during navigation
-            instead of collapsing to a centered spinner. Only on meeting routes,
-            and never alongside the page it stands in for: the home dashboard
-            renders straight away (its tiles reserve their own space), and a
-            session page waits until meetings, sessions and drivers are all in,
-            so nothing above it appears later and pushes it down. */}
-        {loading && mk && <SkeletonAnalysis label={loading} />}
-
-        {!(loading && mk) && <Outlet />}
-      </main>
-
-      <Footer />
-    </div>
+    <Segmented
+      options={sessions.map((s: any) => ({
+        key: s.session_name,
+        label: s.session_name,
+      }))}
+      value={sessions[0]?.session_name || "Race"}
+      onChange={(key: string) => {
+        const s = sessions.find((s: any) => s.session_name === key);
+        if (s && mk) {
+          window.location.href = `/${s.year || 2024}/${mk}/${s.session_key}`;
+        }
+      }}
+      variant="inverted"
+      size="sm"
+    />
   );
 }
 
-export default function SessionLayout() {
+// ── Page shell ──────────────────────────────────────────────────────
+export default function SessionLayout({ children }: { children?: ReactNode }) {
+  const { sessions } = useSession();
+
   return (
-    <SessionProvider>
-      <LayoutInner />
-    </SessionProvider>
+    <>
+      <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px 0" }}>
+        {/* Session tabs — minimal, one row */}
+        {sessions.length > 1 && (
+          <div style={{ marginBottom: 24 }}>
+            <SessionTabs />
+          </div>
+        )}
+
+        {/* Content — no extra chrome, just the data */}
+        {children}
+      </div>
+
+      {/* Footer */}
+      <footer style={{
+        maxWidth: 1200,
+        margin: "48px auto 0",
+        padding: "16px 20px",
+        borderTop: "1px solid var(--border)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        fontSize: 11,
+        color: "var(--text-muted)",
+        fontFamily: "var(--font)",
+        gap: 12,
+        flexWrap: "wrap",
+      }}>
+        <span>
+          <span style={{ color: "var(--text-dim)" }}>openf1</span>
+          <span style={{ color: "var(--accent)" }}>ow</span>
+          <span style={{ marginLeft: 10, color: "var(--text-faint)" }}>not affiliated with Formula 1</span>
+        </span>
+        <span style={{ display: "inline-flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
+          <a href="/insights" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>recaps</a>
+          <a href="/about" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>about · methodology</a>
+          <span>data · <a href="https://openf1.org" target="_blank" rel="noreferrer" style={{ color: "inherit", textDecoration: "underline", textUnderlineOffset: 3 }}>openf1.org</a></span>
+        </span>
+      </footer>
+    </>
   );
 }

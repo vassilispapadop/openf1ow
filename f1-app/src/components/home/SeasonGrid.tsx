@@ -1,5 +1,7 @@
+// Season grid — flat grid of race chips.
+// No decorative chrome, just past and upcoming races.
+
 import { useEffect, useState } from "react";
-import { F, C, R, isNarrowViewport } from "../../lib/styles";
 import { fd } from "../../lib/format";
 import { loadRaceIndex } from "../../lib/raceIndex";
 
@@ -36,68 +38,54 @@ export default function SeasonGrid({ year }: { year: number }) {
     return () => { cancelled = true; };
   }, [year]);
 
-  // Measured footprint of the rendered grid (desktop / phone).
-  if (!races) return <section style={{ marginTop: 36, height: isNarrowViewport() ? 1448 : 332 }} aria-busy="true" />;
+  if (!races) return <div style={{ height: 200, marginTop: 28 }} aria-busy="true" />;
 
   return (
-    <section style={{ marginTop: 36, fontFamily: F }}>
+    <section style={{ marginTop: 28 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 14 }}>
         <h3 style={{
-          fontSize: 13,
-          fontWeight: 700,
-          letterSpacing: "0.12em",
-          color: C.textMute,
-          textTransform: "uppercase",
-          margin: 0,
+          fontSize: 11, fontWeight: 600, letterSpacing: "0.12em",
+          color: "var(--text-faint)", margin: 0, textTransform: "uppercase",
         }}>
           {year} Calendar
         </h3>
-        <a href={`/${year}/trends`} style={{ fontSize: 12, color: C.textDim, textDecoration: "none" }}>
+        <a href={`/${year}/trends`} style={{ fontSize: 11, color: "var(--text-muted)", textDecoration: "none" }}>
           Season trends →
         </a>
       </div>
       <ul style={{
-        listStyle: "none",
-        padding: 0,
-        margin: 0,
+        listStyle: "none", padding: 0, margin: 0,
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))",
         gap: 8,
       }}>
         {races.map(r => (
           <li key={r.slug}>
             <a
               href={`/recap/${year}/${r.slug}`}
-              className="card-glow"
               style={{
-                display: "block",
-                padding: "10px 14px",
-                background: r.isPast ? C.surface : "transparent",
-                border: "1px solid " + C.border,
-                borderRadius: R.md,
-                color: "inherit",
-                textDecoration: "none",
+                display: "block", padding: "10px 14px",
+                background: r.isPast ? "var(--surface)" : "transparent",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                color: "inherit", textDecoration: "none",
                 opacity: r.isPast ? 1 : 0.55,
+                transition: "border-color 0.15s ease, opacity 0.15s ease",
               }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.12)"; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = r.isPast ? "1" : "0.55"; e.currentTarget.style.borderColor = "var(--border)"; }}
             >
               <div style={{
-                fontSize: 10,
-                color: C.textMute,
-                fontWeight: 600,
-                letterSpacing: "0.08em",
-                marginBottom: 4,
-                fontVariantNumeric: "tabular-nums",
+                fontSize: 10, color: "var(--text-muted)",
+                fontWeight: 600, letterSpacing: "0.08em",
+                marginBottom: 4, fontVariantNumeric: "tabular-nums",
               }}>
                 {fd(r.dateStart, { day: "2-digit", month: "short" })}
-                {!r.isPast && <span style={{ color: C.warn, marginLeft: 6 }}>upcoming</span>}
+                {!r.isPast && <span style={{ color: "var(--accent)", marginLeft: 4 }}>upcoming</span>}
               </div>
               <div style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: C.text,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                fontSize: 13, fontWeight: 600, color: "var(--text)",
+                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
               }}>
                 {r.location}
               </div>

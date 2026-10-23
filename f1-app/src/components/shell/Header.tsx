@@ -1,160 +1,201 @@
-import { useLayoutEffect, useRef } from "react";
-import { F, C } from "../../lib/styles";
-import Pill from "../Pill";
-import ShareLinkButton from "../ShareLinkButton";
-import { useSession } from "../../contexts/SessionContext";
-import type { Driver } from "../../lib/types";
+// Minimal top bar: logo, season nav, race selector.
+// No search, no follow buttons, no GitHub extras — just what you need to get to data.
 
-interface HeaderProps {
-  meetings: any[];
-  mk: string;
-  sessions: any[];
-  sk: string;
-  drivers?: Driver[];
-  dn?: string;
-  onReset?: () => void;
+import { NavLink, useNavigate } from "react-router-dom";
+import { useSession } from "../../contexts/SessionContext";
+import { api } from "../../lib/api";
+import { useState, useEffect, useMemo } from "react";
+
+// ── Minimal dropdown selector ───────────────────────────────────────
+function Select({
+  options,
+  value,
+  onChange,
+  placeholder,
+  format,
+}: {
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  format?: (v: string) => string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        background: "transparent",
+        color: "var(--text)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--radius-md)",
+        padding: "6px 32px 6px 10px",
+        fontSize: 13,
+        fontWeight: 500,
+        fontFamily: "var(--font)",
+        cursor: "pointer",
+        outline: "none",
+        appearance: "none",
+        backgroundImage:
+          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a8a94'/%3E%3C/svg%3E\")",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "right 10px center",
+        transition: "border-color 0.15s ease",
+      }}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = "rgba(255,255,255,0.14)")}
+      onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border)")}
+    >
+      {placeholder && (
+        <option value="" disabled>
+          {placeholder}
+        </option>
+      )}
+      {options.map(o => (
+        <option key={o.value} value={o.value}>
+          {format ? format(o.value) : o.label}
+        </option>
+      ))}
+    </select>
+  );
 }
 
-export default function Header({ meetings, mk, sessions, sk, drivers, dn, onReset }: HeaderProps) {
-  const { year } = useSession();
-  const meeting = meetings.find(m => String(m.meeting_key) === mk);
-  const session = sessions.find(s => String(s.session_key) === sk);
-  const driver = dn && drivers ? drivers.find(d => String(d.driver_number) === dn) : undefined;
-  const driverColor = driver?.team_colour ? "#" + driver.team_colour : C.text;
+// ── Top bar ─────────────────────────────────────────────────────────
+export default function Header() {
+  const { year, mk, sk } = useSession();
+  const navigate = useNavigate();
+  const [raceOptions, setRaceOptions] = useState<{ value: string; label: string }[]>([]);
+  const [sessionOptions, setSessionOptions] = useState<{ value: string; label: string }[]>([]);
 
-  // Publish the rendered height as --header-h so sticky sub-navigation can park
-  // directly beneath it. The height differs per breakpoint (the tagline is
-  // hidden on mobile), so measure it rather than hard-coding an offset.
-  const ref = useRef<HTMLElement>(null);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    // Fractional height, not offsetHeight: rounding down leaves a hairline of
-    // content visible between the header and whatever sticks beneath it.
-    const publish = () =>
-      document.documentElement.style.setProperty(
-        "--header-h", el.getBoundingClientRect().height + "px",
-      );
-    publish();
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(publish);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
+  // Year range — just show 2021 through current+1
+  const currentYear = new Date().getFullYear();
+  const yearOptions = useMemo(
+    () => Array.from({ length: currentYear - 2020 }, (_, i) => 2021 + i)
+      .map(y => ({ value: String(y), label: String(y) })),
+    [currentYear]
+  );
+
+  // Fetch race list when year changes
+  useEffect(() => {
+    let cancelled = false;
+    api(`/meetings?year=${year}`)
+      .then(d => {
+        if (cancelled) return;
+        const races = Array.isArray(d) ? d : [];
+        setRaceOptions(
+          races
+            .filter((m: any) => !m.meeting_name?.toLowerCase().includes("testing") && !m.is_cancelled)
+            .sort((a: any, b: any) => (a.date_start || "").localeCompare(b.date_start || ""))
+            .map((m: any) => ({
+              value: String(m.meeting_key),
+              label: `${m.country_name || m.location} — ${m.circuit_short_name || m.location}`,
+            }))
+        );
+      })
+      .catch(() => setRaceOptions([]));
+    return () => { cancelled = true; };
+  }, [year]);
+
+  // Fetch sessions when race selected
+  useEffect(() => {
+    if (!mk) { setSessionOptions([]); return; }
+    let cancelled = false;
+    api(`/sessions?meeting_key=${mk}`)
+      .then(d => {
+        if (cancelled) return;
+        const list = Array.isArray(d) ? d : [];
+        setSessionOptions(
+          list.map((s: any) => ({
+            value: String(s.session_key),
+            label: `${s.session_name} — ${s.circuit_short_name || ""}`,
+          }))
+        );
+      })
+      .catch(() => setSessionOptions([]));
+    return () => { cancelled = true; };
+  }, [mk]);
 
   return (
-    <header ref={ref} style={{
+    <header style={{
+      background: "var(--surface)",
+      borderBottom: "1px solid var(--border)",
       position: "sticky",
       top: 0,
       zIndex: 100,
-      padding: "14px 28px",
-      background: "rgba(10,10,13,0.85)",
-      backdropFilter: "blur(12px)",
-      WebkitBackdropFilter: "blur(12px)",
-      borderBottom: "1px solid " + C.border,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: 20,
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 20, minWidth: 0 }}>
-        <button
-          onClick={onReset}
+      <div style={{
+        maxWidth: 1200,
+        margin: "0 auto",
+        padding: "10px 20px",
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        flexWrap: "wrap",
+      }}>
+        {/* Logo */}
+        <NavLink
+          to="/"
           style={{
-            border: "none",
-            background: "transparent",
-            padding: 0,
-            cursor: onReset ? "pointer" : "default",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            gap: 1,
-            color: "inherit",
-            fontFamily: F,
-          }}>
-          <span style={{ display: "flex", alignItems: "baseline" }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>open</span>
-            <span style={{ fontSize: 18, fontWeight: 700, color: C.accent, letterSpacing: "-0.02em" }}>f1</span>
-            <span style={{ fontSize: 18, fontWeight: 700, color: C.text, letterSpacing: "-0.02em" }}>ow</span>
-          </span>
-          <span className="hide-mobile" style={{
-            fontSize: 9,
-            fontWeight: 600,
-            color: C.textFaint,
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            marginTop: -2,
-          }}>
-            F1 telemetry · open source · free
-          </span>
-        </button>
-
-        {meeting && (
-          <nav className="hide-mobile" style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, minWidth: 0 }}>
-            <span style={{ color: C.textFaint }}>/</span>
-            <span style={{ color: C.textDim, fontWeight: 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-              {meeting.location || meeting.country_name}
-            </span>
-            {session && (
-              <>
-                <span style={{ color: C.textFaint }}>/</span>
-                <span style={{ color: driver ? C.textDim : C.text, fontWeight: driver ? 500 : 600, whiteSpace: "nowrap" }}>
-                  {session.session_name}
-                </span>
-              </>
-            )}
-            {driver && (
-              <>
-                <span style={{ color: C.textFaint }}>/</span>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap" }}>
-                  <span style={{
-                    width: 6, height: 6, borderRadius: "50%",
-                    background: driverColor,
-                    boxShadow: `0 0 0 2px ${driverColor}33`,
-                  }} />
-                  <span style={{ color: C.text, fontWeight: 600 }}>{driver.name_acronym}</span>
-                </span>
-              </>
-            )}
-          </nav>
-        )}
-      </div>
-
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <Pill
-          as="a"
-          size="sm"
-          href={`/${year}/trends`}
-          className="hide-mobile"
-          aria-label={`${year} season trends`}
+            fontSize: 18,
+            fontWeight: 800,
+            color: "var(--text)",
+            textDecoration: "none",
+            letterSpacing: "-0.02em",
+            fontFamily: "var(--font)",
+            flexShrink: 0,
+          }}
         >
-          trends
-        </Pill>
-        <ShareLinkButton driverNumber={dn} />
-        <Pill
-          as="a"
-          size="sm"
-          active
+          openf1ow
+        </NavLink>
+
+        {/* Year selector */}
+        <Select
+          options={yearOptions}
+          value={String(year)}
+          onChange={v => navigate(`/${v}`)}
+        />
+
+        {/* Race selector */}
+        <Select
+          options={raceOptions}
+          value={mk || ""}
+          onChange={v => {
+            if (v) navigate(`/${year}/${v}`);
+          }}
+          format={v => v.split(" — ")[0] || "Select race"}
+        />
+
+        {/* Session selector */}
+        {sessionOptions.length > 0 && (
+          <Select
+            options={sessionOptions}
+            value={sk || ""}
+            onChange={v => {
+              if (v) navigate(`/${year}/${mk}/${v}`);
+            }}
+            format={v => v.split(" — ")[0] || "Select session"}
+          />
+        )}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* GitHub link — minimal, quiet */}
+        <a
           href="https://github.com/vassilispapadop/openf1ow"
           target="_blank"
           rel="noreferrer"
-          aria-label="GitHub repository"
+          style={{
+            fontSize: 12,
+            color: "var(--text-muted)",
+            textDecoration: "none",
+            opacity: 0.6,
+            transition: "opacity 0.15s ease",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+          onMouseLeave={e => (e.currentTarget.style.opacity = "0.6")}
         >
-          <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <path d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/>
-          </svg>
-          <span className="hide-mobile">github</span>
-        </Pill>
-        <Pill
-          as="a"
-          size="sm"
-          href="https://openf1.org"
-          target="_blank"
-          rel="noreferrer"
-          className="hide-mobile"
-        >
-          data · openf1.org
-        </Pill>
+          GitHub
+        </a>
       </div>
     </header>
   );
