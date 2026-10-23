@@ -12,13 +12,11 @@ function Select({
   value,
   onChange,
   placeholder,
-  format,
 }: {
   options: { value: string; label: string }[];
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  format?: (v: string) => string;
 }) {
   return (
     <select
@@ -52,7 +50,7 @@ function Select({
       )}
       {options.map(o => (
         <option key={o.value} value={o.value}>
-          {format ? format(o.value) : o.label}
+          {o.label}
         </option>
       ))}
     </select>
@@ -87,7 +85,7 @@ export default function Header() {
             .sort((a: any, b: any) => (a.date_start || "").localeCompare(b.date_start || ""))
             .map((m: any) => ({
               value: String(m.meeting_key),
-              label: `${m.country_name || m.location} — ${m.circuit_short_name || m.location}`,
+              label: m.meeting_name || `${m.country_name || m.location} Grand Prix`,
             }))
         );
       })
@@ -106,7 +104,7 @@ export default function Header() {
         setSessionOptions(
           list.map((s: any) => ({
             value: String(s.session_key),
-            label: `${s.session_name} — ${s.circuit_short_name || ""}`,
+            label: s.session_name,
           }))
         );
       })
@@ -161,7 +159,7 @@ export default function Header() {
           onChange={v => {
             if (v) navigate(`/${year}/${v}`);
           }}
-          format={v => v.split(" — ")[0] || "Select race"}
+          placeholder="Select race"
         />
 
         {/* Session selector */}
@@ -172,7 +170,7 @@ export default function Header() {
             onChange={v => {
               if (v) navigate(`/${year}/${mk}/${v}`);
             }}
-            format={v => v.split(" — ")[0] || "Select session"}
+            placeholder="Select session"
           />
         )}
 
