@@ -10,7 +10,7 @@ import { useSession } from "../contexts/SessionContext";
 import { api } from "../lib/api";
 import { mergeDistance } from "../lib/telemetry";
 import { detectClipping, buildDrsZones } from "../lib/clipping";
-import { DRIVER_COLORS, DEFAULT_DRIVER_TAB, paths } from "../lib/constants";
+import { DEFAULT_DRIVER_TAB, paths } from "../lib/constants";
 import Spinner from "../components/Spinner";
 import Pill from "../components/Pill";
 import { Section, Segmented } from "../ui";
@@ -20,6 +20,7 @@ import DriverInfoCard from "../components/shell/DriverInfoCard";
 import StickyTabBar from "../components/shell/StickyTabBar";
 import ModelGate from "../components/insights/ModelGate";
 import TelemetryStack from "../components/driver/TelemetryStack";
+import { compareColor } from "../lib/compareColor";
 import CompareBuilder from "../components/driver/CompareBuilder";
 import LapsTab from "../components/driver/LapsTab";
 import TelemetryTab from "../components/driver/TelemetryTab";
@@ -110,7 +111,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
       return [...prev, {
         key: id, driverNumber, lapNumber: lap.lap_number,
         label: "#" + driverNumber + " " + info.name_acronym + " L" + lap.lap_number,
-        color: DRIVER_COLORS[prev.length % DRIVER_COLORS.length],
+        color: compareColor(info.team_colour, prev.map(c => c.color), prev.length),
         lap: { dateStart: lap.date_start, duration: lap.lap_duration as number },
         data: [], loading: true,
       }];
@@ -194,7 +195,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
             {comparisons.map(c => (
               <span key={c.key} style={{ background: 'var(--surface-alt)', borderLeft: "3px solid #" + c.color, border: "1px solid " + 'var(--border)', borderLeftWidth: 3, borderLeftColor: "#" + c.color, borderRadius: 8, padding: "6px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#" + c.color, flexShrink: 0 }} />
-                <span style={{ fontWeight: 600 }}>{c.label}</span>
+                <span style={{ fontWeight: 600, color: "var(--text)" }}>{c.label}</span>
                 {c.loading && <span style={{ color: 'var(--text-mute)', fontSize: 10 }}>loading…</span>}
                 <button onClick={() => removeComparison(c.key)} aria-label={`Remove ${c.label}`} style={{ background: "rgba(255,255,255,0.06)", border: "none", color: 'var(--text-mute)', cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1, width: 20, height: 20, borderRadius: "50%" }}>×</button>
               </span>
