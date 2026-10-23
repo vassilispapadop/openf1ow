@@ -4,7 +4,6 @@
 import type { ReactNode } from "react";
 import { useSessionModel } from "../../lib/useSessionModel";
 import { PendingData } from "../analysis/PendingData";
-import { C, sty } from "../../lib/styles";
 import type { SessionModel } from "../../engine/index.ts";
 
 export default function ModelGate({ children, loading = "Loading session data…" }: {
@@ -23,8 +22,8 @@ export default function ModelGate({ children, loading = "Loading session data…
   }
   if (!model) {
     return (
-      <div style={{ ...sty.card, minHeight: 280, display: "flex", alignItems: "center", justifyContent: "center" }} aria-busy="true">
-        <div style={{ textAlign: "center", padding: 36, color: C.textDim, fontSize: 13 }}>{loading}</div>
+      <div style={{ ...'card', minHeight: 280, display: "flex", alignItems: "center", justifyContent: "center" }} aria-busy="true">
+        <div style={{ textAlign: "center", padding: 36, color: 'var(--text)'-dim', fontSize: 13 }}>{loading}</div>
       </div>
     );
   }

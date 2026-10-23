@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { F, C, sty } from "../lib/styles";
 import { loadSeasonTrends } from "../lib/seasonClient";
 import type { SeasonTrends } from "../lib/seasonUtils";
 import CornerStraightBalance from "../components/season/CornerStraightBalance";
@@ -47,11 +46,11 @@ export default function SeasonTrendsPage() {
 
   if (trends === "missing") {
     return (
-      <div className="fade-in" style={{ padding: 40, fontFamily: F, color: C.textDim }}>
-        <h1 style={{ fontSize: 24, color: C.text, marginBottom: 12 }}>{year} season trends</h1>
+      <div className="fade-in" style={{ padding: 40, fontFamily: F, color: 'var(--text)'-dim' }}>
+        <h1 style={{ fontSize: 24, color: 'var(--text)', marginBottom: 12 }}>{year} season trends</h1>
         <p style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 540 }}>
           No precomputed trends for {year} yet. The artifact is built by{" "}
-          <code style={{ ...sty.mono, background: C.surface, padding: "2px 6px", borderRadius: 4 }}>
+          <code style={{ ...'mono', background: 'var(--surface)', padding: "2px 6px", borderRadius: 4 }}>
             npm run trends -- --year {year}
           </code>
           {" "}— it reads OpenF1 data, runs the season-level aggregations, and uploads to R2.
@@ -69,7 +68,7 @@ export default function SeasonTrendsPage() {
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: "0.14em",
-          color: C.textMute,
+          color: 'var(--text)'-mute',
           marginBottom: 8,
         }}>
           SEASON TRENDS · {trends.raceCount} RACES
@@ -79,11 +78,11 @@ export default function SeasonTrendsPage() {
           fontWeight: 800,
           margin: 0,
           letterSpacing: "-0.025em",
-          color: C.text,
+          color: 'var(--text)',
         }}>
           {year} F1 — pace, gaps, corners, degradation
         </h1>
-        <p style={{ fontSize: 14, color: C.textDim, margin: "8px 0 0", maxWidth: 720 }}>
+        <p style={{ fontSize: 14, color: 'var(--text)'-dim', margin: "8px 0 0", maxWidth: 720 }}>
           Cross-race trends derived from clean-lap medians and fuel-corrected stint deg.
           Lower gap = closer to the fastest car. Click a team in the legend to isolate it.
         </p>
@@ -231,20 +230,20 @@ export default function SeasonTrendsPage() {
       <footer style={{
         marginTop: 24,
         fontSize: 11,
-        color: C.textFaint,
+        color: 'var(--text)'-faint',
         fontFamily: F,
         textAlign: "right",
       }}>
         artifact generated {new Date(trends.generatedAt).toLocaleString()}
       </footer>
 
-      <div style={{ marginTop: 16, padding: "16px 0", borderTop: "1px solid " + C.border, fontSize: 13 }}>
-        <a href={`/${year}`} style={{ color: C.textDim, textDecoration: "none", marginRight: 16 }}>← {year} season home</a>
-        <a href="/insights" style={{ color: C.textDim, textDecoration: "none" }}>Race recaps</a>
+      <div style={{ marginTop: 16, padding: "16px 0", borderTop: "1px solid " + 'var(--border)', fontSize: 13 }}>
+        <a href={`/${year}`} style={{ color: 'var(--text)'-dim', textDecoration: "none", marginRight: 16 }}>← {year} season home</a>
+        <a href="/insights" style={{ color: 'var(--text)'-dim', textDecoration: "none" }}>Race recaps</a>
       </div>
 
       <style>{`
-        a:hover { color: ${C.text} !important; }
+        a:hover { color: ${'var(--text)'} !important; }
         a code { display: inline; }
       `}</style>
       <noscript />

@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { useSessionModel } from "../../lib/useSessionModel";
 import { generateVerdicts, type Verdict, type VerdictArea } from "../../engine/index.ts";
 import { Section, Badge, StatTile, Segmented } from "../../ui";
-import { C, F } from "../../lib/styles";
 import { podiumColor } from "../../lib/format";
 import type { ViewKey } from "../../lib/constants";
 import { useSelection } from "../../contexts/SelectionContext";
@@ -46,7 +45,7 @@ export function KpiRow({ onOpenTab, max = 4 }: { onOpenTab?: (tab: ViewKey) => v
 }
 
 const KPI_ACCENT: Record<NonNullable<NonNullable<Verdict["kpi"]>["accent"]>, string> = {
-  gold: podiumColor(0), violet: C.violet, pos: C.pos, warn: C.warn, accent: C.accent,
+  gold: podiumColor(0), violet: 'var(--violet)', pos: 'var(--pos)', warn: 'var(--warn)', accent: 'var(--accent)',
 };
 
 export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictArea; limit?: number; onOpenTab?: (tab: ViewKey) => void }) {
@@ -95,21 +94,21 @@ export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictAre
           const open = expanded === v.id;
           return (
             <article key={v.id} style={{
-              border: "1px solid " + C.border, borderRadius: 10, padding: "12px 14px", background: C.surfaceAlt, fontFamily: F,
+              border: "1px solid " + 'var(--border)', borderRadius: 10, padding: "12px 14px", background: 'var(--surface)'-alt', fontFamily: F,
               display: "flex", flexDirection: "column", gap: 8,
             }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
-                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: C.text, lineHeight: 1.4, flex: 1 }}>{v.headline}</p>
+                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: 'var(--text)', lineHeight: 1.4, flex: 1 }}>{v.headline}</p>
                 <Badge tone={CONF_TONE[v.confidence]} size="sm" title={`${v.confidence} confidence`}>{v.confidence}</Badge>
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
                 {v.numbers.map(n => (
-                  <span key={n.label} style={{ fontSize: 11, color: C.textMute }}>
-                    {n.label} <span style={{ color: C.text, fontFamily: "var(--mono)", fontVariantNumeric: "tabular-nums" }}>{n.value}</span>
+                  <span key={n.label} style={{ fontSize: 11, color: 'var(--text)'-mute' }}>
+                    {n.label} <span style={{ color: 'var(--text)', fontFamily: "var(--mono)", fontVariantNumeric: "tabular-nums" }}>{n.value}</span>
                   </span>
                 ))}
               </div>
-              {open && <p style={{ margin: 0, fontSize: 12, color: C.textDim, lineHeight: 1.55 }}>{v.detail}</p>}
+              {open && <p style={{ margin: 0, fontSize: 12, color: 'var(--text)'-dim', lineHeight: 1.55 }}>{v.detail}</p>}
               <div style={{ display: "flex", gap: 10, fontSize: 11 }}>
                 <button type="button" onClick={() => setExpanded(open ? null : v.id)} style={linkBtn}>{open ? "Less" : "How"}</button>
                 <button type="button" onClick={() => openEvidence(v)} style={linkBtn}>Evidence → {AREA_LABEL[v.evidence.tab]}</button>
@@ -123,5 +122,5 @@ export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictAre
 }
 
 const linkBtn: React.CSSProperties = {
-  background: "none", border: "none", padding: 0, color: C.textDim, cursor: "pointer", fontFamily: F, fontSize: 11, fontWeight: 600,
+  background: "none", border: "none", padding: 0, color: 'var(--text)'-dim', cursor: "pointer", fontFamily: F, fontSize: 11, fontWeight: 600,
 };

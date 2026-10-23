@@ -7,7 +7,6 @@ import { useSessionModel } from "../../lib/useSessionModel";
 import { sectorAnalysis, consistencyByDriver, SECTION_IDS, GATES, type SectorRow, type ConsistencyRow } from "../../engine/index.ts";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, StatTile, Segmented, type Column } from "../../ui";
-import { C } from "../../lib/styles";
 import { useSelection } from "../../contexts/SelectionContext";
 
 const PURPLE = "#a855f7";
@@ -16,7 +15,7 @@ const drv = (d: { name_acronym: string; team_colour: string }, team?: string) =>
   <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
     <span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (d.team_colour || "666") }} />
     <span style={{ fontWeight: 700 }}>{d.name_acronym}</span>
-    {team && <span style={{ color: C.textMute, fontSize: 11 }} className="hide-narrow">{team}</span>}
+    {team && <span style={{ color: 'var(--text)'-mute', fontSize: 11 }} className="hide-narrow">{team}</span>}
   </span>
 );
 
@@ -31,18 +30,18 @@ export function SectorsCard() {
   const [mode, setMode] = useState<"median" | "best">("median");
   const result = useMemo(() => (model ? sectorAnalysis(model) : null), [model]);
   if (!model || !result) return null;
-  const delta = (v: number) => (Math.abs(v) < 5e-4 ? <span style={{ color: PURPLE, fontWeight: 700 }}>best</span> : <span style={{ color: v > 0.3 ? C.neg : undefined }}>+{v.toFixed(3)}</span>);
+  const delta = (v: number) => (Math.abs(v) < 5e-4 ? <span style={{ color: PURPLE, fontWeight: 700 }}>best</span> : <span style={{ color: v > 0.3 ? 'var(--neg)' : undefined }}>+{v.toFixed(3)}</span>);
   const sec = (r: SectorRow, i: 0 | 1 | 2) => mode === "median" ? delta(r.deltas[i]) : <span style={{ color: result.ok && Math.abs(r.bests[i] - result.value.fieldBestSectors[i]) < 5e-4 ? PURPLE : undefined }}>{r.bests[i].toFixed(3)}</span>;
   const columns: Column<SectorRow>[] = [
     { key: "driver", label: "Driver", render: r => drv(r.driver, r.team) },
     { key: "s1", label: mode === "median" ? "S1 Δ" : "Best S1", render: r => sec(r, 0), mono: true, align: "right", sort: (a, b) => (mode === "median" ? a.deltas[0] - b.deltas[0] : a.bests[0] - b.bests[0]) },
     { key: "s2", label: mode === "median" ? "S2 Δ" : "Best S2", render: r => sec(r, 1), mono: true, align: "right", sort: (a, b) => (mode === "median" ? a.deltas[1] - b.deltas[1] : a.bests[1] - b.bests[1]) },
     { key: "s3", label: mode === "median" ? "S3 Δ" : "Best S3", render: r => sec(r, 2), mono: true, align: "right", sort: (a, b) => (mode === "median" ? a.deltas[2] - b.deltas[2] : a.bests[2] - b.bests[2]) },
-    { key: "tot", label: "Total Δ", render: r => (r.totalDelta < 5e-4 ? <span style={{ color: C.pos }}>fastest</span> : "+" + r.totalDelta.toFixed(3)), mono: true, align: "right", sort: (a, b) => a.totalDelta - b.totalDelta, title: "Sum of the three median deltas to the field's best median" },
+    { key: "tot", label: "Total Δ", render: r => (r.totalDelta < 5e-4 ? <span style={{ color: 'var(--pos)' }}>fastest</span> : "+" + r.totalDelta.toFixed(3)), mono: true, align: "right", sort: (a, b) => a.totalDelta - b.totalDelta, title: "Sum of the three median deltas to the field's best median" },
     { key: "theo", label: "Theoretical", render: r => fmt.lapTime(r.theoretical), mono: true, align: "right", hideBelow: 640, sort: (a, b) => a.theoretical - b.theoretical, title: "Own best three sectors summed" },
     { key: "cov", label: "CoV", render: r => (r.cov.reduce((s, v) => s + v, 0) / 3 * 100).toFixed(2) + " %", mono: true, align: "right", hideBelow: 900, sort: (a, b) => a.cov.reduce((s, v) => s + v, 0) - b.cov.reduce((s, v) => s + v, 0), title: "Mean sector coefficient of variation (σ / mean)" },
     { key: "trap", label: "Trap clear", render: r => (r.trapClear != null ? fmt.kph(r.trapClear) : "—"), mono: true, align: "right", hideBelow: 900, sort: (a, b) => (a.trapClear ?? 0) - (b.trapClear ?? 0), title: "Best speed-trap reading with ≥ 1.5 s to the car ahead" },
-    { key: "tow", label: "In tow", render: r => (r.trapTow != null ? fmt.kph(r.trapTow) : <span style={{ color: C.textFaint }}>—</span>), mono: true, align: "right", hideBelow: 900, title: "Best speed-trap reading within 1.0 s of the car ahead" },
+    { key: "tow", label: "In tow", render: r => (r.trapTow != null ? fmt.kph(r.trapTow) : <span style={{ color: 'var(--text)'-faint' }}>—</span>), mono: true, align: "right", hideBelow: 900, title: "Best speed-trap reading within 1.0 s of the car ahead" },
     { key: "n", label: "Laps", render: r => r.n, mono: true, align: "right", hideBelow: 480 },
   ];
   return (
@@ -86,7 +85,7 @@ export function ConsistencyCard() {
       <span>{v.toFixed(3)}</span>
     </span>
   );
-  const tone = (v: number) => (v < 0.3 ? C.pos : v < 0.6 ? C.warn : C.neg);
+  const tone = (v: number) => (v < 0.3 ? 'var(--pos)' : v < 0.6 ? 'var(--warn)' : 'var(--neg)');
   const columns: Column<ConsistencyRow>[] = [
     { key: "rank", label: "#", render: (_r, i) => i + 1, mono: true, align: "right", width: 36 },
     { key: "driver", label: "Driver", render: r => drv(r.driver, r.team) },

@@ -4,7 +4,6 @@
 
 import RaceReplay from "./components/RaceReplay";
 import type { Driver, Lap, Weather } from "./lib/types";
-import { sty } from "./lib/styles";
 import type { ViewKey } from "./lib/constants";
 import Pill from "./components/Pill";
 import WeatherCorrelation from "./components/analysis/WeatherCorrelation";
@@ -116,7 +115,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, subTab, onS
                   <WeatherCorrelation allLaps={allLaps} drivers={drivers} weather={weather} />
                 </Section>
                 <SuperClipping sessionKey={sessionKey} allLaps={allLaps} drivers={drivers} />
-                <div style={sty.card}>
+                <div style={'card'}>
                   <RaceReplay sessionKey={sessionKey} drivers={drivers} />
                 </div>
               </>

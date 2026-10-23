@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { Driver, Lap } from "../../lib/types";
-import { F, M, sty } from "../../lib/styles";
 import { podiumColor, rowBg } from "../../lib/format";
 import { api } from "../../lib/api";
 import BoxPlotChart from "./BoxPlotChart";
@@ -36,7 +35,6 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
   const [sampleLaps, setSampleLaps] = useState(DEFAULT_SAMPLE_LAPS);
   const [viewMode, setViewMode] = useState<"list" | "graph">("graph");
   const contentRef = useRef<HTMLDivElement>(null);
-
 
   const drvMap = useMemo(() => {
     const m: Record<number, Driver> = {};
@@ -175,7 +173,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
 
   if (loading) {
     return (
-      <div style={{ ...sty.card, textAlign: "center", padding: 40 }}>
+      <div style={{ ...'card', textAlign: "center", padding: 40 }}>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", fontFamily: M }}>{progress}</div>
       </div>
     );
@@ -183,7 +181,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
 
   if (!results.length && !loading) {
     return (
-      <div style={{ ...sty.card, textAlign: "center", padding: 40 }}>
+      <div style={{ ...'card', textAlign: "center", padding: 40 }}>
         <div style={{ fontSize: 13, color: "rgba(255,255,255,0.3)" }}>No super clipping events detected</div>
         <div style={{ fontSize: 11, color: "rgba(255,255,255,0.15)", marginTop: 8 }}>
           Speed decreasing while throttle is at {THROTTLE_THRESHOLD}% with no braking. Min drop: {MIN_SPEED_DROP} km/h.
@@ -217,7 +215,7 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
       </div>
       <div ref={contentRef}>
         {/* Explanation */}
-        <div style={{ ...sty.card, padding: 14, marginBottom: 12 }}>
+        <div style={{ ...'card', padding: 14, marginBottom: 12 }}>
           <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", fontFamily: M, lineHeight: 1.6 }}>
             <strong style={{ color: "rgba(255,255,255,0.5)" }}>Super Clipping</strong> — Speed decreasing while throttle is at {THROTTLE_THRESHOLD}% and brake is off.
             Indicates power delivery limits, aero drag, tyre grip loss, or engine mapping constraints.
@@ -226,15 +224,15 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
         </div>
 
         {/* Driver ranking: list (table) or graph (box plot) */}
-        <div style={sty.card}>
+        <div style={'card'}>
           {viewMode === "list" ? (<>
-            <div style={sty.sectionHead}>Clipping Severity by Driver</div>
+            <div style={'section-head'}>Clipping Severity by Driver</div>
             <div style={{ overflowX: "auto", marginTop: 10 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
                     {["#", "Driver", "Events", "Median Drop", "Worst Drop", "Laps"].map(h => (
-                      <th key={h} style={sty.th}>{h}</th>
+                      <th key={h} style={'th'}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -244,26 +242,26 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
                       key={d.driver?.driver_number}
                       style={rowBg(i)}
                     >
-                      <td style={{ ...sty.td, color: podiumColor(i), fontWeight: 700, fontFamily: M, width: 30 }}>{i + 1}</td>
-                      <td style={{ ...sty.td, fontWeight: 700, fontFamily: F }}>
+                      <td style={{ ...'td', color: podiumColor(i), fontWeight: 700, fontFamily: M, width: 30 }}>{i + 1}</td>
+                      <td style={{ ...'td', fontWeight: 700, fontFamily: F }}>
                         <span style={{ display: "inline-block", width: 3, height: 14, borderRadius: 2, background: "#" + (d.driver?.team_colour || "666"), marginRight: 8, verticalAlign: "middle" }} />
                         {d.driver?.name_acronym || "???"}
                       </td>
-                      <td style={{ ...sty.td, fontFamily: M }}>{d.totalEvents}</td>
-                      <td style={{ ...sty.td, fontFamily: M, color: d.avgDrop > 10 ? "#ef4444" : d.avgDrop > 5 ? "#eab308" : "#a0a0ac" }}>
+                      <td style={{ ...'td', fontFamily: M }}>{d.totalEvents}</td>
+                      <td style={{ ...'td', fontFamily: M, color: d.avgDrop > 10 ? "#ef4444" : d.avgDrop > 5 ? "#eab308" : "#a0a0ac" }}>
                         {d.avgDrop.toFixed(1)} km/h
                       </td>
-                      <td style={{ ...sty.td, fontFamily: M, color: d.worstDrop > 10 ? "#ef4444" : d.worstDrop > 5 ? "#eab308" : "#a0a0ac" }}>
+                      <td style={{ ...'td', fontFamily: M, color: d.worstDrop > 10 ? "#ef4444" : d.worstDrop > 5 ? "#eab308" : "#a0a0ac" }}>
                         {d.worstDrop.toFixed(1)} km/h
                       </td>
-                      <td style={{ ...sty.td, fontFamily: M, color: "#5a5a6e" }}>{d.lapsAnalyzed}</td>
+                      <td style={{ ...'td', fontFamily: M, color: "#5a5a6e" }}>{d.lapsAnalyzed}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </>) : boxPlotRows.length > 0 ? (<>
-            <div style={sty.sectionHead}>Clipping Distribution (Top {sampleLaps} Fastest Laps)</div>
+            <div style={'section-head'}>Clipping Distribution (Top {sampleLaps} Fastest Laps)</div>
             <div style={{ marginTop: 10 }}>
               <BoxPlotChart rows={boxPlotRows} valueFmt={(v) => v.toFixed(1) + " km/h"} />
             </div>
@@ -272,8 +270,8 @@ export default function SuperClipping({ sessionKey, allLaps, drivers }: {
 
         {/* Scatter: all clipping events */}
         {scatterData.length > 0 && (
-          <div style={{ ...sty.card, marginTop: 12 }}>
-            <div style={sty.sectionHead}>All Clipping Events — Position vs Severity</div>
+          <div style={{ ...'card', marginTop: 12 }}>
+            <div style={'section-head'}>All Clipping Events — Position vs Severity</div>
             <div style={{ marginTop: 10 }}>
               <ScatterPlot
                 data={scatterData}

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { C } from "../../lib/styles";
 import { loadSeasonTrends } from "../../lib/seasonClient";
 import TrendTile from "./TrendTile";
 import Sparkline from "./Sparkline";
@@ -87,7 +86,7 @@ export default function ConstructorPaceTile({ year }: { year: number }) {
         showTrend ? (
           <Sparkline
             values={state.values}
-            stroke={closing ? C.pos : C.warn}
+            stroke={closing ? 'var(--pos)' : 'var(--warn)'}
             fill={closing ? "rgba(46,213,115,0.08)" : "rgba(255,181,71,0.08)"}
             invert      // smaller gap on top
           />

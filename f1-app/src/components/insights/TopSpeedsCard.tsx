@@ -7,12 +7,11 @@ import { useSessionModel } from "../../lib/useSessionModel";
 import { topSpeeds, SECTION_IDS, type DriverSpeeds, type TeamSpeeds } from "../../engine/index.ts";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, StatTile, Segmented, type Column } from "../../ui";
-import { C } from "../../lib/styles";
 import { useSelection } from "../../contexts/SelectionContext";
 
 const kph = (r: { speed: number; lap: number } | null, withLap = true) => (r
-  ? <span>{Math.round(r.speed)}<span style={{ color: C.textMute, fontSize: 10 }}> km/h{withLap ? ` · L${r.lap}` : ""}</span></span>
-  : <span style={{ color: C.textFaint }}>—</span>);
+  ? <span>{Math.round(r.speed)}<span style={{ color: 'var(--text)'-mute', fontSize: 10 }}> km/h{withLap ? ` · L${r.lap}` : ""}</span></span>
+  : <span style={{ color: 'var(--text)'-faint' }}>—</span>);
 
 export default function TopSpeedsCard() {
   const { model } = useSessionModel();
@@ -31,7 +30,7 @@ export default function TopSpeedsCard() {
 
   const driverCols: Column<DriverSpeeds>[] = [
     { key: "rank", label: "#", render: (_r, i) => i + 1, mono: true, align: "right", width: 36 },
-    { key: "driver", label: "Driver", render: r => <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (r.driver.team_colour || "666") }} /><b>{r.driver.name_acronym}</b><span style={{ color: C.textMute, fontSize: 11 }} className="hide-narrow">{r.team}</span></span> },
+    { key: "driver", label: "Driver", render: r => <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (r.driver.team_colour || "666") }} /><b>{r.driver.name_acronym}</b><span style={{ color: 'var(--text)'-mute', fontSize: 11 }} className="hide-narrow">{r.team}</span></span> },
     { key: "trap", label: "Speed trap", render: r => <span>{bar(r.trap?.speed, "#" + (r.driver.team_colour || "666"))}{kph(r.trap)}</span>, mono: true, align: "right", sort: (a, b) => (a.trap?.speed ?? 0) - (b.trap?.speed ?? 0) },
     ...(towSplit ? [
       { key: "clear", label: "Clear air", render: (r: DriverSpeeds) => kph(r.trapClear), mono: true, align: "right" as const, hideBelow: 640 as const, sort: (a: DriverSpeeds, b: DriverSpeeds) => (a.trapClear?.speed ?? 0) - (b.trapClear?.speed ?? 0), title: "Best reading with ≥ 1.5 s to the car ahead (or gap unknown)" },

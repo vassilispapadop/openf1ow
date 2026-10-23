@@ -13,7 +13,6 @@ import LineChart, { type Series } from "../../charts/LineChart";
 import Timeline, { type TimelineRow } from "../../charts/Timeline";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, Badge, StatTile, Segmented, type Column } from "../../ui";
-import { C, M } from "../../lib/styles";
 import { TC } from "../../lib/constants";
 import { podiumColor } from "../../lib/format";
 import { useSelection } from "../../contexts/SelectionContext";
@@ -29,10 +28,10 @@ const drv = (d: { name_acronym: string; team_colour: string }, team?: string) =>
   <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
     <span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (d.team_colour || "666") }} />
     <span style={{ fontWeight: 700 }}>{d.name_acronym}</span>
-    {team && <span style={{ color: C.textMute, fontSize: 11 }} className="hide-narrow">{team}</span>}
+    {team && <span style={{ color: 'var(--text)'-mute', fontSize: 11 }} className="hide-narrow">{team}</span>}
   </span>
 );
-const compoundBadge = (c: string | null | undefined) => (c ? <span style={{ color: TC[c] || C.textDim, fontWeight: 700, fontSize: 10, letterSpacing: "0.08em" }}>{c}</span> : <span style={{ color: C.textFaint }}>—</span>);
+const compoundBadge = (c: string | null | undefined) => (c ? <span style={{ color: TC[c] || 'var(--text)'-dim', fontWeight: 700, fontSize: 10, letterSpacing: "0.08em" }}>{c}</span> : <span style={{ color: 'var(--text)'-faint' }}>—</span>);
 
 function useSelectionBinding<R>(key: (r: R) => number) {
   const sel = useSelection();
@@ -53,20 +52,20 @@ export function PoleHero({ label }: { label: string }) {
   const colour = "#" + (p.driver.team_colour || "888");
   return (
     <section style={{
-      background: `linear-gradient(135deg, ${C.surface} 0%, ${C.surfaceAlt} 100%)`, border: `1px solid ${colour}33`, borderRadius: 12,
+      background: `linear-gradient(135deg, ${'var(--surface)'} 0%, ${'var(--surface)'-alt'} 100%)`, border: `1px solid ${colour}33`, borderRadius: 12,
       padding: "16px 18px", marginBottom: 14, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap",
     }}>
       <div style={{ width: 56, height: 56, borderRadius: "50%", background: `${colour}22`, border: `2px solid ${colour}`, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: M, fontWeight: 800, fontSize: 18, color: colour }}>{p.driver.driver_number}</div>
       <div style={{ flex: 1, minWidth: 200 }}>
-        <div style={{ fontSize: 11, color: C.textMute, fontWeight: 600, letterSpacing: "0.12em" }}>{label.toUpperCase()}</div>
-        <div style={{ fontSize: 22, fontWeight: 800, color: C.text, lineHeight: 1.1, marginTop: 4 }}>{p.driver.full_name}</div>
-        <div style={{ fontSize: 13, color: C.textDim, marginTop: 2 }}>{p.team} · lap {p.lap.lap_number} · {p.lapsCompleted} timed laps</div>
+        <div style={{ fontSize: 11, color: 'var(--text)'-mute', fontWeight: 600, letterSpacing: "0.12em" }}>{label.toUpperCase()}</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', lineHeight: 1.1, marginTop: 4 }}>{p.driver.full_name}</div>
+        <div style={{ fontSize: 13, color: 'var(--text)'-dim', marginTop: 2 }}>{p.team} · lap {p.lap.lap_number} · {p.lapsCompleted} timed laps</div>
       </div>
       <div style={{ textAlign: "right", fontFamily: M }}>
-        <div style={{ fontSize: 28, fontWeight: 800, color: C.text, fontVariantNumeric: "tabular-nums" }}>{fmt.lapTime(p.bestLap)}</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text)', fontVariantNumeric: "tabular-nums" }}>{fmt.lapTime(p.bestLap)}</div>
         <div style={{ marginTop: 4, display: "flex", gap: 10, justifyContent: "flex-end", alignItems: "baseline" }}>
           {compoundBadge(p.compound)}
-          {best.value[1] && <span style={{ fontSize: 11, color: C.textMute }}>+{best.value[1].gapToPole.toFixed(3)} to {best.value[1].driver.name_acronym}</span>}
+          {best.value[1] && <span style={{ fontSize: 11, color: 'var(--text)'-mute' }}>+{best.value[1].gapToPole.toFixed(3)} to {best.value[1].driver.name_acronym}</span>}
         </div>
       </div>
     </section>
@@ -96,11 +95,11 @@ export function BestLapsCard({ title = "Best laps", hint }: { title?: string; hi
     { key: "rank", label: "#", render: r => <span style={{ color: podiumColor(r.rank - 1), fontWeight: 800 }}>{r.rank}</span>, align: "right", mono: true, width: 36 },
     { key: "driver", label: "Driver", render: r => drv(r.driver, r.team) },
     { key: "best", label: "Best lap", render: r => fmt.lapTime(r.bestLap), align: "right", mono: true, sort: (a, b) => a.bestLap - b.bestLap },
-    { key: "gap", label: "Gap", render: r => (r.gapToPole === 0 ? <span style={{ color: C.pos }}>{quali ? "pole" : "fastest"}</span> : "+" + r.gapToPole.toFixed(3)), align: "right", mono: true, sort: (a, b) => a.gapToPole - b.gapToPole },
+    { key: "gap", label: "Gap", render: r => (r.gapToPole === 0 ? <span style={{ color: 'var(--pos)' }}>{quali ? "pole" : "fastest"}</span> : "+" + r.gapToPole.toFixed(3)), align: "right", mono: true, sort: (a, b) => a.gapToPole - b.gapToPole },
     { key: "pct", label: "%", render: r => (r.gapToPole === 0 ? "—" : "+" + r.gapPct.toFixed(2)), align: "right", mono: true, hideBelow: 900 },
     ...phases.map((p, i) => ({
       key: `ph${i}`, label: p.name, align: "right" as const, mono: true, hideBelow: 640 as const,
-      render: (r: BestLapRow) => { const v = phaseBestOf(r.driver.driver_number, i); return v == null ? <span style={{ color: C.textFaint }}>—</span> : fmt.lapTime(v); },
+      render: (r: BestLapRow) => { const v = phaseBestOf(r.driver.driver_number, i); return v == null ? <span style={{ color: 'var(--text)'-faint' }}>—</span> : fmt.lapTime(v); },
       sort: (a: BestLapRow, b: BestLapRow) => (phaseBestOf(a.driver.driver_number, i) ?? Infinity) - (phaseBestOf(b.driver.driver_number, i) ?? Infinity),
     })),
     { key: "s1", label: "S1", render: r => sectorCell(r.s1, 0), align: "right", mono: true, hideBelow: 640 },
@@ -147,8 +146,8 @@ export function SectorBestsCard() {
     { key: "s3", label: "Best S3", render: r => king(r, 2), align: "right", mono: true, sort: (a, b) => a.bests[2] - b.bests[2] },
     { key: "theo", label: "Theoretical", render: r => fmt.lapTime(r.theoretical), align: "right", mono: true, sort: (a, b) => a.theoretical - b.theoretical, title: "Own best sectors summed" },
     { key: "best", label: "Best lap", render: r => fmt.lapTime(r.best), align: "right", mono: true, hideBelow: 640, sort: (a, b) => a.best - b.best },
-    { key: "left", label: "Left on table", render: r => (r.leftOnTable < 0.0005 ? <span style={{ color: C.pos }}>none</span> : <span style={{ color: r.leftOnTable >= 0.2 ? C.warn : undefined }}>{r.leftOnTable.toFixed(3)}</span>), align: "right", mono: true, sort: (a, b) => a.leftOnTable - b.leftOnTable },
-    { key: "would", label: "Would be", render: r => (r.theoreticalRank < r.actualRank ? <span style={{ color: C.pos }}>P{r.theoreticalRank}</span> : <span style={{ color: C.textMute }}>P{r.theoreticalRank}</span>), align: "right", mono: true, hideBelow: 480, title: "Where the theoretical lap would rank among the actual best laps" },
+    { key: "left", label: "Left on table", render: r => (r.leftOnTable < 0.0005 ? <span style={{ color: 'var(--pos)' }}>none</span> : <span style={{ color: r.leftOnTable >= 0.2 ? 'var(--warn)' : undefined }}>{r.leftOnTable.toFixed(3)}</span>), align: "right", mono: true, sort: (a, b) => a.leftOnTable - b.leftOnTable },
+    { key: "would", label: "Would be", render: r => (r.theoreticalRank < r.actualRank ? <span style={{ color: 'var(--pos)' }}>P{r.theoreticalRank}</span> : <span style={{ color: 'var(--text)'-mute' }}>P{r.theoreticalRank}</span>), align: "right", mono: true, hideBelow: 480, title: "Where the theoretical lap would rank among the actual best laps" },
   ];
   return (
     <Section
@@ -250,7 +249,7 @@ export function TrackEvolutionCard() {
         {v => (
           <>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
-              <StatTile grow label="Per 10 minutes" value={fmt.signedSec(v.secPerMin * 10, 3) + " s"} mono accent={v.secPerMin < 0 ? C.pos : C.warn} sub={`95 % ${fmt.signedSec(v.ci95[0] * 10, 3)} to ${fmt.signedSec(v.ci95[1] * 10, 3)}`} />
+              <StatTile grow label="Per 10 minutes" value={fmt.signedSec(v.secPerMin * 10, 3) + " s"} mono accent={v.secPerMin < 0 ? 'var(--pos)' : 'var(--warn)'} sub={`95 % ${fmt.signedSec(v.ci95[0] * 10, 3)} to ${fmt.signedSec(v.ci95[1] * 10, 3)}`} />
               <StatTile grow label="Over the session" value={fmt.signedSec(v.totalGain, 2) + " s"} mono sub={`${v.spanMin.toFixed(0)} min of push laps`} />
               <StatTile grow label="Sample" value={`${v.n} laps`} mono sub={`${v.drivers} drivers · within-driver R² ${v.r2Within.toFixed(2)}`} />
             </div>
@@ -303,7 +302,7 @@ export function RunPlanCard() {
           <>
             <Timeline rows={rows} xDomain={[0, Math.max(1, clock.endMin)]} bands={bands} continuous xLabel="Session time" xFormat={minuteLabel}
               highlightKey={sel.hoveredKey} onRowHover={k => sel.setHovered(k ? Number(k) : null)} ariaLabel="Runs per driver on the session clock" />
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 8, fontSize: 11, color: C.textMute }}>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 8, fontSize: 11, color: 'var(--text)'-mute' }}>
               {COMPOUND_ORDER.filter(c => result.ok && result.value.some(d => d.runs.some(r => r.compound === c))).map(c => (
                 <span key={c} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 2, background: TC[c] || "#666", opacity: 0.7 }} />{c.toLowerCase()}</span>
               ))}
@@ -338,14 +337,14 @@ export function StartTyresCard() {
               const dim = sel.focusKeys ? !sel.focusKeys.has(String(dn)) : false;
               return (
                 <button key={dn} type="button" onClick={() => sel.toggle(dn)} onMouseEnter={() => sel.setHovered(dn)} onMouseLeave={() => sel.setHovered(null)} style={{
-                  textAlign: "left", cursor: "pointer", padding: "10px 12px", background: C.surfaceAlt, border: "1px solid " + (sel.selected.has(dn) ? C.borderStrong : C.border),
-                  borderLeft: "3px solid #" + (r.driver.team_colour || "666"), borderRadius: 8, fontFamily: "var(--font)", color: C.text, opacity: dim ? 0.4 : 1, transition: "opacity .15s",
+                  textAlign: "left", cursor: "pointer", padding: "10px 12px", background: 'var(--surface)'-alt', border: "1px solid " + (sel.selected.has(dn) ? 'var(--border)'-strong' : 'var(--border)'),
+                  borderLeft: "3px solid #" + (r.driver.team_colour || "666"), borderRadius: 8, fontFamily: "var(--font)", color: 'var(--text)', opacity: dim ? 0.4 : 1, transition: "opacity .15s",
                 }}>
                   <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
                     <span style={{ fontSize: 16, fontWeight: 800, color: podiumColor(i) }}>P{i + 1}</span>
                     <span style={{ fontSize: 13, fontWeight: 600 }}>{r.driver.name_acronym}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: C.textMute, marginTop: 4 }}>{r.team}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text)'-mute', marginTop: 4 }}>{r.team}</div>
                   <div style={{ marginTop: 6 }}>{compoundBadge(r.compound)}</div>
                 </button>
               );
@@ -369,14 +368,14 @@ export function TeammateSingleLapCard() {
   const both = (p: SingleLapPair) => [p.a.driver_number, p.b.driver_number];
   const columns: Column<SingleLapPair>[] = [
     { key: "team", label: "Team", render: p => <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (p.a.team_colour || "666") }} /><b>{p.team}</b></span> },
-    { key: "a", label: "Driver", render: p => <>{p.a.name_acronym} <span style={{ color: C.textMute, fontFamily: M, fontSize: 11 }}>{fmt.lapTime(p.bestA)}</span></> },
-    { key: "b", label: "Teammate", render: p => <>{p.b.name_acronym} <span style={{ color: C.textMute, fontFamily: M, fontSize: 11 }}>{fmt.lapTime(p.bestB)}</span></> },
-    { key: "gap", label: "Gap", render: p => <><b>{p.faster.name_acronym}</b> by {p.gap.toFixed(3)} <span style={{ color: C.textMute }}>({p.gapPct.toFixed(2)} %)</span></>, mono: true, align: "right", sort: (a, b) => a.gap - b.gap },
+    { key: "a", label: "Driver", render: p => <>{p.a.name_acronym} <span style={{ color: 'var(--text)'-mute', fontFamily: M, fontSize: 11 }}>{fmt.lapTime(p.bestA)}</span></> },
+    { key: "b", label: "Teammate", render: p => <>{p.b.name_acronym} <span style={{ color: 'var(--text)'-mute', fontFamily: M, fontSize: 11 }}>{fmt.lapTime(p.bestB)}</span></> },
+    { key: "gap", label: "Gap", render: p => <><b>{p.faster.name_acronym}</b> by {p.gap.toFixed(3)} <span style={{ color: 'var(--text)'-mute' }}>({p.gapPct.toFixed(2)} %)</span></>, mono: true, align: "right", sort: (a, b) => a.gap - b.gap },
     ...(quali ? [{
       key: "phases", label: "Segments", align: "right" as const, hideBelow: 640 as const,
       render: (p: SingleLapPair) => {
         const shared = p.phases.filter(x => x.delta != null);
-        if (!shared.length) return <span style={{ color: C.textFaint }}>—</span>;
+        if (!shared.length) return <span style={{ color: 'var(--text)'-faint' }}>—</span>;
         return (
           <span style={{ display: "inline-flex", gap: 6 }}>
             {shared.map(x => <Badge key={x.phase.index} size="sm" tone={(x.delta as number) < 0 ? "pos" : (x.delta as number) > 0 ? "neg" : "mute"} title={`${x.phase.name}: ${p.a.name_acronym} ${fmt.signedSec(x.delta as number)}`}>{x.phase.name} {(x.delta as number) < 0 ? p.a.name_acronym : p.b.name_acronym}</Badge>)}
@@ -386,8 +385,8 @@ export function TeammateSingleLapCard() {
     }] : [{
       key: "longrun", label: "Long run", align: "right" as const, hideBelow: 640 as const,
       render: (p: SingleLapPair) => p.longRunDelta
-        ? <span title={`${p.longRunDelta.lapsA} vs ${p.longRunDelta.lapsB} laps`}><b>{p.longRunDelta.delta < 0 ? p.a.name_acronym : p.b.name_acronym}</b> by {Math.abs(p.longRunDelta.delta).toFixed(3)} <span style={{ color: TC[p.longRunDelta.compound] || C.textMute, fontSize: 10, fontWeight: 700 }}>{p.longRunDelta.compound[0]}</span></span>
-        : <span style={{ color: C.textFaint }}>no shared run</span>,
+        ? <span title={`${p.longRunDelta.lapsA} vs ${p.longRunDelta.lapsB} laps`}><b>{p.longRunDelta.delta < 0 ? p.a.name_acronym : p.b.name_acronym}</b> by {Math.abs(p.longRunDelta.delta).toFixed(3)} <span style={{ color: TC[p.longRunDelta.compound] || 'var(--text)'-mute', fontSize: 10, fontWeight: 700 }}>{p.longRunDelta.compound[0]}</span></span>
+        : <span style={{ color: 'var(--text)'-faint' }}>no shared run</span>,
     }]),
   ];
   return (
@@ -424,7 +423,7 @@ export function LongRunsCard() {
     { key: "range", label: "Run", render: r => `L${r.startLap}–${r.endLap}`, align: "right", mono: true, hideBelow: 640 },
     { key: "median", label: "Median", render: r => fmt.lapTime(r.medianPace), align: "right", mono: true, sort: (a, b) => a.medianPace - b.medianPace },
     { key: "best", label: "Best", render: r => <span style={{ color: PURPLE }}>{fmt.lapTime(r.bestLap)}</span>, align: "right", mono: true, hideBelow: 480, sort: (a, b) => a.bestLap - b.bestLap },
-    { key: "slope", label: "Slope", render: r => (r.fit ? <span style={{ color: r.fit.slope > 0.05 ? C.warn : undefined }}>{fmt.signedSec(r.fit.slope, 3)}/lap{r.fit.r2 < 0.3 ? <span style={{ color: C.textFaint }}> ~</span> : null}</span> : "—"), align: "right", mono: true, hideBelow: 640, sort: (a, b) => (a.fit?.slope ?? 0) - (b.fit?.slope ?? 0), title: "Raw lap time per lap into the run; ~ marks a weak fit (R² < 0.3)" },
+    { key: "slope", label: "Slope", render: r => (r.fit ? <span style={{ color: r.fit.slope > 0.05 ? 'var(--warn)' : undefined }}>{fmt.signedSec(r.fit.slope, 3)}/lap{r.fit.r2 < 0.3 ? <span style={{ color: 'var(--text)'-faint' }}> ~</span> : null}</span> : "—"), align: "right", mono: true, hideBelow: 640, sort: (a, b) => (a.fit?.slope ?? 0) - (b.fit?.slope ?? 0), title: "Raw lap time per lap into the run; ~ marks a weak fit (R² < 0.3)" },
   ];
   return (
     <Section
@@ -465,18 +464,18 @@ export function CompoundProgramCard() {
               const dim = sel.focusKeys ? !sel.focusKeys.has(String(dn)) : false;
               return (
                 <button key={dn} type="button" onClick={() => sel.toggle(dn)} onMouseEnter={() => sel.setHovered(dn)} onMouseLeave={() => sel.setHovered(null)} style={{
-                  textAlign: "left", cursor: "pointer", padding: "12px 14px", background: C.surfaceAlt, border: "1px solid " + (sel.selected.has(dn) ? C.borderStrong : C.border),
-                  borderLeft: "3px solid #" + (p.driver.team_colour || "666"), borderRadius: 8, fontFamily: "var(--font)", color: C.text, opacity: dim ? 0.4 : 1, transition: "opacity .15s",
+                  textAlign: "left", cursor: "pointer", padding: "12px 14px", background: 'var(--surface)'-alt', border: "1px solid " + (sel.selected.has(dn) ? 'var(--border)'-strong' : 'var(--border)'),
+                  borderLeft: "3px solid #" + (p.driver.team_colour || "666"), borderRadius: 8, fontFamily: "var(--font)", color: 'var(--text)', opacity: dim ? 0.4 : 1, transition: "opacity .15s",
                 }}>
                   <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span><span style={{ fontSize: 13, fontWeight: 700 }}>{p.driver.name_acronym}</span><span style={{ fontSize: 10, color: C.textMute, marginLeft: 6 }}>{p.team}</span></span>
-                    <span style={{ fontFamily: M, fontSize: 12, color: C.textDim }}>{p.totalLaps}L</span>
+                    <span><span style={{ fontSize: 13, fontWeight: 700 }}>{p.driver.name_acronym}</span><span style={{ fontSize: 10, color: 'var(--text)'-mute', marginLeft: 6 }}>{p.team}</span></span>
+                    <span style={{ fontFamily: M, fontSize: 12, color: 'var(--text)'-dim' }}>{p.totalLaps}L</span>
                   </div>
-                  <div style={{ display: "flex", gap: 2, height: 8, borderRadius: 4, overflow: "hidden", background: C.surface }}>
+                  <div style={{ display: "flex", gap: 2, height: 8, borderRadius: 4, overflow: "hidden", background: 'var(--surface)' }}>
                     {COMPOUND_ORDER.filter(c => p.byCompound[c]).map(c => <div key={c} style={{ flex: p.byCompound[c], background: TC[c] || "#666", minWidth: 2 }} title={`${c}: ${p.byCompound[c]} laps`} />)}
                   </div>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8, fontSize: 10, fontFamily: M }}>
-                    {COMPOUND_ORDER.filter(c => p.byCompound[c]).map(c => <span key={c} style={{ color: C.textDim }}><span style={{ color: TC[c] || C.textDim, fontWeight: 700 }}>{c[0]}</span> {p.byCompound[c]}</span>)}
+                    {COMPOUND_ORDER.filter(c => p.byCompound[c]).map(c => <span key={c} style={{ color: 'var(--text)'-dim' }}><span style={{ color: TC[c] || 'var(--text)'-dim', fontWeight: 700 }}>{c[0]}</span> {p.byCompound[c]}</span>)}
                   </div>
                 </button>
               );

@@ -8,7 +8,6 @@ import { useMemo, useState } from "react";
 import LineChart, { type Series } from "../../charts/LineChart";
 import { fmt, shortMeetingName } from "../../charts/core/scales";
 import { Segmented } from "../../ui";
-import { C } from "../../lib/styles";
 import { TEAM_COLORS, TEAM_FALLBACK_COLORS, TC } from "../../lib/constants";
 import type { SeasonTrends, TireDegRace, CornerStraightRace, TyreLifeRace, ClippingRace } from "../../lib/seasonUtils";
 
@@ -91,7 +90,7 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
           const v = u === "s" ? g : (r.fastestTeamBest > 0 ? (g / r.fastestTeamBest) * 100 : null);
           return v == null ? [] : [{ x: r.round, y: v }];
         });
-        return pts.length ? { key, label, color: C.textFaint, dash: true, points: pts, rank: Infinity } : null;
+        return pts.length ? { key, label, color: 'var(--text)'-faint', dash: true, points: pts, rank: Infinity } : null;
       };
       extra = [cut("q1CutoffGap", "Q1 cut (15th)"), cut("q2CutoffGap", "Q2 cut (10th)")].filter((x): x is Series => !!x);
     } else if (metric === "teammate") {
@@ -142,12 +141,12 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
       const byC: Record<string, { x: number; y: number }[]> = {};
       for (const r of races) for (const c of r.compounds) (byC[c.compound] ||= []).push({ x: r.round, y: c.p90StintLength });
       series = Object.entries(byC).map(([compound, pts]) => ({
-        key: compound, label: compound, color: TC[compound] ?? C.textDim, points: pts.sort((a, b) => a.x - b.x), rank: -mean(pts.map(p => p.y)),
+        key: compound, label: compound, color: TC[compound] ?? 'var(--text)'-dim', points: pts.sort((a, b) => a.x - b.x), rank: -mean(pts.map(p => p.y)),
       })).sort((a, b) => a.rank - b.rank);
       // Cliff ages as dashed companions where the pooled curve stepped up.
       const cliffs: Record<string, { x: number; y: number }[]> = {};
       for (const r of races) for (const c of r.compounds) if (c.cliffAge != null) (cliffs[c.compound] ||= []).push({ x: r.round, y: c.cliffAge });
-      extra = Object.entries(cliffs).map(([compound, pts]) => ({ key: compound + "-cliff", label: compound + " cliff", color: TC[compound] ?? C.textDim, dash: true, points: pts.sort((a, b) => a.x - b.x), rank: Infinity }));
+      extra = Object.entries(cliffs).map(([compound, pts]) => ({ key: compound + "-cliff", label: compound + " cliff", color: TC[compound] ?? 'var(--text)'-dim', dash: true, points: pts.sort((a, b) => a.x - b.x), rank: Infinity }));
       yFormat = v => Math.round(v) + " laps";
       yTicksFmt = v => String(Math.round(v));
       invert = false;
@@ -159,7 +158,7 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
       const byC: Record<string, { x: number; y: number }[]> = {};
       for (const r of races as TireDegRace[]) for (const c of r.compounds) (byC[c.compound] ||= []).push({ x: r.round, y: c.medianDeg });
       series = Object.entries(byC).map(([compound, pts]) => ({
-        key: compound, label: compound, color: TC[compound] ?? C.textDim, points: pts.sort((a, b) => a.x - b.x), rank: mean(pts.map(p => p.y)),
+        key: compound, label: compound, color: TC[compound] ?? 'var(--text)'-dim', points: pts.sort((a, b) => a.x - b.x), rank: mean(pts.map(p => p.y)),
       })).sort((a, b) => a.rank - b.rank);
       yFormat = v => (v >= 0 ? "+" : "−") + Math.abs(v).toFixed(3) + " s/lap";
       yTicksFmt = v => v.toFixed(2);
@@ -232,7 +231,7 @@ export default function SeasonTrendChart({ trends, metric, height = 380 }: { tre
         legend={{ columns: 2, hint: true }}
         ariaLabel={`${metric} trend by round`}
       />
-      <p style={{ fontSize: 11, color: C.textMute, margin: "10px 4px 0", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 11, color: 'var(--text)'-mute', margin: "10px 4px 0", lineHeight: 1.5 }}>
         {metric === "race" && "Each line is a constructor's median lap-time gap to the fastest car of that race. Hover for the full ranking at any round."}
         {metric === "quali" && "Each line is the faster of each team's drivers in qualifying, against the fastest team of that race. Dashed lines are the 15th- and 10th-best laps — the approximate Q1 and Q2 elimination boundaries."}
         {metric === "teammate" && "Positive: the driver who was quicker at their first race together is still ahead; below the dashed line the other teammate has taken over. Gaps are medians of paired laps in the same traffic state."}

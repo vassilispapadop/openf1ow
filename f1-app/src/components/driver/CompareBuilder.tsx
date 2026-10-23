@@ -7,7 +7,6 @@ import type { SessionModel, EnrichedLap } from "../../engine/index.ts";
 import { bestLapFor } from "../../engine/index.ts";
 import { fmt } from "../../charts/core/scales";
 import Pill from "../Pill";
-import { C } from "../../lib/styles";
 
 export default function CompareBuilder({ model, currentDn, existing, onAdd }: {
   model: SessionModel;
@@ -51,7 +50,7 @@ export default function CompareBuilder({ model, currentDn, existing, onAdd }: {
       <Pill size="sm" variant="inverted" disabled={!chosen || has(dn, chosen)} onClick={() => chosen && onAdd(dn, chosen)} title="Add this lap to the comparison">
         {chosen && has(dn, chosen) ? "Added" : "+ Add lap"}
       </Pill>
-      <span style={{ width: 1, height: 18, background: C.border, margin: "0 2px" }} />
+      <span style={{ width: 1, height: 18, background: 'var(--border)', margin: "0 2px" }} />
       {quick.map(q => {
         const b = bestLapFor(model, q.dn);
         return <Pill key={q.label} size="sm" disabled={!b || has(q.dn, b)} onClick={() => addBest(q.dn)} title={b ? `L${b.lap_number} · ${fmt.lapTime(b.lap_duration as number)}` : "no timed lap"}>{q.label}</Pill>;
@@ -61,5 +60,5 @@ export default function CompareBuilder({ model, currentDn, existing, onAdd }: {
 }
 
 const sel: React.CSSProperties = {
-  background: C.surfaceAlt, color: C.text, border: "1px solid " + C.border, borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "var(--font)", maxWidth: 260,
+  background: 'var(--surface)'-alt', color: 'var(--text)', border: "1px solid " + 'var(--border)', borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "var(--font)", maxWidth: 260,
 };

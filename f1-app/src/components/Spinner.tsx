@@ -1,4 +1,3 @@
-import { F, C } from "../lib/styles";
 
 export default function Spinner({ label, shimmer }: { label: string; shimmer?: boolean }) {
   return (
@@ -9,14 +8,14 @@ export default function Spinner({ label, shimmer }: { label: string; shimmer?: b
       <div style={{
         width: 28,
         height: 28,
-        border: "2px solid " + C.border,
-        borderTopColor: C.text,
+        border: "2px solid " + 'var(--border)',
+        borderTopColor: 'var(--text)',
         borderRadius: "50%",
         animation: "spin 0.8s linear infinite",
         margin: "0 auto 14px",
       }} />
       <div style={{
-        color: C.textDim,
+        color: 'var(--text)'-dim',
         fontSize: 12,
         fontWeight: 500,
         fontFamily: F,

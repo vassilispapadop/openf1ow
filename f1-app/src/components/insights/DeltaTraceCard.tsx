@@ -9,7 +9,6 @@ import { deltaTrace, SECTION_IDS, type DeltaReference } from "../../engine/index
 import LineChart, { type Series } from "../../charts/LineChart";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate } from "../../ui";
-import { C } from "../../lib/styles";
 import { useSelection } from "../../contexts/SelectionContext";
 
 const BAND_COLOR: Record<string, string> = { SC: "rgba(255,181,71,0.10)", VSC: "rgba(255,181,71,0.06)", RED: "rgba(255,84,114,0.12)" };
@@ -87,5 +86,5 @@ export function isSecondDriverOfTeam(model: NonNullable<ReturnType<typeof useSes
 }
 
 const selectStyle: React.CSSProperties = {
-  background: C.surfaceAlt, color: C.text, border: "1px solid " + C.border, borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "var(--font)",
+  background: 'var(--surface)'-alt', color: 'var(--text)', border: "1px solid " + 'var(--border)', borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "var(--font)",
 };

@@ -6,7 +6,6 @@ import { useSessionModel } from "../../lib/useSessionModel";
 import { startAnalysis, conversionAnalysis, SECTION_IDS, type StartRow, type ConversionRow } from "../../engine/index.ts";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, Badge, type Column } from "../../ui";
-import { C } from "../../lib/styles";
 import { useSelection } from "../../contexts/SelectionContext";
 
 const drv = (d: { name_acronym: string; team_colour: string }) => (
@@ -14,7 +13,7 @@ const drv = (d: { name_acronym: string; team_colour: string }) => (
     <span style={{ width: 3, height: 13, borderRadius: 2, background: "#" + (d.team_colour || "666") }} /><b>{d.name_acronym}</b>
   </span>
 );
-const signed = (v: number | null) => (v == null ? "—" : <span style={{ color: v > 0 ? C.pos : v < 0 ? C.neg : C.textMute }}>{v > 0 ? "+" : ""}{v}</span>);
+const signed = (v: number | null) => (v == null ? "—" : <span style={{ color: v > 0 ? 'var(--pos)' : v < 0 ? 'var(--neg)' : 'var(--text)'-mute' }}>{v > 0 ? "+" : ""}{v}</span>);
 
 export function StartCard() {
   const { model } = useSessionModel();

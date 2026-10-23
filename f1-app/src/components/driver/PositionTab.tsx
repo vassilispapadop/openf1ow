@@ -6,7 +6,6 @@ import { useMemo } from "react";
 import type { DriverSummary, SessionModel } from "../../engine/index.ts";
 import LineChart, { type Mark } from "../../charts/LineChart";
 import { Section, Table, EmptyState, type Column } from "../../ui";
-import { C } from "../../lib/styles";
 
 interface Row { lap: number; position: number; change: number; pit: boolean }
 
@@ -26,8 +25,8 @@ export default function PositionTab({ model, d }: { model: SessionModel; d: Driv
   const columns: Column<Row>[] = [
     { key: "lap", label: "Lap", render: r => r.lap, mono: true, width: 60 },
     { key: "pos", label: "Position", render: r => <b>P{r.position}</b>, mono: true, align: "right" },
-    { key: "chg", label: "Change", render: r => (r.change === 0 ? <span style={{ color: C.textFaint }}>—</span> : <span style={{ color: r.change > 0 ? C.pos : C.neg }}>{r.change > 0 ? "▲" : "▼"}{Math.abs(r.change)}</span>), align: "right", mono: true },
-    { key: "pit", label: "", render: r => (r.pit ? <span style={{ color: C.warn, fontSize: 10, fontWeight: 700 }}>PIT</span> : null), width: 50 },
+    { key: "chg", label: "Change", render: r => (r.change === 0 ? <span style={{ color: 'var(--text)'-faint' }}>—</span> : <span style={{ color: r.change > 0 ? 'var(--pos)' : 'var(--neg)' }}>{r.change > 0 ? "▲" : "▼"}{Math.abs(r.change)}</span>), align: "right", mono: true },
+    { key: "pit", label: "", render: r => (r.pit ? <span style={{ color: 'var(--warn)', fontSize: 10, fontWeight: 700 }}>PIT</span> : null), width: 50 },
   ];
   return (
     <Section

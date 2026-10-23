@@ -9,7 +9,6 @@ import {
 } from "../../engine/index.ts";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, Badge, Segmented, type Column } from "../../ui";
-import { C } from "../../lib/styles";
 import { useSelection } from "../../contexts/SelectionContext";
 
 const drv = (d: { name_acronym: string; team_colour: string }) => (
@@ -25,7 +24,7 @@ export function TeammatesCard() {
   const columns: Column<TeamComparison>[] = [
     { key: "team", label: "Team", render: t => <b>{t.team}</b> },
     { key: "faster", label: "Quicker", render: t => drv(t.primary.faster) },
-    { key: "gap", label: "Gap / lap", render: t => <span style={{ color: t.primary.significant ? C.pos : C.text }}>{t.primary.gap.toFixed(3)} s</span>, align: "right", mono: true, sort: (a, b) => a.primary.gap - b.primary.gap },
+    { key: "gap", label: "Gap / lap", render: t => <span style={{ color: t.primary.significant ? 'var(--pos)' : 'var(--text)' }}>{t.primary.gap.toFixed(3)} s</span>, align: "right", mono: true, sort: (a, b) => a.primary.gap - b.primary.gap },
     { key: "ci", label: "95 % interval", render: t => `${fmt.signedSec(t.primary.ci95[0])} … ${fmt.signedSec(t.primary.ci95[1])}`, align: "right", mono: true, hideBelow: 900 },
     { key: "wins", label: "Laps won", render: t => `${Math.max(t.primary.winsA, t.primary.winsB)} – ${Math.min(t.primary.winsA, t.primary.winsB)}`, align: "right", mono: true, hideBelow: 480 },
     { key: "n", label: "Paired", render: t => t.primary.n, align: "right", mono: true, hideBelow: 640 },
@@ -57,7 +56,7 @@ export function OvertakesCard() {
     { key: "driver", label: "Driver", render: r => drv(r.driver) },
     { key: "made", label: "Passes made", render: r => r.onTrackMade, align: "right", mono: true, sort: (a, b) => a.onTrackMade - b.onTrackMade },
     { key: "suffered", label: "Passed", render: r => r.onTrackSuffered, align: "right", mono: true, sort: (a, b) => a.onTrackSuffered - b.onTrackSuffered },
-    { key: "net", label: "Net", render: r => <span style={{ color: r.net > 0 ? C.pos : r.net < 0 ? C.neg : C.textMute }}>{r.net > 0 ? "+" : ""}{r.net}</span>, align: "right", mono: true, sort: (a, b) => a.net - b.net },
+    { key: "net", label: "Net", render: r => <span style={{ color: r.net > 0 ? 'var(--pos)' : r.net < 0 ? 'var(--neg)' : 'var(--text)'-mute' }}>{r.net > 0 ? "+" : ""}{r.net}</span>, align: "right", mono: true, sort: (a, b) => a.net - b.net },
     { key: "all", label: "All events", render: r => `${r.made} / ${r.suffered}`, align: "right", mono: true, hideBelow: 640, title: "Including pit-cycle, lapping and safety-car swaps" },
   ];
   return (
@@ -72,9 +71,9 @@ export function OvertakesCard() {
       <Gate result={result} what="overtake">
         {v => (
           <>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: C.textMute, marginBottom: 10 }}>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: 'var(--text)'-mute', marginBottom: 10 }}>
               {(Object.entries(v.totals) as [string, number][]).filter(([, n]) => n > 0).map(([k, n]) => (
-                <span key={k}><b style={{ color: k === "on-track" ? C.text : C.textDim, fontFamily: "var(--mono)" }}>{n}</b> {k.replace("-", " ")}</span>
+                <span key={k}><b style={{ color: k === "on-track" ? 'var(--text)' : 'var(--text)'-dim', fontFamily: "var(--mono)" }}>{n}</b> {k.replace("-", " ")}</span>
               ))}
               {v.source === "position" && <Badge tone="warn" size="sm">inferred from positions</Badge>}
             </div>
@@ -96,7 +95,7 @@ export function SCImpactCard() {
   const columns: Column<ImpactRow>[] = [
     { key: "driver", label: "Driver", render: r => drv(r.driver) },
     { key: "pos", label: "Position", render: r => `P${r.positionBefore ?? "?"} → P${r.positionAfter ?? "?"}`, mono: true },
-    { key: "gained", label: "Places", render: r => <span style={{ color: (r.positionsGained ?? 0) > 0 ? C.pos : (r.positionsGained ?? 0) < 0 ? C.neg : C.textMute }}>{(r.positionsGained ?? 0) > 0 ? "+" : ""}{r.positionsGained ?? 0}</span>, align: "right", mono: true, sort: (a, b) => (a.positionsGained ?? 0) - (b.positionsGained ?? 0) },
+    { key: "gained", label: "Places", render: r => <span style={{ color: (r.positionsGained ?? 0) > 0 ? 'var(--pos)' : (r.positionsGained ?? 0) < 0 ? 'var(--neg)' : 'var(--text)'-mute' }}>{(r.positionsGained ?? 0) > 0 ? "+" : ""}{r.positionsGained ?? 0}</span>, align: "right", mono: true, sort: (a, b) => (a.positionsGained ?? 0) - (b.positionsGained ?? 0) },
     { key: "delta", label: "vs field", render: r => fmt.signedSec(-(r.delta ?? 0), 1), align: "right", mono: true, hideBelow: 640, title: "Gap change relative to the field's median change; positive = gained", sort: (a, b) => (a.delta ?? 0) - (b.delta ?? 0) },
     { key: "pit", label: "", render: r => (r.pittedUnder ? <Badge tone="warn" size="sm">pitted under</Badge> : null), hideBelow: 480 },
   ];
@@ -117,8 +116,8 @@ export function SCImpactCard() {
           const w = v[Math.min(idx, v.length - 1)];
           return (
             <>
-              <p style={{ fontSize: 12, color: C.textDim, margin: "0 0 10px" }}>
-                <b style={{ color: C.text }}>{w.window.kind}</b> laps {w.window.lapStart}–{w.window.lapEnd} · {((w.window.tEnd - w.window.tStart) / 60000).toFixed(1)} min · {w.rows.filter(r => r.pittedUnder).length} car(s) pitted under it.
+              <p style={{ fontSize: 12, color: 'var(--text)'-dim', margin: "0 0 10px" }}>
+                <b style={{ color: 'var(--text)' }}>{w.window.kind}</b> laps {w.window.lapStart}–{w.window.lapEnd} · {((w.window.tEnd - w.window.tStart) / 60000).toFixed(1)} min · {w.rows.filter(r => r.pittedUnder).length} car(s) pitted under it.
               </p>
               <Table columns={columns} rows={w.rows} rowKey={r => r.driver.driver_number} compact defaultSort={{ key: "gained", dir: "desc" }} maxHeight={420} highlightKeys={sel.selected} dimOthers onRowClick={r => sel.toggle(r.driver.driver_number)} onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)} />
             </>
@@ -136,7 +135,7 @@ export function DirtyAirCard() {
   if (!model || !result) return null;
   const columns: Column<DriverTraffic>[] = [
     { key: "driver", label: "Driver", render: r => drv(r.driver) },
-    { key: "loss", label: "Cost / lap", render: r => (r.medianLoss == null ? <span style={{ color: C.textFaint }}>n &lt; 4</span> : <span style={{ color: r.medianLoss > 0.3 ? C.neg : C.text }}>{fmt.signedSec(r.medianLoss, 2)}</span>), align: "right", mono: true, sort: (a, b) => (a.medianLoss ?? -9) - (b.medianLoss ?? -9) },
+    { key: "loss", label: "Cost / lap", render: r => (r.medianLoss == null ? <span style={{ color: 'var(--text)'-faint' }}>n &lt; 4</span> : <span style={{ color: r.medianLoss > 0.3 ? 'var(--neg)' : 'var(--text)' }}>{fmt.signedSec(r.medianLoss, 2)}</span>), align: "right", mono: true, sort: (a, b) => (a.medianLoss ?? -9) - (b.medianLoss ?? -9) },
     { key: "dirty", label: "Laps in traffic", render: r => r.dirtyLaps, align: "right", mono: true, sort: (a, b) => a.dirtyLaps - b.dirtyLaps },
     { key: "share", label: "Clear air", render: r => Math.round(r.clearShare * 100) + "%", align: "right", mono: true, hideBelow: 480, sort: (a, b) => a.clearShare - b.clearShare },
     { key: "total", label: "Total lost", render: r => (r.totalLoss != null ? r.totalLoss.toFixed(1) + " s" : "—"), align: "right", mono: true, hideBelow: 640 },
@@ -155,9 +154,9 @@ export function DirtyAirCard() {
         {v => (
           <>
             {v.costByGap.length > 0 && (
-              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: C.textMute, marginBottom: 10 }}>
+              <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: 11, color: 'var(--text)'-mute', marginBottom: 10 }}>
                 <span>Cost by gap to the car ahead:</span>
-                {v.costByGap.map(b => <span key={b.bin}><b style={{ color: C.text, fontFamily: "var(--mono)" }}>{fmt.signedSec(b.medianLoss, 2)}</b> at {b.bin} <span style={{ color: C.textFaint }}>(n={b.n})</span></span>)}
+                {v.costByGap.map(b => <span key={b.bin}><b style={{ color: 'var(--text)', fontFamily: "var(--mono)" }}>{fmt.signedSec(b.medianLoss, 2)}</b> at {b.bin} <span style={{ color: 'var(--text)'-faint' }}>(n={b.n})</span></span>)}
               </div>
             )}
             <Table columns={columns} rows={v.drivers} rowKey={r => r.driver.driver_number} compact maxHeight={480} highlightKeys={sel.selected} dimOthers onRowClick={r => sel.toggle(r.driver.driver_number)} onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)} />

@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { F } from "../lib/styles";
 import { captureCanvas, captureCanvasStack, captureDom, copyToClipboard, downloadPng, uploadShareImage } from "../lib/snapshot";
 import { shareImage, canShareFiles } from "../lib/share";
 

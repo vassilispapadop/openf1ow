@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { C } from "../../lib/styles";
 import { loadSeasonTrends } from "../../lib/seasonClient";
 import TrendTile from "./TrendTile";
 import Sparkline from "./Sparkline";
@@ -109,7 +108,7 @@ export default function TeammateGapTile({ year }: { year: number }) {
         showTrend ? (
           <Sparkline
             values={state.values}
-            stroke={closing ? C.violet : C.warn}
+            stroke={closing ? 'var(--violet)' : 'var(--warn)'}
             fill={closing ? "rgba(167,139,250,0.08)" : "rgba(255,181,71,0.08)"}
             invert
           />

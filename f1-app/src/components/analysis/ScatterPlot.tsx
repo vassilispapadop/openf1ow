@@ -1,5 +1,4 @@
 import React, { useEffect, useCallback, useMemo } from "react";
-import { F, M } from "../../lib/styles";
 import { drawWatermark, getCtx } from "../../lib/canvas";
 import { useResponsiveCanvas, adaptiveMargins } from "../../lib/useResponsiveCanvas";
 import useTooltip from "./useTooltip";

@@ -37,3 +37,12 @@ scripts/.cache-trends
 
 # visual-regression captures from scripts/screens.mjs (review locally, do not commit)
 screenshots/
+
+# Script caches
+scripts/.cache-derived/
+
+# Script caches
+scripts/.cache-insights/
+
+# Script caches
+scripts/.cache-session/

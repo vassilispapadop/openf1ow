@@ -4,7 +4,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../../lib/api";
-import { sty, C } from "../../lib/styles";
 import { rowBg } from "../../lib/format";
 import { detectCorners, type TelemetrySample } from "../../lib/cornering";
 import Spinner from "../Spinner";
@@ -38,8 +37,8 @@ export default function CornerAnalysis({ sessionKey, driverNumber, lap }: Props)
   const corners = useMemo(() => detectCorners(samples), [samples]);
 
   if (loading) return <div style={{ padding: 12 }}><Spinner label="Loading corner data…" /></div>;
-  if (error) return <div style={{ color: C.textMute, fontSize: 12, padding: 12 }}>Telemetry unavailable: {error}</div>;
-  if (!corners.length) return <div style={{ color: C.textMute, fontSize: 12, padding: 12 }}>No corners detected — likely an in/out lap or a circuit configuration we couldn't parse.</div>;
+  if (error) return <div style={{ color: 'var(--text)'-mute', fontSize: 12, padding: 12 }}>Telemetry unavailable: {error}</div>;
+  if (!corners.length) return <div style={{ color: 'var(--text)'-mute', fontSize: 12, padding: 12 }}>No corners detected — likely an in/out lap or a circuit configuration we couldn't parse.</div>;
 
   const slowestApex = corners.reduce((m, c) => Math.min(m, c.apexSpeed), Infinity);
   const longestBrake = corners.reduce((m, c) => Math.max(m, c.brakeDuration), 0);
@@ -50,7 +49,7 @@ export default function CornerAnalysis({ sessionKey, driverNumber, lap }: Props)
         <thead>
           <tr>
             {["Corner", "Apex (km/h)", "Δ from peak", "Top before", "Brake (s)", "Throttle on (s)"].map((h, i) => (
-              <th key={i} style={{ ...sty.th, textAlign: i === 0 ? "left" : "right" }}>{h}</th>
+              <th key={i} style={{ ...'th', textAlign: i === 0 ? "left" : "right" }}>{h}</th>
             ))}
           </tr>
         </thead>
@@ -60,25 +59,25 @@ export default function CornerAnalysis({ sessionKey, driverNumber, lap }: Props)
             const isLongestBrake = c.brakeDuration > 0 && c.brakeDuration === longestBrake;
             return (
               <tr key={i} style={rowBg(i)}>
-                <td style={{ ...sty.td, fontWeight: 700, color: C.text }}>T{i + 1}</td>
+                <td style={{ ...'td', fontWeight: 700, color: 'var(--text)' }}>T{i + 1}</td>
                 <td style={{
-                  ...sty.td, ...sty.mono, textAlign: "right",
-                  color: isSlowest ? C.warn : C.text, fontWeight: isSlowest ? 700 : 600,
+                  ...'td', ...'mono', textAlign: "right",
+                  color: isSlowest ? 'var(--warn)' : 'var(--text)', fontWeight: isSlowest ? 700 : 600,
                 }}>{c.apexSpeed.toFixed(0)}</td>
-                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: C.textDim }}>
+                <td style={{ ...'td', ...'mono', textAlign: "right", color: 'var(--text)'-dim' }}>
                   −{c.speedDelta.toFixed(0)}
                 </td>
-                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: C.textMute }}>
+                <td style={{ ...'td', ...'mono', textAlign: "right", color: 'var(--text)'-mute' }}>
                   {c.topSpeedBefore.toFixed(0)}
                 </td>
                 <td style={{
-                  ...sty.td, ...sty.mono, textAlign: "right",
-                  color: isLongestBrake ? C.warn : c.brakeDuration > 0 ? C.text : C.textFaint,
+                  ...'td', ...'mono', textAlign: "right",
+                  color: isLongestBrake ? 'var(--warn)' : c.brakeDuration > 0 ? 'var(--text)' : 'var(--text)'-faint',
                   fontWeight: isLongestBrake ? 700 : 500,
                 }}>
                   {c.brakeDuration > 0 ? c.brakeDuration.toFixed(2) + "s" : "—"}
                 </td>
-                <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: C.textDim }}>
+                <td style={{ ...'td', ...'mono', textAlign: "right", color: 'var(--text)'-dim' }}>
                   {c.timeToFullThrottle > 0 ? "+" + c.timeToFullThrottle.toFixed(2) : "—"}
                 </td>
               </tr>
@@ -86,7 +85,7 @@ export default function CornerAnalysis({ sessionKey, driverNumber, lap }: Props)
           })}
         </tbody>
       </table>
-      <p style={{ fontSize: 11, color: C.textMute, margin: "10px 4px 0", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 11, color: 'var(--text)'-mute', margin: "10px 4px 0", lineHeight: 1.5 }}>
         Apexes are local minima in the speed trace. <strong>Δ from peak</strong> is how much speed
         the driver scrubbed entering the corner. <strong>Brake</strong> is the duration the brake
         pedal was pressed (any non-zero application). <strong>Throttle on</strong> is the time from apex

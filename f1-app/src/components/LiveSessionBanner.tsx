@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { F, C, R } from "../lib/styles";
 import { isLiveSessionGated, onLiveSessionChange } from "../lib/api";
 
 const DISMISS_KEY = "openf1ow:live-banner-dismissed";
@@ -26,20 +25,20 @@ export default function LiveSessionBanner() {
       gap: 14,
       fontFamily: F,
       fontSize: 13,
-      color: C.text,
+      color: 'var(--text)',
       flexWrap: "wrap",
     }}>
       <span style={{
         width: 8,
         height: 8,
         borderRadius: "50%",
-        background: C.warn,
+        background: 'var(--warn)',
         boxShadow: `0 0 0 4px rgba(255,181,71,0.18)`,
         flexShrink: 0,
       }} />
       <span style={{ flex: "1 1 280px", lineHeight: 1.5 }}>
-        <strong style={{ color: C.warn, fontWeight: 700 }}>Live F1 session in progress.</strong>{" "}
-        <span style={{ color: C.textDim }}>
+        <strong style={{ color: 'var(--warn)', fontWeight: 700 }}>Live F1 session in progress.</strong>{" "}
+        <span style={{ color: 'var(--text)'-dim' }}>
           OpenF1 has paused public data access until the session ends. Telemetry will return after the chequered flag.
         </span>
       </span>
@@ -49,7 +48,7 @@ export default function LiveSessionBanner() {
         rel="noreferrer"
         style={{
           padding: "6px 14px",
-          background: C.warn,
+          background: 'var(--warn)',
           color: "#0a0a0d",
           fontWeight: 700,
           fontSize: 12,
@@ -69,7 +68,7 @@ export default function LiveSessionBanner() {
         style={{
           background: "none",
           border: "none",
-          color: C.textMute,
+          color: 'var(--text)'-mute',
           cursor: "pointer",
           fontSize: 18,
           fontWeight: 500,

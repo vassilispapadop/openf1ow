@@ -9,7 +9,6 @@ import { whatIfPitShift, whatIfRange, SECTION_IDS } from "../../engine/index.ts"
 import LineChart, { type Series } from "../../charts/LineChart";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, StatTile, Badge } from "../../ui";
-import { C } from "../../lib/styles";
 import { TC } from "../../lib/constants";
 import Pill from "../Pill";
 import { useSelection } from "../../contexts/SelectionContext";
@@ -98,15 +97,15 @@ export default function WhatIfCard() {
                 {v.shift === 0 ? `as raced · lap ${v.stop.lap}` : `${v.shift > 0 ? "+" : ""}${v.shift} laps → lap ${v.stop.newLap}`}
               </span>
               {v.shift !== 0 && <Pill size="sm" onClick={() => setShift(0)}>Reset</Pill>}
-              <span style={{ fontSize: 11, color: C.textMute }}>
-                <span style={{ color: TC[v.stop.from] || C.textDim, fontWeight: 700 }}>{v.stop.from}</span> → <span style={{ color: TC[v.stop.to] || C.textDim, fontWeight: 700 }}>{v.stop.to}</span>
+              <span style={{ fontSize: 11, color: 'var(--text)'-mute' }}>
+                <span style={{ color: TC[v.stop.from] || 'var(--text)'-dim', fontWeight: 700 }}>{v.stop.from}</span> → <span style={{ color: TC[v.stop.to] || 'var(--text)'-dim', fontWeight: 700 }}>{v.stop.to}</span>
               </span>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
-              <StatTile grow label="Race time" value={v.shift === 0 ? "—" : fmt.signedSec(v.delta, 1) + " s"} mono accent={v.delta < 0 ? C.pos : v.delta > 0 ? C.neg : undefined}
+              <StatTile grow label="Race time" value={v.shift === 0 ? "—" : fmt.signedSec(v.delta, 1) + " s"} mono accent={v.delta < 0 ? 'var(--pos)' : v.delta > 0 ? 'var(--neg)' : undefined}
                 sub={v.shift === 0 ? "move the slider" : `range ${fmt.signedSec(v.deltaRange[0], 1)} to ${fmt.signedSec(v.deltaRange[1], 1)} s`} />
               <StatTile grow label="Finishing position" value={v.positionAfter != null ? `P${v.positionAfter}` : "—"} mono
-                accent={v.positionBefore != null && v.positionAfter != null ? (v.positionAfter < v.positionBefore ? C.pos : v.positionAfter > v.positionBefore ? C.neg : undefined) : undefined}
+                accent={v.positionBefore != null && v.positionAfter != null ? (v.positionAfter < v.positionBefore ? 'var(--pos)' : v.positionAfter > v.positionBefore ? 'var(--neg)' : undefined) : undefined}
                 sub={v.positionBefore != null ? (v.positionAfter === v.positionBefore ? `unchanged from P${v.positionBefore}` : `from P${v.positionBefore}`) : ""} />
               <StatTile grow label="Stop cost" value={(v.movedUnderNeutralisation && v.scStopCost != null ? v.scStopCost : v.pitCost).toFixed(1) + " s"} mono sub={v.movedUnderNeutralisation ? (v.scStopCost != null ? "under the safety car, as it cost this race" : "under the safety car — cost unknown") : v.pitCostSource} />
               <StatTile grow label="Model" value={v.pooledFits.length ? "pooled slope" : "own fits"} sub={v.extrapolatedLaps ? <Badge tone="warn" size="sm">{v.extrapolatedLaps} laps extrapolated</Badge> : "within the ages the stints saw"} />
@@ -134,5 +133,5 @@ export default function WhatIfCard() {
 }
 
 const selectStyle: React.CSSProperties = {
-  background: C.surfaceAlt, color: C.text, border: "1px solid " + C.border, borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "var(--font)",
+  background: 'var(--surface)'-alt', color: 'var(--text)', border: "1px solid " + 'var(--border)', borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "var(--font)",
 };

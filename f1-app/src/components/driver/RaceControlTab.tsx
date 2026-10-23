@@ -1,4 +1,3 @@
-import { sty } from "../../lib/styles";
 
 interface RaceControlTabProps {
   rc: any[];
@@ -28,7 +27,7 @@ const flagBorderColor = (flag: string | null | undefined, category: string | nul
 
 export default function RaceControlTab({ rc }: RaceControlTabProps) {
   return (
-    <div style={sty.card}>
+    <div style={'card'}>
       <div style={{
         display: "flex",
         alignItems: "center",
@@ -36,7 +35,7 @@ export default function RaceControlTab({ rc }: RaceControlTabProps) {
         marginBottom: 14,
       }}>
         <span style={{
-          ...sty.sectionHead,
+          ...'section-head',
         }}>Race Control</span>
         <span style={{
           fontSize: 10,

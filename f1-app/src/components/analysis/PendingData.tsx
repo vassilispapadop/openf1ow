@@ -1,4 +1,3 @@
-import { sty } from "../../lib/styles";
 import { Pending } from "../../ui";
 
 // A 429 from OpenF1 is transient and expected during/after a live session
@@ -17,7 +16,7 @@ export function PendingData({ onRetry, checking, exhausted }: {
   exhausted?: boolean;
 }) {
   return (
-    <div style={sty.card}>
+    <div style={'card'}>
       <Pending onRetry={onRetry} checking={checking} exhausted={exhausted} />
     </div>
   );

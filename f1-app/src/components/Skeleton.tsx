@@ -1,5 +1,4 @@
 import type { CSSProperties } from "react";
-import { C, R, F, sty } from "../lib/styles";
 
 // Shimmer placeholder blocks. Replaces the lone centered spinner during
 // navigation so the layout keeps its shape instead of collapsing — the page
@@ -46,7 +45,7 @@ function LoadingLabel({ label }: { label?: string }) {
         fontSize: 12,
         fontWeight: 500,
         fontFamily: F,
-        color: C.textMute,
+        color: 'var(--text)'-mute',
       }}
     >
       <span
@@ -54,7 +53,7 @@ function LoadingLabel({ label }: { label?: string }) {
           width: 6,
           height: 6,
           borderRadius: "50%",
-          background: C.accent,
+          background: 'var(--accent)',
           animation: "fadeIn 0.8s ease-in-out infinite alternate",
         }}
       />
@@ -88,13 +87,13 @@ export function SkeletonAnalysis({ label }: { label?: string }) {
       </div>
 
       {/* Chart card */}
-      <div style={{ ...sty.card, padding: 18 }}>
+      <div style={{ ...'card', padding: 18 }}>
         <SkeletonBlock w={180} h={15} style={{ marginBottom: 16 }} />
         <SkeletonBlock w="100%" h={280} r={R.md} />
       </div>
 
       {/* Table card */}
-      <div style={{ ...sty.card, padding: 18 }}>
+      <div style={{ ...'card', padding: 18 }}>
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} style={{ display: "flex", gap: 12, padding: "9px 0", alignItems: "center" }}>
             <SkeletonBlock w={22} h={12} />

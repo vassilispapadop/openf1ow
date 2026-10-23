@@ -1,4 +1,3 @@
-import { F, M, C, sty } from "../../lib/styles";
 import { ft } from "../../lib/format";
 
 interface DriverInfoCardProps {
@@ -19,7 +18,7 @@ export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadB
 
   return (
     <div className="fade-in-up" style={{
-      ...sty.card,
+      ...'card',
       padding: 20,
       borderLeft: `3px solid ${team}`,
     }}>
@@ -48,9 +47,9 @@ export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadB
               fontFamily: F,
               lineHeight: 1.15,
               letterSpacing: "-0.01em",
-              color: C.text,
+              color: 'var(--text)',
             }}>
-              <span style={{ color: C.textMute, fontWeight: 500, marginRight: 8 }}>#{drv.driver_number}</span>
+              <span style={{ color: 'var(--text)'-mute', fontWeight: 500, marginRight: 8 }}>#{drv.driver_number}</span>
               {drv.full_name}
             </div>
             <div style={{
@@ -64,7 +63,7 @@ export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadB
 
         <div style={{ marginLeft: "auto", display: "flex", gap: 24, alignItems: "center" }}>
           {best && (
-            <Stat label="Best lap" value={ft(best.lap_duration)} sub={`Lap ${best.lap_number}`} valueColor={C.violet} />
+            <Stat label="Best lap" value={ft(best.lap_duration)} sub={`Lap ${best.lap_number}`} valueColor={'var(--violet)'} />
           )}
           {best && (onLoadBest || onAddBest) && (
             <div style={{ display: "flex", gap: 6 }}>
@@ -86,15 +85,15 @@ function Stat({ label, value, sub, valueColor }: {
 }) {
   return (
     <div style={{ textAlign: "right" }}>
-      <div style={{ fontSize: 11, color: C.textMute, fontWeight: 500, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--text)'-mute', fontWeight: 500, marginBottom: 2 }}>{label}</div>
       <div style={{
         fontSize: 18,
         fontWeight: 700,
         fontFamily: M,
-        color: valueColor || C.text,
+        color: valueColor || 'var(--text)',
         letterSpacing: "-0.01em",
       }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: C.textMute, marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 10, color: 'var(--text)'-mute', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -107,19 +106,19 @@ function GhostBtn({ children, onClick, title }: {
       onClick={onClick}
       title={title}
       style={{
-        background: C.surfaceAlt,
-        border: "1px solid " + C.border,
+        background: 'var(--surface)'-alt',
+        border: "1px solid " + 'var(--border)',
         borderRadius: 8,
         padding: "6px 12px",
         fontSize: 11,
         fontWeight: 600,
         fontFamily: F,
-        color: C.text,
+        color: 'var(--text)',
         cursor: "pointer",
         transition: "border-color 0.15s ease, background 0.15s ease",
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderStrong; }}
-      onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border)'-strong'; }}
+      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
     >
       {children}
     </button>

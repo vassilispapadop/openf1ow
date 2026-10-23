@@ -11,7 +11,6 @@ import { bestLapFor, SECTION_IDS, type DriverSummary } from "../../engine/index.
 import { fmt } from "../../charts/core/scales";
 import { Section } from "../../ui";
 import { paths } from "../../lib/constants";
-import { C, F, M } from "../../lib/styles";
 
 interface Row {
   d: DriverSummary;
@@ -87,19 +86,19 @@ export default function DriversCard() {
                 gap: 9,
                 padding: "7px 10px 7px 7px",
                 borderRadius: 10,
-                border: "1px solid " + C.border,
+                border: "1px solid " + 'var(--border)',
                 borderLeft: `3px solid ${color}`,
-                background: C.surfaceAlt,
+                background: 'var(--surface)'-alt',
                 textDecoration: "none",
-                color: C.text,
+                color: 'var(--text)',
                 fontFamily: F,
                 minWidth: 0,
                 transition: "border-color 0.15s ease, background 0.15s ease",
               }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = C.borderStrong; e.currentTarget.style.borderLeftColor = color; e.currentTarget.style.background = C.surfaceHi; }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.borderLeftColor = color; e.currentTarget.style.background = C.surfaceAlt; }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border)'-strong'; e.currentTarget.style.borderLeftColor = color; e.currentTarget.style.background = 'var(--surface)'-hi'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.borderLeftColor = color; e.currentTarget.style.background = 'var(--surface)'-alt'; }}
             >
-              <span style={{ width: 22, textAlign: "right", fontSize: 11, fontWeight: 600, fontFamily: M, color: C.textMute, flexShrink: 0 }}>
+              <span style={{ width: 22, textAlign: "right", fontSize: 11, fontWeight: 600, fontFamily: M, color: 'var(--text)'-mute', flexShrink: 0 }}>
                 {rank != null ? `P${rank}` : "—"}
               </span>
               {drv.headshot_url ? (
@@ -116,9 +115,9 @@ export default function DriversCard() {
               )}
               <span style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
                 <span style={{ fontSize: 13, fontWeight: 700, lineHeight: 1.2 }}>{drv.name_acronym}</span>
-                <span style={{ fontSize: 11, color: C.textMute, fontFamily: M, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{stat}</span>
+                <span style={{ fontSize: 11, color: 'var(--text)'-mute', fontFamily: M, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{stat}</span>
               </span>
-              <span style={{ fontSize: 13, color: C.textMute, flexShrink: 0 }} aria-hidden="true">→</span>
+              <span style={{ fontSize: 13, color: 'var(--text)'-mute', flexShrink: 0 }} aria-hidden="true">→</span>
             </Link>
           );
         })}

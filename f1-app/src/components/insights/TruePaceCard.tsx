@@ -7,7 +7,6 @@ import { useSessionModel } from "../../lib/useSessionModel";
 import { paceRanking, truePaceRanking, SECTION_IDS, type PaceRow } from "../../engine/index.ts";
 import { Section, Segmented, Table, Gate, Badge, type Column } from "../../ui";
 import { fmt } from "../../charts/core/scales";
-import { C } from "../../lib/styles";
 import { useSelection } from "../../contexts/SelectionContext";
 
 export default function TruePaceCard() {
@@ -23,11 +22,11 @@ export default function TruePaceCard() {
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
         <span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (r.driver.team_colour || "666") }} />
         <span style={{ fontWeight: 700 }}>{r.driver.name_acronym}</span>
-        <span style={{ color: C.textMute, fontSize: 11 }} className="hide-narrow">{r.team}</span>
+        <span style={{ color: 'var(--text)'-mute', fontSize: 11 }} className="hide-narrow">{r.team}</span>
       </span>
     ) },
     { key: "median", label: mode === "raw" ? "Median lap" : "Normalised", render: r => fmt.lapTime(mode === "raw" ? r.medianRaw : r.medianPace), align: "right", mono: true, sort: (a, b) => a.medianPace - b.medianPace },
-    { key: "gap", label: "Gap", render: r => (r.gapToFastest === 0 ? <span style={{ color: C.pos }}>fastest</span> : fmt.signedSec(r.gapToFastest)), align: "right", mono: true, sort: (a, b) => a.gapToFastest - b.gapToFastest },
+    { key: "gap", label: "Gap", render: r => (r.gapToFastest === 0 ? <span style={{ color: 'var(--pos)' }}>fastest</span> : fmt.signedSec(r.gapToFastest)), align: "right", mono: true, sort: (a, b) => a.gapToFastest - b.gapToFastest },
     { key: "ci", label: "95 % interval", render: r => `±${((r.ci95[1] - r.ci95[0]) / 2).toFixed(3)}`, align: "right", mono: true, hideBelow: 640, title: "Bootstrap interval of the median" },
     { key: "sigma", label: "σ", render: r => r.consistency.toFixed(3), align: "right", mono: true, hideBelow: 900, sort: (a, b) => a.consistency - b.consistency },
     { key: "n", label: "Laps", render: r => r.n, align: "right", mono: true, hideBelow: 480 },
@@ -71,7 +70,7 @@ export default function TruePaceCard() {
               onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)}
             />
             {v.rows.some(g => !g.ok) && (
-              <p style={{ fontSize: 11, color: C.textFaint, margin: "10px 4px 0" }}>
+              <p style={{ fontSize: 11, color: 'var(--text)'-faint', margin: "10px 4px 0" }}>
                 Not enough laps: {v.rows.filter(g => !g.ok).map((g, i) => {
                   const d = model.drivers[i];
                   return `${d?.driver.name_acronym ?? "?"} (${g.ok ? "" : g.n})`;

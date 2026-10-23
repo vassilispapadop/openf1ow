@@ -12,7 +12,6 @@ import LineChart, { type Series } from "../../charts/LineChart";
 import { fmt } from "../../charts/core/scales";
 import { Section, Gate, Table, Badge, Segmented, type Column } from "../../ui";
 import { TC } from "../../lib/constants";
-import { C } from "../../lib/styles";
 import { useSelection } from "../../contexts/SelectionContext";
 
 const BAND_COLOR: Record<string, string> = { SC: "rgba(255,181,71,0.12)", VSC: "rgba(255,181,71,0.07)", RED: "rgba(255,84,114,0.14)" };
@@ -35,8 +34,8 @@ export function StrategyTimelineCard() {
       <Gate result={result} what="stints" inline={false}>
         {v => (
           <>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11, color: C.textMute, marginBottom: 8 }}>
-              {v.strategies.slice(0, 5).map(s => <span key={s.label}><span style={{ color: C.text, fontWeight: 700, fontFamily: "var(--mono)" }}>{s.label}</span> × {s.count}</span>)}
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", fontSize: 11, color: 'var(--text)'-mute', marginBottom: 8 }}>
+              {v.strategies.slice(0, 5).map(s => <span key={s.label}><span style={{ color: 'var(--text)', fontWeight: 700, fontFamily: "var(--mono)" }}>{s.label}</span> × {s.count}</span>)}
             </div>
             <Timeline
               xDomain={[1, v.totalLaps]}
@@ -59,7 +58,7 @@ export function StrategyTimelineCard() {
                   </>,
                 })),
                 marks: r.pits.map(p => ({
-                  x: p.lap, shape: "pit" as const, color: p.underNeutralisation ? C.warn : C.text, dim: p.underNeutralisation,
+                  x: p.lap, shape: "pit" as const, color: p.underNeutralisation ? 'var(--warn)' : 'var(--text)', dim: p.underNeutralisation,
                   tip: <>
                     <div style={{ fontWeight: 700 }}>Pit · lap {p.lap}{p.underNeutralisation ? " · under SC/VSC" : ""}</div>
                     <div>{p.duration != null ? `${p.duration.toFixed(1)} s ${model.pitMetric === "lane" ? "pit lane" : "stationary"}` : "no time"}</div>
@@ -82,10 +81,10 @@ export function UndercutCard() {
   if (!model || !result) return null;
   const columns: Column<Exchange>[] = [
     { key: "lap", label: "Laps", render: e => `${e.firstStopLap} / ${e.secondStopLap}`, mono: true, width: 70 },
-    { key: "pair", label: "Pitted first / second", render: e => <><b>{e.first.name_acronym}</b> <span style={{ color: C.textMute }}>vs</span> <b>{e.second.name_acronym}</b></> },
+    { key: "pair", label: "Pitted first / second", render: e => <><b>{e.first.name_acronym}</b> <span style={{ color: 'var(--text)'-mute' }}>vs</span> <b>{e.second.name_acronym}</b></> },
     { key: "before", label: "Gap before", render: e => fmt.signedSec(e.gapBefore, 1), align: "right", mono: true, hideBelow: 640, title: "First − second at the start of the first stop lap; negative = first was ahead" },
     { key: "after", label: "Gap after", render: e => fmt.signedSec(e.gapAfter, 1), align: "right", mono: true, hideBelow: 640 },
-    { key: "delta", label: "Swing", render: e => <span style={{ color: e.delta < 0 ? C.pos : C.neg }}>{fmt.signedSec(-e.delta, 1)}</span>, align: "right", mono: true, sort: (a, b) => a.delta - b.delta, title: "Positive = pitting first gained" },
+    { key: "delta", label: "Swing", render: e => <span style={{ color: e.delta < 0 ? 'var(--pos)' : 'var(--neg)' }}>{fmt.signedSec(-e.delta, 1)}</span>, align: "right", mono: true, sort: (a, b) => a.delta - b.delta, title: "Positive = pitting first gained" },
     { key: "result", label: "Result", render: e => <Badge tone={e.delta < 0 ? "pos" : "violet"} size="sm">{e.delta < 0 ? "undercut" : "overcut"}</Badge> },
     { key: "tyres", label: "Tyres", render: e => `${(e.compoundFirst ?? "?")[0]} / ${(e.compoundSecond ?? "?")[0]}`, mono: true, hideBelow: 900 },
   ];
@@ -101,9 +100,9 @@ export function UndercutCard() {
       <Gate result={result} what="close pit exchanges">
         {v => (
           <>
-            <p style={{ fontSize: 12, color: C.textDim, margin: "0 0 10px" }}>
-              Pitting first paid off in <b style={{ color: C.text }}>{v.exchanges.filter(e => e.delta < 0).length}</b> of <b style={{ color: C.text }}>{v.undercutsTried}</b> exchanges
-              {v.medianUndercutGain != null && <> · median swing <b style={{ color: C.text, fontFamily: "var(--mono)" }}>{fmt.signedSec(v.medianUndercutGain, 2)}</b> for the first stopper</>}.
+            <p style={{ fontSize: 12, color: 'var(--text)'-dim', margin: "0 0 10px" }}>
+              Pitting first paid off in <b style={{ color: 'var(--text)' }}>{v.exchanges.filter(e => e.delta < 0).length}</b> of <b style={{ color: 'var(--text)' }}>{v.undercutsTried}</b> exchanges
+              {v.medianUndercutGain != null && <> · median swing <b style={{ color: 'var(--text)', fontFamily: "var(--mono)" }}>{fmt.signedSec(v.medianUndercutGain, 2)}</b> for the first stopper</>}.
             </p>
             <Table columns={columns} rows={v.exchanges} rowKey={e => `${e.first.driver_number}-${e.second.driver_number}-${e.firstStopLap}`} compact />
           </>
@@ -133,9 +132,9 @@ export function TyreLifeCard() {
       <Gate result={result} what="stints">
         {v => (
           <>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: C.textMute, marginBottom: 6 }}>
+            <div style={{ display: "flex", gap: 16, flexWrap: "wrap", fontSize: 11, color: 'var(--text)'-mute', marginBottom: 6 }}>
               {v.map(c => (
-                <span key={c.compound}><span style={{ color: TC[c.compound] ?? C.text, fontWeight: 700 }}>{c.compound}</span>: {c.pooledSlope != null ? `${(c.pooledSlope * 1000).toFixed(0)} ms/lap` : "—"} · p90 stint {Math.round(c.p90StintLength)} laps{c.cliffAge != null ? ` · cliff ≈ ${c.cliffAge}` : ""} · {c.stints} stints</span>
+                <span key={c.compound}><span style={{ color: TC[c.compound] ?? 'var(--text)', fontWeight: 700 }}>{c.compound}</span>: {c.pooledSlope != null ? `${(c.pooledSlope * 1000).toFixed(0)} ms/lap` : "—"} · p90 stint {Math.round(c.p90StintLength)} laps{c.cliffAge != null ? ` · cliff ≈ ${c.cliffAge}` : ""} · {c.stints} stints</span>
               ))}
             </div>
             <LineChart
@@ -169,7 +168,7 @@ export function PitCrewCard() {
     { key: "median", label: "Median", render: t => t.medianDuration.toFixed(2) + " s", align: "right", mono: true, sort: (a, b) => a.medianDuration - b.medianDuration },
     { key: "best", label: "Best", render: t => t.best.toFixed(2), align: "right", mono: true, hideBelow: 480 },
     { key: "worst", label: "Worst", render: t => t.worst.toFixed(2), align: "right", mono: true, hideBelow: 640 },
-    { key: "vs", label: "vs best", render: t => (t.vsBest === 0 ? <span style={{ color: C.pos }}>fastest</span> : "+" + t.vsBest.toFixed(2)), align: "right", mono: true },
+    { key: "vs", label: "vs best", render: t => (t.vsBest === 0 ? <span style={{ color: 'var(--pos)' }}>fastest</span> : "+" + t.vsBest.toFixed(2)), align: "right", mono: true },
     { key: "sc", label: "Under SC", render: t => t.underNeutralisation || "", align: "right", mono: true, hideBelow: 900 },
   ];
   return (
@@ -184,9 +183,9 @@ export function PitCrewCard() {
       <Gate result={result} what="pit stop">
         {v => (
           <>
-            <p style={{ fontSize: 12, color: C.textDim, margin: "0 0 10px" }}>
+            <p style={{ fontSize: 12, color: 'var(--text)'-dim', margin: "0 0 10px" }}>
               {v.pitLoss.ok
-                ? <>A green-flag stop cost <b style={{ color: C.text, fontFamily: "var(--mono)" }}>{v.pitLoss.value.median.toFixed(1)} s</b> on track here ({v.pitLoss.value.n} stops measured).</>
+                ? <>A green-flag stop cost <b style={{ color: 'var(--text)', fontFamily: "var(--mono)" }}>{v.pitLoss.value.median.toFixed(1)} s</b> on track here ({v.pitLoss.value.n} stops measured).</>
                 : <>Not enough green-flag stops to measure the on-track cost of a stop.</>}
             </p>
             {view === "teams" ? (

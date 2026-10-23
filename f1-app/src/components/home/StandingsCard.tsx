@@ -9,7 +9,6 @@ import { api } from "../../lib/api";
 import { findLatestRace } from "../../lib/latestRace";
 import { loadRaceIndex } from "../../lib/raceIndex";
 import { Section, Segmented, Table, EmptyState, type Column } from "../../ui";
-import { C, isNarrowViewport } from "../../lib/styles";
 import { podiumColor } from "../../lib/format";
 
 interface DriverRow { driver_number: number; position_current: number | null; position_start: number | null; points_current: number; points_start: number }
@@ -18,7 +17,7 @@ interface DriverInfo { driver_number: number; name_acronym: string; full_name: s
 
 type Loaded = { state: "loading" } | { state: "none"; reason: string } | { state: "ok"; drivers: DriverRow[]; teams: TeamRow[]; info: Record<number, DriverInfo>; teamColour: Record<string, string>; round: string };
 
-const signed = (v: number | null, suffix = "") => (v == null || v === 0 ? <span style={{ color: C.textFaint }}>—</span> : <span style={{ color: v > 0 ? C.pos : C.neg }}>{v > 0 ? "+" : ""}{v}{suffix}</span>);
+const signed = (v: number | null, suffix = "") => (v == null || v === 0 ? <span style={{ color: 'var(--text)'-faint' }}>—</span> : <span style={{ color: v > 0 ? 'var(--pos)' : 'var(--neg)' }}>{v > 0 ? "+" : ""}{v}{suffix}</span>);
 
 export default function StandingsCard({ year }: { year: number }) {
   const [view, setView] = useState<"drivers" | "teams">("drivers");
@@ -57,7 +56,7 @@ export default function StandingsCard({ year }: { year: number }) {
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
         <span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (i?.team_colour || "666") }} />
         <b>{i?.name_acronym ?? `#${r.driver_number}`}</b>
-        <span style={{ color: C.textMute, fontSize: 11 }} className="hide-narrow">{i?.team_name ?? ""}</span>
+        <span style={{ color: 'var(--text)'-mute', fontSize: 11 }} className="hide-narrow">{i?.team_name ?? ""}</span>
       </span>
     ); } },
     { key: "pts", label: "Points", render: r => <b>{r.points_current}</b>, mono: true, align: "right", sort: (a, b) => a.points_current - b.points_current },
@@ -74,7 +73,7 @@ export default function StandingsCard({ year }: { year: number }) {
   ], [data]);
 
   // Measured footprint of the rendered card (desktop / phone).
-  if (data.state === "loading") return <div style={{ height: isNarrowViewport() ? 650 : 588 }} aria-busy="true" />;
+  if (data.state === "loading") return <div style={{ height: (window.innerWidth < 600) ? 650 : 588 }} aria-busy="true" />;
 
   return (
     <Section

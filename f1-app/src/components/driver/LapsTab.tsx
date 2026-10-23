@@ -8,7 +8,6 @@ import { LapFlag, hasFlag } from "../../engine/index.ts";
 import { Section, Table, Badge, type Column } from "../../ui";
 import { fmt } from "../../charts/core/scales";
 import { TC } from "../../lib/constants";
-import { C } from "../../lib/styles";
 import Pill from "../Pill";
 import LineChart from "../../charts/LineChart";
 
@@ -30,17 +29,17 @@ export default function LapsTab({ d, best, comparisons, selLap, onLoadTel, onAdd
   const dn = d.driver.driver_number;
   const laps = d.laps;
   const clean = useMemo(() => laps.filter(l => l.clean).length, [laps]);
-  const speed = (v: number | null | undefined) => (v ? <span style={{ color: C.textDim }}>{v}</span> : <span style={{ color: C.textFaint }}>—</span>);
+  const speed = (v: number | null | undefined) => (v ? <span style={{ color: 'var(--text)'-dim' }}>{v}</span> : <span style={{ color: 'var(--text)'-faint' }}>—</span>);
   const columns: Column<EnrichedLap>[] = [
-    { key: "lap", label: "Lap", render: l => <span style={{ fontWeight: 600, borderLeft: best && l.lap_number === best.lap_number ? "3px solid " + C.violet : "3px solid transparent", paddingLeft: 6 }}>{l.lap_number}</span>, width: 56 },
-    { key: "time", label: "Time", render: l => (l.lap_duration ? <span style={{ fontWeight: 700, color: best && l.lap_number === best.lap_number ? C.violet : C.text }}>{fmt.lapTime(l.lap_duration)}</span> : <span style={{ color: C.textFaint }}>—</span>), mono: true, align: "right", sort: (a, b) => (a.lap_duration ?? Infinity) - (b.lap_duration ?? Infinity) },
+    { key: "lap", label: "Lap", render: l => <span style={{ fontWeight: 600, borderLeft: best && l.lap_number === best.lap_number ? "3px solid " + 'var(--violet)' : "3px solid transparent", paddingLeft: 6 }}>{l.lap_number}</span>, width: 56 },
+    { key: "time", label: "Time", render: l => (l.lap_duration ? <span style={{ fontWeight: 700, color: best && l.lap_number === best.lap_number ? 'var(--violet)' : 'var(--text)' }}>{fmt.lapTime(l.lap_duration)}</span> : <span style={{ color: 'var(--text)'-faint' }}>—</span>), mono: true, align: "right", sort: (a, b) => (a.lap_duration ?? Infinity) - (b.lap_duration ?? Infinity) },
     { key: "s1", label: "S1", render: l => (l.duration_sector_1 ? l.duration_sector_1.toFixed(3) : "—"), mono: true, align: "right", hideBelow: 480 },
     { key: "s2", label: "S2", render: l => (l.duration_sector_2 ? l.duration_sector_2.toFixed(3) : "—"), mono: true, align: "right", hideBelow: 480 },
     { key: "s3", label: "S3", render: l => (l.duration_sector_3 ? l.duration_sector_3.toFixed(3) : "—"), mono: true, align: "right", hideBelow: 480 },
     { key: "i1", label: "I1", render: l => speed(l.i1_speed), mono: true, align: "right", hideBelow: 900, title: "Speed at intermediate 1 (km/h)" },
     { key: "i2", label: "I2", render: l => speed(l.i2_speed), mono: true, align: "right", hideBelow: 900, title: "Speed at intermediate 2 (km/h)" },
     { key: "st", label: "Trap", render: l => speed(l.st_speed), mono: true, align: "right", hideBelow: 640, title: "Speed trap (km/h)" },
-    { key: "tyre", label: "Tyre", render: l => (l.compound ? <span style={{ color: TC[l.compound] || C.textDim, fontWeight: 700, fontSize: 10, letterSpacing: "0.06em" }}>{l.compound[0]}{l.tyreAge != null ? <span style={{ color: C.textMute, fontWeight: 500 }}> {l.tyreAge}</span> : null}</span> : <span style={{ color: C.textFaint }}>—</span>), align: "right", hideBelow: 640, title: "Compound and tyre age at the start of the lap" },
+    { key: "tyre", label: "Tyre", render: l => (l.compound ? <span style={{ color: TC[l.compound] || 'var(--text)'-dim', fontWeight: 700, fontSize: 10, letterSpacing: "0.06em" }}>{l.compound[0]}{l.tyreAge != null ? <span style={{ color: 'var(--text)'-mute', fontWeight: 500 }}> {l.tyreAge}</span> : null}</span> : <span style={{ color: 'var(--text)'-faint' }}>—</span>), align: "right", hideBelow: 640, title: "Compound and tyre age at the start of the lap" },
     { key: "flags", label: "Notes", render: l => {
       const b = FLAG_BADGES.filter(f => hasFlag(l.flags, f.flag)).slice(0, 3);
       return b.length ? <span style={{ display: "inline-flex", gap: 4 }}>{b.map(f => <Badge key={f.label} size="sm" tone={f.tone}>{f.label}</Badge>)}</span> : null;

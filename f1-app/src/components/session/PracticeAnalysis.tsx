@@ -2,7 +2,6 @@
 // strategy story, best laps the single-lap one, each with its fuel caveat.
 
 import type { ViewKey } from "../../lib/constants";
-import { C, sty } from "../../lib/styles";
 import ModelGate from "../insights/ModelGate";
 import AnalysisTabBar from "../shell/AnalysisTabBar";
 import Verdicts, { KpiRow } from "../insights/Verdicts";
@@ -29,9 +28,9 @@ export default function PracticeAnalysis({ sessionKey, sessionName, subTab, onSu
 
           {subTab === "overview" && (
             <>
-              <section style={{ ...sty.card, background: "rgba(255,255,255,0.02)" }}>
-                <h3 style={sty.sectionHead}>{sessionName || model.info.session_name || "Practice"}</h3>
-                <p style={{ fontSize: 12, color: C.textMute, margin: "8px 0 0", lineHeight: 1.6, maxWidth: 760 }}>{sessionIntro(model)}</p>
+              <section style={{ ...'card', background: "rgba(255,255,255,0.02)" }}>
+                <h3 style={'section-head'}>{sessionName || model.info.session_name || "Practice"}</h3>
+                <p style={{ fontSize: 12, color: 'var(--text)'-mute', margin: "8px 0 0", lineHeight: 1.6, maxWidth: 760 }}>{sessionIntro(model)}</p>
               </section>
               <Verdicts onOpenTab={onSubTabChange} />
               <DriversCard />

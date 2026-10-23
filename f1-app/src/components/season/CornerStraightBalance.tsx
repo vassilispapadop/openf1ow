@@ -15,7 +15,6 @@
 // reference) or right (slower) from a shared centre line.
 
 import { useMemo, useState } from "react";
-import { F, M, C } from "../../lib/styles";
 import { TEAM_COLORS, TEAM_FALLBACK_COLORS, SECTION_COLORS, SECTION_LABELS } from "../../lib/constants";
 import type { CornerStraightRace } from "../../lib/seasonUtils";
 
@@ -132,7 +131,7 @@ export default function CornerStraightBalance({ races }: Props) {
   );
 
   if (!races.length || !rows.length) {
-    return <div style={{ color: C.textMute, fontSize: 12, padding: 12 }}>No corner/straight data yet.</div>;
+    return <div style={{ color: 'var(--text)'-mute', fontSize: 12, padding: 12 }}>No corner/straight data yet.</div>;
   }
 
   const colorOf = (team: string, i: number) => TEAM_COLORS[team] ?? TEAM_FALLBACK_COLORS[i % TEAM_FALLBACK_COLORS.length];
@@ -162,7 +161,7 @@ export default function CornerStraightBalance({ races }: Props) {
         <div role="tablist" aria-label="Gap unit" style={{
           display: "inline-flex",
           background: "rgba(255,255,255,0.04)",
-          border: "1px solid " + C.border,
+          border: "1px solid " + 'var(--border)',
           borderRadius: 6,
           padding: 2,
           marginRight: 4,
@@ -175,7 +174,7 @@ export default function CornerStraightBalance({ races }: Props) {
               onClick={() => setUnit(u)}
               style={{
                 background: unit === u ? "rgba(255,255,255,0.12)" : "transparent",
-                color: unit === u ? C.text : C.textMute,
+                color: unit === u ? 'var(--text)' : 'var(--text)'-mute',
                 border: "none",
                 padding: "3px 10px",
                 fontSize: 10,
@@ -204,16 +203,16 @@ export default function CornerStraightBalance({ races }: Props) {
         ))}
       </div>
 
-      <div style={{ fontSize: 11, color: C.textMute, marginBottom: 12, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11, color: 'var(--text)'-mute', marginBottom: 12, lineHeight: 1.5 }}>
         {selected ? (
           <>
-            <span style={{ color: C.text, fontWeight: 600 }}>{selected.meetingName}</span>
+            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{selected.meetingName}</span>
             {" — "}{selected.cornerCount} corner sections ({selected.cornerDistance.toLocaleString()} m)
             {selected.curveCount != null && selected.curveCount > 0 && (
               <>{" · "}{selected.curveCount} fast curves ({(selected.curveDistance ?? 0).toLocaleString()} m)</>
             )}
             {" · "}{selected.straightCount} straights ({selected.straightDistance.toLocaleString()} m)
-            {" · "}reference <span style={{ color: C.text, fontWeight: 600 }}>{selected.referenceTeam}</span>
+            {" · "}reference <span style={{ color: 'var(--text)', fontWeight: 600 }}>{selected.referenceTeam}</span>
           </>
         ) : (
           <>Median across {ordered.length} qualifying sessions. Each weekend is measured against
@@ -222,13 +221,13 @@ export default function CornerStraightBalance({ races }: Props) {
       </div>
 
       {/* Legend */}
-      <div style={{ display: "flex", gap: 16, fontSize: 11, marginBottom: 10, color: C.textDim, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 16, fontSize: 11, marginBottom: 10, color: 'var(--text)'-dim', flexWrap: "wrap" }}>
         {kinds.map(k => (
           <span key={k} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
             <span style={{ width: 14, height: 6, borderRadius: 3, background: SECTION_COLORS[k] }} /> {SECTION_LABELS[k]}
           </span>
         ))}
-        <span style={{ color: C.textFaint }}>left of the line = faster than the reference</span>
+        <span style={{ color: 'var(--text)'-faint' }}>left of the line = faster than the reference</span>
       </div>
 
       <div style={{ display: "grid", gap: 10 }}>
@@ -248,10 +247,10 @@ export default function CornerStraightBalance({ races }: Props) {
           >
             <div style={{ minWidth: 0 }}>
               <div style={{
-                fontSize: 12.5, fontWeight: 700, color: C.text,
+                fontSize: 12.5, fontWeight: 700, color: 'var(--text)',
                 overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>{r.team}</div>
-              <div style={{ fontSize: 10, color: C.textFaint }}>
+              <div style={{ fontSize: 10, color: 'var(--text)'-faint' }}>
                 {round === "season" ? `${r.races} weekend${r.races === 1 ? "" : "s"}` : "qualifying"}
               </div>
             </div>
@@ -271,13 +270,13 @@ export default function CornerStraightBalance({ races }: Props) {
               <div style={{ ...mono, fontSize: 13, fontWeight: 700, color: gapColor(r.totalGap) }}>
                 {sd(r.totalGap, unit === "s" ? 3 : 2) || (unit === "s" ? "0.000" : "0.00")}{suffix}
               </div>
-              <div style={{ fontSize: 9.5, color: C.textFaint }}>lap gap</div>
+              <div style={{ fontSize: 9.5, color: 'var(--text)'-faint' }}>lap gap</div>
             </div>
           </div>
         ))}
       </div>
 
-      <p style={{ fontSize: 11, color: C.textMute, margin: "14px 4px 0", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 11, color: 'var(--text)'-mute', margin: "14px 4px 0", lineHeight: 1.5 }}>
         Built from qualifying telemetry: each team's fastest clean lap is cut into sections at the same track
         positions for the whole field, so the gaps sum exactly to the team's lap-time deficit. A team can read
         negative through the corners and still lose the lap — that's a car trading downforce for straight-line
@@ -298,15 +297,15 @@ export default function CornerStraightBalance({ races }: Props) {
 const mono = { fontFamily: M, fontSize: 11 };
 
 function gapColor(v: number): string {
-  if (Math.abs(v) < 5e-3) return C.textMute;
-  return v < 0 ? C.pos : C.textDim;
+  if (Math.abs(v) < 5e-3) return 'var(--text)'-mute';
+  return v < 0 ? 'var(--pos)' : 'var(--text)'-dim';
 }
 
 function chip(active: boolean): React.CSSProperties {
   return {
-    background: active ? C.surfaceHi : "transparent",
-    color: active ? C.text : C.textMute,
-    border: "1px solid " + (active ? C.borderStrong : C.border),
+    background: active ? 'var(--surface)'-hi' : "transparent",
+    color: active ? 'var(--text)' : 'var(--text)'-mute',
+    border: "1px solid " + (active ? 'var(--border)'-strong' : 'var(--border)'),
     borderRadius: 6,
     padding: "4px 10px",
     fontSize: 11,
