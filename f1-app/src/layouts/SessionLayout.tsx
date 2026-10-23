@@ -1,7 +1,13 @@
 // Analysis page layout — minimal session tabs above content.
 // Navigation is URL-driven (year / meetingKey / sessionKey), no setters.
 
-import { useSession } from "../contexts/SessionContext";
+import { useEffect } from "react";
+import { Outlet } from "react-router-dom";
+import { SessionProvider, useSession } from "../contexts/SessionContext";
+import { recordLastRace } from "../lib/retention";
+import Header from "../components/shell/Header";
+import LiveSessionBanner from "../components/LiveSessionBanner";
+import { SkeletonAnalysis } from "../components/Skeleton";
 import Segmented from "../ui/Segmented";
 import type { ReactNode } from "react";
 
@@ -31,12 +37,37 @@ function SessionTabs() {
 }
 
 // ── Page shell ──────────────────────────────────────────────────────
-export default function SessionLayout({ children }: { children?: ReactNode }) {
-  const { sessions } = useSession();
+function LayoutInner({ children }: { children?: ReactNode }) {
+  const { sessions, meetings, mk, sk, loading, error, clearError, retry } = useSession();
+
+  // Remember the last race/session viewed so the home page can offer "Resume".
+  useEffect(() => {
+    if (!mk || !sk) return;
+    const meeting = meetings.find((m: any) => String(m.meeting_key) === mk);
+    if (!meeting) return;
+    const session = sessions.find((s: any) => String(s.session_key) === sk);
+    const label = `${meeting.meeting_name}${session?.session_name ? " · " + session.session_name : ""}`;
+    recordLastRace({ path: window.location.pathname + window.location.search, label, ts: Date.now() });
+  }, [mk, sk, meetings, sessions]);
 
   return (
     <>
+      <Header />
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px 0" }}>
+        <LiveSessionBanner />
+
+        {error && (
+          <div role="alert" style={{
+            display: "flex", alignItems: "center", gap: 12, marginBottom: 16,
+            padding: "10px 14px", borderRadius: 8, fontSize: 13,
+            border: "1px solid var(--border)", color: "#ffb5ab",
+          }}>
+            <span style={{ flex: 1 }}>{error}</span>
+            <button onClick={retry} style={{ background: "transparent", border: "1px solid var(--border)", color: "inherit", cursor: "pointer", fontSize: 11, fontWeight: 600, padding: "4px 12px", borderRadius: 6 }}>Retry</button>
+            <button onClick={clearError} aria-label="Dismiss" style={{ background: "none", border: "none", color: "inherit", cursor: "pointer", fontSize: 16, padding: 4, lineHeight: 1 }}>×</button>
+          </div>
+        )}
+
         {/* Session tabs — minimal, one row */}
         {sessions.length > 1 && (
           <div style={{ marginBottom: 24 }}>
@@ -44,8 +75,11 @@ export default function SessionLayout({ children }: { children?: ReactNode }) {
           </div>
         )}
 
+        {/* Skeleton keeps the page shape while a meeting's data loads */}
+        {loading && mk && <SkeletonAnalysis label={loading} />}
+
         {/* Content — no extra chrome, just the data */}
-        {children}
+        {!(loading && mk) && (children ?? <Outlet />)}
       </div>
 
       {/* Footer */}
@@ -75,5 +109,13 @@ export default function SessionLayout({ children }: { children?: ReactNode }) {
         </span>
       </footer>
     </>
+  );
+}
+
+export default function SessionLayout({ children }: { children?: ReactNode }) {
+  return (
+    <SessionProvider>
+      <LayoutInner>{children}</LayoutInner>
+    </SessionProvider>
   );
 }

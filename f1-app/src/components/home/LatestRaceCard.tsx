@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { shareUrl, canShareUrl } from "../../lib/share";
 import { fd } from "../../lib/format";
+import { paths, type ViewKey } from "../../lib/constants";
 import { findLatestRace } from "../../lib/latestRace";
 import { loadSeasonTrends } from "../../lib/seasonClient";
 import { fetchInsights } from "../../lib/api";
@@ -98,7 +99,7 @@ export default function LatestRaceCard({ year }: { year: number }) {
   const formatted = fd(race.dateStart);
   const recapHref = `/recap/${race.year}/${race.slug}`;
   const analysisHref = race.raceSk
-    ? `/${race.year}/${race.meetingKey}/analysis?sessionKey=${race.raceSk}`
+    ? paths.analysis(race.year, String(race.meetingKey), String(race.raceSk))
     : `/${race.year}/${race.meetingKey}`;
   const trendsHref = `/${race.year}/trends`;
 
@@ -146,7 +147,7 @@ export default function LatestRaceCard({ year }: { year: number }) {
           {race.podium.map(p => {
             const medalColor = p.pos === 1 ? "#FFD700" : p.pos === 2 ? "#C0C0C0" : "#CD7F32";
             const href = p.dn != null && race.raceSk
-              ? `/${race.year}/${race.meetingKey}/driver/${p.dn}?sessionKey=${race.raceSk}`
+              ? paths.driver(race.year, String(race.meetingKey), String(race.raceSk), String(p.dn))
               : null;
             const tile = (
               <>
@@ -184,7 +185,7 @@ export default function LatestRaceCard({ year }: { year: number }) {
           {race.verdicts.map(v => (
             <li key={v.id} style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: 13, color: "var(--text)", lineHeight: 1.4 }}>
               <span style={{ width: 2, alignSelf: "stretch", borderRadius: 1, background: "var(--accent)", flexShrink: 0, marginTop: 6 }} aria-hidden="true" />
-              <a href={race.raceSk ? `${analysisHref}&tab=${v.tab}` : analysisHref}
+              <a href={race.raceSk ? paths.analysis(race.year, String(race.meetingKey), String(race.raceSk), v.tab as ViewKey) : analysisHref}
                 style={{ color: "inherit", textDecoration: "none" }}>{v.headline}</a>
             </li>
           ))}

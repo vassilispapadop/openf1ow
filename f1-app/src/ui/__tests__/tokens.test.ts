@@ -5,6 +5,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { C, F, M, R } from "../../lib/styles";
 
 const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "tokens.css"), "utf8");
 
@@ -18,12 +19,12 @@ const norm = (v: string) => v.toLowerCase().replace(/\s+/g, "").replace(/'/g, ""
 
 describe("tokens.css mirrors styles.ts", () => {
   const pairs: [string, string][] = [
-    ["bg", 'var(--bg)'], ["surface", 'var(--surface)'], ["surface-alt", 'var(--surface)'Alt], ["surface-hi", 'var(--surface)'Hi],
-    ["border", 'var(--border)'], ["border-strong", 'var(--border)'Strong],
-    ["text", 'var(--text)'], ["text-dim", 'var(--text)'Dim], ["text-mute", 'var(--text)'Mute], ["text-faint", 'var(--text)'Faint],
-    ["accent", 'var(--accent)'], ["accent-dim", 'var(--accent)'Dim],
-    ["pos", 'var(--pos)'], ["pos-dim", 'var(--pos)'Dim], ["warn", 'var(--warn)'], ["warn-dim", 'var(--warn)'Dim],
-    ["neg", 'var(--neg)'], ["neg-dim", 'var(--neg)'Dim], ["violet", 'var(--violet)'],
+    ["bg", C.bg], ["surface", C.surface], ["surface-alt", C.surfaceAlt], ["surface-hi", C.surfaceHi],
+    ["border", C.border], ["border-strong", C.borderStrong],
+    ["text", C.text], ["text-dim", C.textDim], ["text-mute", C.textMute], ["text-faint", C.textFaint],
+    ["accent", C.accent], ["accent-dim", C.accentDim],
+    ["pos", C.pos], ["pos-dim", C.posDim], ["warn", C.warn], ["warn-dim", C.warnDim],
+    ["neg", C.neg], ["neg-dim", C.negDim], ["violet", C.violet],
   ];
   it.each(pairs)("--%s equals C value", (name, value) => {
     expect(norm(cssVar(name))).toBe(norm(value));
