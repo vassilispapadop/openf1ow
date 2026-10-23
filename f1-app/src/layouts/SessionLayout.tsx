@@ -2,7 +2,8 @@
 // Navigation is URL-driven (year / meetingKey / sessionKey), no setters.
 
 import { useEffect } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useNavigate } from "react-router-dom";
+import { paths } from "../lib/constants";
 import { SessionProvider, useSession } from "../contexts/SessionContext";
 import { recordLastRace } from "../lib/retention";
 import Header from "../components/shell/Header";
@@ -13,22 +14,20 @@ import type { ReactNode } from "react";
 
 // ── Session tabs ────────────────────────────────────────────────────
 function SessionTabs() {
-  const { sessions, mk } = useSession();
+  const { sessions, year, mk, sk } = useSession();
+  const navigate = useNavigate();
 
   if (!sessions.length) return null;
 
   return (
     <Segmented
       options={sessions.map((s: any) => ({
-        key: s.session_name,
+        key: String(s.session_key),
         label: s.session_name,
       }))}
-      value={sessions[0]?.session_name || "Race"}
+      value={sk}
       onChange={(key: string) => {
-        const s = sessions.find((s: any) => s.session_name === key);
-        if (s && mk) {
-          window.location.href = `/${s.year || 2024}/${mk}/${s.session_key}`;
-        }
+        if (mk) navigate(paths.analysis(year, mk, key));
       }}
       variant="inverted"
       size="sm"
