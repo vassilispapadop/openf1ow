@@ -6,11 +6,12 @@
 // database, so T-numbers are a running count of detected apexes rather than
 // the official turn numbering.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { rowBg } from "../../lib/format";
 import { SECTION_COLORS, SECTION_LABELS } from "../../lib/constants";
-import { compareLapSegments, type SegmentTrace, type SegmentTotals, type SectionKind } from "../../lib/lapSegments";
-import SectionMap from "./SectionMap";
+import { compareLapSegments, type SegmentTrace, type SegmentTotals, type SectionKind, type TrackSegment } from "../../lib/lapSegments";
+import SectionMap, { sectionWinner, LEVEL_GAP, type MapMode } from "./SectionMap";
+import Segmented from "../../ui/Segmented";
 import { sty, F } from "../../lib/styles";
 
 interface Props {
@@ -66,8 +67,62 @@ function SplitBars({ t, scale }: { t: SegmentTotals; scale: number }) {
   );
 }
 
+
+/** What happened in one section: every lap's time through it, and who gained. */
+function SectionDetail({ seg, onClear, pinned }: { seg: TrackSegment | null; onClear: () => void; pinned: boolean }) {
+  const box = { background: 'var(--surface-alt)', border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" } as const;
+  if (!seg) {
+    return (
+      <div style={{ ...box, color: 'var(--text-mute)', fontSize: 12, lineHeight: 1.6 }}>
+        <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Where each driver gains or loses</div>
+        Hover a stretch of the circuit — or a row in the table — to see every lap's time through it.
+        Click to pin it. In <em>Who gained</em> view each stretch takes the colour of the quickest driver
+        through it, stronger the bigger the gap.
+      </div>
+    );
+  }
+  const { best, slowest, spread } = sectionWinner(seg);
+  const sorted = seg.timings.slice().sort((a, b) => a.time - b.time);
+  const kindLabel = seg.kind === "curve" ? "fast curve" : seg.kind;
+  return (
+    <div style={box}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: SECTION_COLORS[seg.kind], background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "2px 7px" }}>{seg.name}</span>
+        <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{kindLabel} · {Math.round(seg.length).toLocaleString()} m</span>
+        <span style={{ flex: 1 }} />
+        {pinned && <button onClick={onClear} style={{ background: "none", border: "none", color: 'var(--text-mute)', cursor: "pointer", fontSize: 11 }}>unpin ×</button>}
+      </div>
+      <div style={{ display: "grid", gap: 6 }}>
+        {sorted.map(t => {
+          const gap = t.time - best.time;
+          return (
+            <div key={t.label} style={{ display: "grid", gridTemplateColumns: "10px 1fr auto auto", gap: 8, alignItems: "baseline", fontSize: 12 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#" + t.color, alignSelf: "center" }} />
+              <span style={{ color: 'var(--text)', fontWeight: t.fastest ? 700 : 500 }}>{t.label}</span>
+              <span style={{ ...sty.mono, color: 'var(--text)' }}>{t.time.toFixed(2)}s</span>
+              <span style={{ ...sty.mono, minWidth: 56, textAlign: "right", color: gap < LEVEL_GAP ? 'var(--pos)' : 'var(--neg)' }}>
+                {gap < LEVEL_GAP ? "fastest" : "+" + gap.toFixed(2)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--text-dim)', marginTop: 10, lineHeight: 1.5 }}>
+        {spread < LEVEL_GAP
+          ? "Level here — nobody gained or lost time."
+          : <><strong style={{ color: "#" + best.color }}>{best.label}</strong> gained {spread.toFixed(2)}s on <strong style={{ color: "#" + slowest.color }}>{slowest.label}</strong> through this {kindLabel}
+            {seg.kind === "corner" && Number.isFinite(best.minSpeed) && Number.isFinite(slowest.minSpeed) && Math.abs(best.minSpeed - slowest.minSpeed) >= 1 &&
+              <>, carrying {Math.abs(Math.round(best.minSpeed - slowest.minSpeed))} km/h {best.minSpeed > slowest.minSpeed ? "more" : "less"} at the slowest point</>}.</>}
+      </div>
+    </div>
+  );
+}
+
 export default function SegmentComparison({ traces }: Props) {
   const cmp = useMemo(() => compareLapSegments(traces), [traces]);
+  const [mode, setMode] = useState<MapMode>("gain");
+  const [hover, setHover] = useState<number | null>(null);
+  const [pinned, setPinned] = useState<number | null>(null);
 
   if (!cmp) {
     return (
@@ -85,6 +140,7 @@ export default function SegmentComparison({ traces }: Props) {
   // the comparison that matters inside a card is corners against straights.
   const cardScale = (t: SegmentTotals) =>
     Math.max(0.05, Math.abs(t.cornerDelta), Math.abs(t.straightDelta));
+  const active = hover ?? pinned;
   const maxSpread = Math.max(0.02, ...segments.map(s => {
     const times = s.timings.map(t => t.time);
     return Math.max(...times) - Math.min(...times);
@@ -108,11 +164,38 @@ export default function SegmentComparison({ traces }: Props) {
         )}
       </div>
 
-      {/* The classification drawn on the circuit, so it can be checked against
-          a track map rather than taken on trust. */}
+      {/* The circuit, interactive: hover or click a stretch to see who gained
+          or lost there. "Kind" is the classification itself, kept so it can be
+          checked against a track map rather than taken on trust. */}
       {cmp.path.length > 0 && (
         <div style={{ marginBottom: 16 }}>
-          <SectionMap path={cmp.path} segments={segments} />
+          <div style={{ marginBottom: 10 }}>
+            <Segmented
+              size="sm"
+              variant="inverted"
+              options={[{ key: "gain", label: "Who gained" }, { key: "kind", label: "Corner / straight" }]}
+              value={mode}
+              onChange={(k: string) => setMode(k as MapMode)}
+            />
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16, alignItems: "start" }}>
+            <div style={{ gridColumn: "span 2", minWidth: 0 }}>
+              <SectionMap
+                path={cmp.path}
+                segments={segments}
+                mode={mode}
+                height={460}
+                active={active}
+                onHover={setHover}
+                onSelect={i => setPinned(p => (p === i ? null : i))}
+                drivers={totals.map(t => ({ label: t.label, color: t.color }))}
+                maxSpread={maxSpread}
+              />
+            </div>
+            <div style={{ position: "sticky", top: 70 }}>
+              <SectionDetail seg={active != null ? segments[active] : null} pinned={pinned != null && pinned === active} onClear={() => setPinned(null)} />
+            </div>
+          </div>
         </div>
       )}
 
@@ -175,7 +258,10 @@ export default function SegmentComparison({ traces }: Props) {
               const slowest = s.timings.reduce((m, t) => (t.time > m.time ? t : m), s.timings[0]);
               const spread = slowest.time - best.time;
               return (
-                <tr key={s.name + i} style={rowBg(i)}>
+                <tr key={s.name + i}
+                  style={{ ...rowBg(i), cursor: "pointer", ...(active === i ? { background: "rgba(255,255,255,0.09)", boxShadow: "inset 3px 0 0 " + SECTION_COLORS[s.kind] } : null) }}
+                  onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
+                  onClick={() => setPinned(p => (p === i ? null : i))}>
                   <td style={{ ...sty.td }}>
                     <span style={{
                       display: "inline-block",

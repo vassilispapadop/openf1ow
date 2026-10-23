@@ -15,6 +15,7 @@ export interface TrackRun {
   opacity?: number;
   label?: string;          // drawn at the run's midpoint with a halo
   labelColor?: string;
+  id?: number;             // groups runs (a section split at the line) for hover/click
 }
 
 export interface TrackOutlineProps {
@@ -27,9 +28,11 @@ export interface TrackOutlineProps {
   legend?: ReactNode;             // rendered below the map
   ariaLabel?: string;
   onEmpty?: ReactNode;
+  onRunHover?: (id: number | null) => void;   // pointer over / off a run that has an id
+  onRunClick?: (id: number) => void;
 }
 
-export default function TrackOutline({ path, runs, height = 360, hoverIndex, hoverColor, corner, legend, ariaLabel, onEmpty }: TrackOutlineProps) {
+export default function TrackOutline({ path, runs, height = 360, hoverIndex, hoverColor, corner, legend, ariaLabel, onEmpty, onRunHover, onRunClick }: TrackOutlineProps) {
   const proj = useMemo(() => projectTrack(path), [path]);
   const drawn = useMemo(() => {
     if (!proj) return [];
@@ -61,6 +64,13 @@ export default function TrackOutline({ path, runs, height = 360, hoverIndex, hov
         {drawn.map((r, i) => r.label && r.mid ? (
           <text key={"l" + i} x={r.mid.x} y={r.mid.y - 11} className={s.label} style={{ fill: r.labelColor ?? r.color }} textAnchor="middle">{r.label}</text>
         ) : null)}
+        {/* Wide transparent strokes on top: a 4-6 px line is too thin to aim at. */}
+        {(onRunHover || onRunClick) && drawn.map((r, i) => r.id == null ? null : (
+          <path key={"h" + i} d={pathFrom(r.pts)} fill="none" stroke="transparent" strokeWidth={26} pointerEvents="stroke"
+            strokeLinecap="round" strokeLinejoin="round" style={{ cursor: "pointer" }}
+            onMouseEnter={() => onRunHover?.(r.id!)} onMouseLeave={() => onRunHover?.(null)}
+            onClick={() => onRunClick?.(r.id!)} />
+        ))}
         {hover && (
           <circle data-export="hide" cx={hover.x} cy={hover.y} r={9} fill={hoverColor ?? "var(--text)"} stroke="var(--chart-halo)" strokeWidth={3} />
         )}
