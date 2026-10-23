@@ -1,4 +1,5 @@
 import { TC } from "../../lib/constants";
+import { sty } from "../../lib/styles";
 
 interface StintsTabProps {
   stints: any[];
@@ -8,9 +9,9 @@ interface StintsTabProps {
 export default function StintsTab({ stints, pits }: StintsTabProps) {
   return (
     <>
-      <div style={'card'}>
+      <div style={sty.card}>
         <div style={{
-          ...'section-head',
+          ...sty.sectionHead,
           marginBottom: 16,
         }}>Tyre Stints</div>
         {/* Horizontal timeline */}
@@ -59,21 +60,21 @@ export default function StintsTab({ stints, pits }: StintsTabProps) {
           ))}
         </div>
       </div>
-      <div style={'card'}>
+      <div style={sty.card}>
         <div style={{
-          ...'section-head',
+          ...sty.sectionHead,
           marginBottom: 14,
         }}>Pit Stops</div>
         {!pits.length ? <div style={{ color: "#5a5a6e", fontSize: 13 }}>No pit stops</div> : (
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-            <thead><tr>{["Lap", "Lane", "Stop", "Time"].map((h, i) => <th key={i} style={{ ...'th', textAlign: i > 0 && i < 3 ? "right" : "left" }}>{h}</th>)}</tr></thead>
+            <thead><tr>{["Lap", "Lane", "Stop", "Time"].map((h, i) => <th key={i} style={{ ...sty.th, textAlign: i > 0 && i < 3 ? "right" : "left" }}>{h}</th>)}</tr></thead>
             <tbody>
               {pits.map((p, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.015)" }}>
-                  <td style={{ ...'td', fontWeight: 600 }}>{p.lap_number}</td>
-                  <td style={{ ...'td', ...'mono', textAlign: "right", color: "#b0b0c0" }}>{p.lane_duration?.toFixed(3)}s</td>
-                  <td style={{ ...'td', ...'mono', textAlign: "right", fontWeight: 700, color: "#fbbf24" }}>{p.stop_duration ? p.stop_duration + "s" : "\u2014"}</td>
-                  <td style={{ ...'td', fontSize: 10, color: "#5a5a6e", fontFamily: "'JetBrains Mono','SF Mono',monospace" }}>{(p.date || "").split("T")[1]?.substring(0, 8)}</td>
+                  <td style={{ ...sty.td, fontWeight: 600 }}>{p.lap_number}</td>
+                  <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#b0b0c0" }}>{p.lane_duration?.toFixed(3)}s</td>
+                  <td style={{ ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700, color: "#fbbf24" }}>{p.stop_duration ? p.stop_duration + "s" : "\u2014"}</td>
+                  <td style={{ ...sty.td, fontSize: 10, color: "#5a5a6e", fontFamily: "'JetBrains Mono','SF Mono',monospace" }}>{(p.date || "").split("T")[1]?.substring(0, 8)}</td>
                 </tr>
               ))}
             </tbody>

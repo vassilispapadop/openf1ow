@@ -5,6 +5,7 @@ import { ft3, ft1, ftn, rowBg } from "../../lib/format";
 import { median } from "../../engine/stats.ts";
 import type { EnrichedLap } from "../../engine/index.ts";
 import useTooltip from "./useTooltip";
+import { sty, F, M } from "../../lib/styles";
 
 const LEFT_MARGIN = 56;
 const RIGHT_PAD = 16;
@@ -216,10 +217,10 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
       {/* Weather summary cards */}
       <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
         <div style={{
-          ...'card', flex: 1, minWidth: 140, marginBottom: 0, textAlign: "center",
+          ...sty.card, flex: 1, minWidth: 140, marginBottom: 0, textAlign: "center",
           borderTop: "3px solid #f97316",
         }}>
-          <div style={{...'stat'Label}}>Track Temp Range</div>
+          <div style={{...sty.statLabel}}>Track Temp Range</div>
           <div style={{ fontSize: 16, fontWeight: 700, fontFamily: M }}>
             {analysis.firstW.track_temperature.toFixed(1)}{"\u00B0"} → {analysis.lastW.track_temperature.toFixed(1)}{"\u00B0"}C
           </div>
@@ -231,20 +232,20 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
           </div>
         </div>
         <div style={{
-          ...'card', flex: 1, minWidth: 140, marginBottom: 0, textAlign: "center",
+          ...sty.card, flex: 1, minWidth: 140, marginBottom: 0, textAlign: "center",
           borderTop: analysis.hadRain ? "3px solid #3b82f6" : "3px solid #22c55e",
         }}>
-          <div style={{...'stat'Label}}>Conditions</div>
+          <div style={{...sty.statLabel}}>Conditions</div>
           <div style={{ fontSize: 20 }}>{analysis.hadRain ? "\u2601\uFE0F" : "\u2600\uFE0F"}</div>
           <div style={{ fontSize: 12, fontWeight: 600, color: analysis.hadRain ? "#3b82f6" : "#22c55e" }}>
             {analysis.hadRain ? "Rain detected" : "Dry session"}
           </div>
         </div>
         <div style={{
-          ...'card', flex: 1, minWidth: 140, marginBottom: 0, textAlign: "center",
+          ...sty.card, flex: 1, minWidth: 140, marginBottom: 0, textAlign: "center",
           borderTop: "3px solid #8b5cf6",
         }}>
-          <div style={{...'stat'Label}}>Air Temp</div>
+          <div style={{...sty.statLabel}}>Air Temp</div>
           <div style={{ fontSize: 16, fontWeight: 700, fontFamily: M }}>
             {analysis.firstW.air_temperature.toFixed(1)}{"\u00B0"} → {analysis.lastW.air_temperature.toFixed(1)}{"\u00B0"}C
           </div>
@@ -306,7 +307,7 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
               <thead>
                 <tr>
                   {["Driver", "Cool Pace", "(laps)", "Mid Pace", "(laps)", "Hot Pace", "(laps)", "Hot-Cool"].map((h, i) => (
-                    <th key={i} style={{ ...'th', textAlign: i === 0 ? "left" : "right" }}>{h}</th>
+                    <th key={i} style={{ ...sty.th, textAlign: i === 0 ? "left" : "right" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -318,21 +319,21 @@ function WeatherCorrelation({ allLaps, drivers, weather }: {
                     return (
                       <tr key={da.driver.driver_number} style={rowBg(i)}>
                         <td style={{
-                          ...'td',
+                          ...sty.td,
                           borderLeft: "3px solid #" + da.color,
                           paddingLeft: 12,
                           fontWeight: 600,
                         }}>
                           {da.driver.name_acronym}
                         </td>
-                        <td style={{ ...'td', ...'mono', textAlign: "right", color: "#06b6d4" }}>{ftn(da.lowAvg)}</td>
-                        <td style={{ ...'td', textAlign: "right", color: "#5a5a6e", fontSize: 10 }}>{da.lowCount}</td>
-                        <td style={{ ...'td', ...'mono', textAlign: "right" }}>{ftn(da.midAvg)}</td>
-                        <td style={{ ...'td', textAlign: "right", color: "#5a5a6e", fontSize: 10 }}>{da.midCount}</td>
-                        <td style={{ ...'td', ...'mono', textAlign: "right", color: "#f97316" }}>{ftn(da.highAvg)}</td>
-                        <td style={{ ...'td', textAlign: "right", color: "#5a5a6e", fontSize: 10 }}>{da.highCount}</td>
+                        <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#06b6d4" }}>{ftn(da.lowAvg)}</td>
+                        <td style={{ ...sty.td, textAlign: "right", color: "#5a5a6e", fontSize: 10 }}>{da.lowCount}</td>
+                        <td style={{ ...sty.td, ...sty.mono, textAlign: "right" }}>{ftn(da.midAvg)}</td>
+                        <td style={{ ...sty.td, textAlign: "right", color: "#5a5a6e", fontSize: 10 }}>{da.midCount}</td>
+                        <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#f97316" }}>{ftn(da.highAvg)}</td>
+                        <td style={{ ...sty.td, textAlign: "right", color: "#5a5a6e", fontSize: 10 }}>{da.highCount}</td>
                         <td style={{
-                          ...'td', ...'mono', textAlign: "right", fontWeight: 700,
+                          ...sty.td, ...sty.mono, textAlign: "right", fontWeight: 700,
                           color: hotCool === null ? "#5a5a6e" : hotCool > 0.3 ? "#ef4444" : hotCool < -0.1 ? "#22c55e" : "#b0b0c0",
                         }}>
                           {hotCool !== null ? (hotCool > 0 ? "+" : "") + hotCool.toFixed(3) + "s" : "\u2014"}

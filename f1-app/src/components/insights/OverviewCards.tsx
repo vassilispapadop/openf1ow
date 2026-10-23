@@ -13,7 +13,7 @@ const drv = (d: { name_acronym: string; team_colour: string }) => (
     <span style={{ width: 3, height: 13, borderRadius: 2, background: "#" + (d.team_colour || "666") }} /><b>{d.name_acronym}</b>
   </span>
 );
-const signed = (v: number | null) => (v == null ? "—" : <span style={{ color: v > 0 ? 'var(--pos)' : v < 0 ? 'var(--neg)' : 'var(--text)'-mute' }}>{v > 0 ? "+" : ""}{v}</span>);
+const signed = (v: number | null) => (v == null ? "—" : <span style={{ color: v > 0 ? 'var(--pos)' : v < 0 ? 'var(--neg)' : 'var(--text-mute)' }}>{v > 0 ? "+" : ""}{v}</span>);
 
 export function StartCard() {
   const { model } = useSessionModel();

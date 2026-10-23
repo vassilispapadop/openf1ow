@@ -1,3 +1,4 @@
+import { F } from "../lib/styles";
 
 export default function Spinner({ label, shimmer }: { label: string; shimmer?: boolean }) {
   return (
@@ -15,7 +16,7 @@ export default function Spinner({ label, shimmer }: { label: string; shimmer?: b
         margin: "0 auto 14px",
       }} />
       <div style={{
-        color: 'var(--text)'-dim',
+        color: 'var(--text-dim)',
         fontSize: 12,
         fontWeight: 500,
         fontFamily: F,

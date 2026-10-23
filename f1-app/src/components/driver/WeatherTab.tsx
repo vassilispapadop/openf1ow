@@ -34,7 +34,7 @@ export default function WeatherTab({ model }: { model: SessionModel }) {
     { key: "hum", label: "Humidity", render: w => Math.round(w.humidity) + " %", mono: true, align: "right", hideBelow: 640 },
     { key: "wind", label: "Wind", render: w => `${w.wind_speed?.toFixed(1)} m/s${w.wind_direction != null ? ` · ${w.wind_direction}°` : ""}`, mono: true, align: "right", hideBelow: 640 },
     { key: "press", label: "Pressure", render: w => Math.round(w.pressure) + " hPa", mono: true, align: "right", hideBelow: 900 },
-    { key: "rain", label: "Rain", render: w => (w.rainfall === true || w.rainfall === 1 ? <span style={{ color: "#0072C6", fontWeight: 700 }}>rain</span> : <span style={{ color: 'var(--text)'-faint' }}>—</span>), align: "right" },
+    { key: "rain", label: "Rain", render: w => (w.rainfall === true || w.rainfall === 1 ? <span style={{ color: "#0072C6", fontWeight: 700 }}>rain</span> : <span style={{ color: 'var(--text-faint)' }}>—</span>), align: "right" },
   ];
   return (
     <Section

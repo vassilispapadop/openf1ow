@@ -10,6 +10,7 @@ import { api } from "../../lib/api";
 import Spinner from "../Spinner";
 import TrackOutline, { type TrackRun } from "../../charts/TrackOutline";
 import { lastIndexLE } from "../../engine/stats";
+import { M } from "../../lib/styles";
 
 interface Props {
   sessionKey: string;
@@ -92,8 +93,8 @@ export default function TrackMap({ sessionKey, driverNumber, driverColor, lap, l
   }, [points, driverColor]);
 
   if (loading) return <div style={{ height, display: "flex", alignItems: "center", justifyContent: "center" }}><Spinner label="Loading track map…" /></div>;
-  if (error) return <div style={{ color: 'var(--text)'-mute', fontSize: 12 }}>Map unavailable: {error}</div>;
-  if (!built) return <div style={{ color: 'var(--text)'-mute', fontSize: 12 }}>Not enough location data for this lap.</div>;
+  if (error) return <div style={{ color: 'var(--text-mute)', fontSize: 12 }}>Map unavailable: {error}</div>;
+  if (!built) return <div style={{ color: 'var(--text-mute)', fontSize: 12 }}>Not enough location data for this lap.</div>;
 
   return (
     <TrackOutline
@@ -103,7 +104,7 @@ export default function TrackMap({ sessionKey, driverNumber, driverColor, lap, l
       corner={label}
       ariaLabel="Track map coloured by speed"
       legend={built.hasSpeed ? (
-        <span style={{ display: "inline-flex", gap: 10, alignItems: "center", fontFamily: M, fontSize: 10, color: 'var(--text)'-dim', marginLeft: "auto" }}>
+        <span style={{ display: "inline-flex", gap: 10, alignItems: "center", fontFamily: M, fontSize: 10, color: 'var(--text-dim)', marginLeft: "auto" }}>
           <span>{Math.round(built.minSpeed)}</span>
           <span style={{ width: 80, height: 6, borderRadius: 3, background: "linear-gradient(90deg, hsl(220,80%,55%), hsl(110,80%,55%), hsl(0,80%,55%))" }} />
           <span>{Math.round(built.maxSpeed)} km/h</span>

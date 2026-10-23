@@ -11,6 +11,7 @@ import { rowBg } from "../../lib/format";
 import { SECTION_COLORS, SECTION_LABELS } from "../../lib/constants";
 import { compareLapSegments, type SegmentTrace, type SegmentTotals, type SectionKind } from "../../lib/lapSegments";
 import SectionMap from "./SectionMap";
+import { sty, F } from "../../lib/styles";
 
 interface Props {
   traces: SegmentTrace[];
@@ -23,7 +24,7 @@ function sd(v: number, dp = 2): string {
 }
 
 function deltaColor(v: number): string {
-  if (Math.abs(v) < 5e-3) return 'var(--text)'-mute';
+  if (Math.abs(v) < 5e-3) return 'var(--text-mute)';
   return v < 0 ? 'var(--pos)' : 'var(--neg)';
 }
 
@@ -56,7 +57,7 @@ function SplitBars({ t, scale }: { t: SegmentTotals; scale: number }) {
         <div key={r.kind}>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 3 }}>
             <span style={{ color: SECTION_COLORS[r.kind], fontWeight: 600 }}>{SECTION_LABELS[r.kind]}</span>
-            <span style={{ ...'mono', color: deltaColor(r.delta) }}>{sd(r.delta)}s</span>
+            <span style={{ ...sty.mono, color: deltaColor(r.delta) }}>{sd(r.delta)}s</span>
           </div>
           {bar(r.delta)}
         </div>
@@ -70,7 +71,7 @@ export default function SegmentComparison({ traces }: Props) {
 
   if (!cmp) {
     return (
-      <div style={{ color: 'var(--text)'-mute', fontSize: 12, padding: 12 }}>
+      <div style={{ color: 'var(--text-mute)', fontSize: 12, padding: 12 }}>
         Not enough telemetry to split these laps into corners and straights — the laps
         need location data and at least one detectable braking zone.
       </div>
@@ -91,7 +92,7 @@ export default function SegmentComparison({ traces }: Props) {
 
   return (
     <div style={{ fontFamily: F }}>
-      <div style={{ fontSize: 11, color: 'var(--text)'-mute', marginBottom: 12 }}>
+      <div style={{ fontSize: 11, color: 'var(--text-mute)', marginBottom: 12 }}>
         {cmp.cornerCount} corner sections ({Math.round(cmp.cornerDistance).toLocaleString()} m)
         {cmp.curveCount > 0 && (
           <>{" · "}{cmp.curveCount} fast curves ({Math.round(cmp.curveDistance).toLocaleString()} m)</>
@@ -124,7 +125,7 @@ export default function SegmentComparison({ traces }: Props) {
       }}>
         {others.map(t => (
           <div key={t.label} style={{
-            background: 'var(--surface)'-alt',
+            background: 'var(--surface-alt)',
             border: "1px solid " + 'var(--border)',
             borderLeft: "3px solid #" + t.color,
             borderRadius: 10,
@@ -133,14 +134,14 @@ export default function SegmentComparison({ traces }: Props) {
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{t.label}</span>
               <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
-                <span style={{ fontSize: 10, color: 'var(--text)'-mute' }}>lap Δ</span>
-                <span style={{ ...'mono', fontSize: 14, fontWeight: 700, color: deltaColor(t.totalDelta) }}>
+                <span style={{ fontSize: 10, color: 'var(--text-mute)' }}>lap Δ</span>
+                <span style={{ ...sty.mono, fontSize: 14, fontWeight: 700, color: deltaColor(t.totalDelta) }}>
                   {sd(t.totalDelta, 3)}s
                 </span>
               </span>
             </div>
             <SplitBars t={t} scale={cardScale(t)} />
-            <div style={{ fontSize: 10.5, color: 'var(--text)'-mute', marginTop: 9 }}>
+            <div style={{ fontSize: 10.5, color: 'var(--text-mute)', marginTop: 9 }}>
               fastest through {t.cornersWon}/{cmp.cornerCount} corners
               {cmp.curveCount > 0 && <>{" · "}{t.curvesWon}/{cmp.curveCount} fast curves</>}
               {" · "}
@@ -155,14 +156,14 @@ export default function SegmentComparison({ traces }: Props) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 460 }}>
           <thead>
             <tr>
-              <th style={{ ...'th', textAlign: "left" }}>Section</th>
-              <th style={{ ...'th', textAlign: "right" }}>Length</th>
+              <th style={{ ...sty.th, textAlign: "left" }}>Section</th>
+              <th style={{ ...sty.th, textAlign: "right" }}>Length</th>
               {totals.map(t => (
-                <th key={t.label} style={{ ...'th', textAlign: "right", color: "#" + t.color }}>
+                <th key={t.label} style={{ ...sty.th, textAlign: "right", color: "#" + t.color }}>
                   {t.label}{t.isBaseline ? " ★" : ""}
                 </th>
               ))}
-              <th style={{ ...'th', textAlign: "left", minWidth: 96 }}>Gap to fastest</th>
+              <th style={{ ...sty.th, textAlign: "left", minWidth: 96 }}>Gap to fastest</th>
             </tr>
           </thead>
           <tbody>
@@ -175,39 +176,39 @@ export default function SegmentComparison({ traces }: Props) {
               const spread = slowest.time - best.time;
               return (
                 <tr key={s.name + i} style={rowBg(i)}>
-                  <td style={{ ...'td' }}>
+                  <td style={{ ...sty.td }}>
                     <span style={{
                       display: "inline-block",
                       fontSize: 10,
                       fontWeight: 700,
                       color: kindColor,
-                      background: s.kind === "corner" ? 'var(--warn)'-dim' : "rgba(167,139,250,0.18)",
+                      background: s.kind === "corner" ? 'var(--warn-dim)' : "rgba(167,139,250,0.18)",
                       borderRadius: 4,
                       padding: "2px 6px",
                       marginRight: 8,
                       minWidth: 34,
                       textAlign: "center",
                     }}>{s.name}</span>
-                    <span style={{ ...'mono', fontSize: 10, color: 'var(--text)'-faint' }}>
+                    <span style={{ ...sty.mono, fontSize: 10, color: 'var(--text-faint)' }}>
                       {s.wraps
                         ? <>{Math.round(s.startDist).toLocaleString()} m → line → {Math.round(s.endDist).toLocaleString()} m</>
                         : <>{Math.round(s.startDist).toLocaleString()}{"–"}{Math.round(s.endDist).toLocaleString()} m</>}
                     </span>
                   </td>
-                  <td style={{ ...'td', ...'mono', textAlign: "right", color: 'var(--text)'-mute', fontSize: 11 }}>
+                  <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: 'var(--text-mute)', fontSize: 11 }}>
                     {Math.round(s.length).toLocaleString()} m
                   </td>
                   {s.timings.map(t => (
-                    <td key={t.label} style={{ ...'td', textAlign: "right" }}>
+                    <td key={t.label} style={{ ...sty.td, textAlign: "right" }}>
                       <div style={{
-                        ...'mono',
+                        ...sty.mono,
                         // The Gap column names the winner in their own colour;
                         // here weight alone separates quickest from the rest,
                         // so the two encodings don't fight.
                         fontWeight: t.fastest ? 700 : 500,
-                        color: t.fastest ? 'var(--text)' : 'var(--text)'-dim',
+                        color: t.fastest ? 'var(--text)' : 'var(--text-dim)',
                       }}>{t.time.toFixed(2)}s</div>
-                      <div style={{ ...'mono', fontSize: 10, color: 'var(--text)'-faint', marginTop: 1 }}>
+                      <div style={{ ...sty.mono, fontSize: 10, color: 'var(--text-faint)', marginTop: 1 }}>
                         {!Number.isFinite(t.minSpeed)
                           ? "no speed"      // car_data feed frozen through this section
                           : s.kind === "corner"
@@ -216,8 +217,8 @@ export default function SegmentComparison({ traces }: Props) {
                       </div>
                     </td>
                   ))}
-                  <td style={{ ...'td' }}>
-                    <div style={{ ...'mono', fontSize: 11, color: spread < 5e-3 ? 'var(--text)'-mute' : "#" + best.color, marginBottom: 3 }}>
+                  <td style={{ ...sty.td }}>
+                    <div style={{ ...sty.mono, fontSize: 11, color: spread < 5e-3 ? 'var(--text-mute)' : "#" + best.color, marginBottom: 3 }}>
                       {spread < 5e-3 ? "level" : best.label.split(" ")[1] + " −" + spread.toFixed(2) + "s"}
                     </div>
                     <div style={{ height: 5, background: "rgba(255,255,255,0.04)", borderRadius: 3, overflow: "hidden" }}>
@@ -236,7 +237,7 @@ export default function SegmentComparison({ traces }: Props) {
         </table>
       </div>
 
-      <p style={{ fontSize: 11, color: 'var(--text)'-mute', margin: "12px 4px 0", lineHeight: 1.5 }}>
+      <p style={{ fontSize: 11, color: 'var(--text-mute)', margin: "12px 4px 0", lineHeight: 1.5 }}>
         Sections come from the shape of the track, not from the driving: a{" "}
         <strong style={{ color: SECTION_COLORS.corner }}>corner</strong> is where the racing line's radius drops below
         250 m — turns closer than 60 m apart, so chicanes and esses, count as one section. A{" "}

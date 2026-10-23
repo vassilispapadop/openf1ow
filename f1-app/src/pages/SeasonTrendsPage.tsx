@@ -6,6 +6,7 @@ import CornerStraightBalance from "../components/season/CornerStraightBalance";
 import SeasonTrendChart from "../components/season/SeasonTrendChart";
 import Spinner from "../components/Spinner";
 import { Section } from "../ui";
+import { sty, F } from "../lib/styles";
 
 /** Section ids are evidence anchors (deep-linkable) — keep them stable. */
 export const SEASON_SECTIONS = {
@@ -46,11 +47,11 @@ export default function SeasonTrendsPage() {
 
   if (trends === "missing") {
     return (
-      <div className="fade-in" style={{ padding: 40, fontFamily: F, color: 'var(--text)'-dim' }}>
+      <div className="fade-in" style={{ padding: 40, fontFamily: F, color: 'var(--text-dim)' }}>
         <h1 style={{ fontSize: 24, color: 'var(--text)', marginBottom: 12 }}>{year} season trends</h1>
         <p style={{ fontSize: 14, lineHeight: 1.6, maxWidth: 540 }}>
           No precomputed trends for {year} yet. The artifact is built by{" "}
-          <code style={{ ...'mono', background: 'var(--surface)', padding: "2px 6px", borderRadius: 4 }}>
+          <code style={{ ...sty.mono, background: 'var(--surface)', padding: "2px 6px", borderRadius: 4 }}>
             npm run trends -- --year {year}
           </code>
           {" "}— it reads OpenF1 data, runs the season-level aggregations, and uploads to R2.
@@ -68,7 +69,7 @@ export default function SeasonTrendsPage() {
           fontSize: 11,
           fontWeight: 700,
           letterSpacing: "0.14em",
-          color: 'var(--text)'-mute',
+          color: 'var(--text-mute)',
           marginBottom: 8,
         }}>
           SEASON TRENDS · {trends.raceCount} RACES
@@ -82,7 +83,7 @@ export default function SeasonTrendsPage() {
         }}>
           {year} F1 — pace, gaps, corners, degradation
         </h1>
-        <p style={{ fontSize: 14, color: 'var(--text)'-dim', margin: "8px 0 0", maxWidth: 720 }}>
+        <p style={{ fontSize: 14, color: 'var(--text-dim)', margin: "8px 0 0", maxWidth: 720 }}>
           Cross-race trends derived from clean-lap medians and fuel-corrected stint deg.
           Lower gap = closer to the fastest car. Click a team in the legend to isolate it.
         </p>
@@ -230,7 +231,7 @@ export default function SeasonTrendsPage() {
       <footer style={{
         marginTop: 24,
         fontSize: 11,
-        color: 'var(--text)'-faint',
+        color: 'var(--text-faint)',
         fontFamily: F,
         textAlign: "right",
       }}>
@@ -238,8 +239,8 @@ export default function SeasonTrendsPage() {
       </footer>
 
       <div style={{ marginTop: 16, padding: "16px 0", borderTop: "1px solid " + 'var(--border)', fontSize: 13 }}>
-        <a href={`/${year}`} style={{ color: 'var(--text)'-dim', textDecoration: "none", marginRight: 16 }}>← {year} season home</a>
-        <a href="/insights" style={{ color: 'var(--text)'-dim', textDecoration: "none" }}>Race recaps</a>
+        <a href={`/${year}`} style={{ color: 'var(--text-dim)', textDecoration: "none", marginRight: 16 }}>← {year} season home</a>
+        <a href="/insights" style={{ color: 'var(--text-dim)', textDecoration: "none" }}>Race recaps</a>
       </div>
 
       <style>{`

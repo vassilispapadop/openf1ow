@@ -1,5 +1,6 @@
 import { ft1, ft3, podiumColor } from "../../lib/format";
 import useTooltip from "./useTooltip";
+import { F, M } from "../../lib/styles";
 
 function percentile(sorted: number[], p: number): number {
   const idx = (p / 100) * (sorted.length - 1);

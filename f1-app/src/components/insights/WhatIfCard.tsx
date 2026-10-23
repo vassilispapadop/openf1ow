@@ -97,8 +97,8 @@ export default function WhatIfCard() {
                 {v.shift === 0 ? `as raced · lap ${v.stop.lap}` : `${v.shift > 0 ? "+" : ""}${v.shift} laps → lap ${v.stop.newLap}`}
               </span>
               {v.shift !== 0 && <Pill size="sm" onClick={() => setShift(0)}>Reset</Pill>}
-              <span style={{ fontSize: 11, color: 'var(--text)'-mute' }}>
-                <span style={{ color: TC[v.stop.from] || 'var(--text)'-dim', fontWeight: 700 }}>{v.stop.from}</span> → <span style={{ color: TC[v.stop.to] || 'var(--text)'-dim', fontWeight: 700 }}>{v.stop.to}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-mute)' }}>
+                <span style={{ color: TC[v.stop.from] || 'var(--text-dim)', fontWeight: 700 }}>{v.stop.from}</span> → <span style={{ color: TC[v.stop.to] || 'var(--text-dim)', fontWeight: 700 }}>{v.stop.to}</span>
               </span>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginBottom: 12 }}>
@@ -133,5 +133,5 @@ export default function WhatIfCard() {
 }
 
 const selectStyle: React.CSSProperties = {
-  background: 'var(--surface)'-alt', color: 'var(--text)', border: "1px solid " + 'var(--border)', borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "var(--font)",
+  background: 'var(--surface-alt)', color: 'var(--text)', border: "1px solid " + 'var(--border)', borderRadius: 999, padding: "5px 12px", fontSize: 11, fontWeight: 600, fontFamily: "var(--font)",
 };

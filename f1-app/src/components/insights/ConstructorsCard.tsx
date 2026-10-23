@@ -32,12 +32,12 @@ export default function ConstructorsCard() {
       <span style={{ display: "inline-flex", gap: 10, flexWrap: "wrap" }}>
         {r.drivers.map(d => (
           <span key={d.driver.driver_number} style={{ fontSize: 11, opacity: sel.focusKeys && !sel.focusKeys.has(String(d.driver.driver_number)) ? 0.4 : 1 }}>
-            <b>{d.driver.name_acronym}</b> <span style={{ color: 'var(--text)'-mute', fontFamily: "var(--mono)" }}>{d.medianPace != null ? fmt.lapTime(d.medianPace) : `${d.n} laps`}</span>
+            <b>{d.driver.name_acronym}</b> <span style={{ color: 'var(--text-mute)', fontFamily: "var(--mono)" }}>{d.medianPace != null ? fmt.lapTime(d.medianPace) : `${d.n} laps`}</span>
           </span>
         ))}
       </span>
     ), hideBelow: 480 },
-    { key: "intra", label: "Intra-team", render: r => (r.intraTeamGap != null ? <span style={{ color: r.intraTeamGap < 0.1 ? 'var(--pos)' : r.intraTeamGap < 0.3 ? 'var(--warn)' : 'var(--neg)' }}>{r.intraTeamGap.toFixed(3)}</span> : <span style={{ color: 'var(--text)'-faint' }}>—</span>), mono: true, align: "right", hideBelow: 640, sort: (a, b) => (a.intraTeamGap ?? 9) - (b.intraTeamGap ?? 9), title: "Slower driver's median minus faster driver's" },
+    { key: "intra", label: "Intra-team", render: r => (r.intraTeamGap != null ? <span style={{ color: r.intraTeamGap < 0.1 ? 'var(--pos)' : r.intraTeamGap < 0.3 ? 'var(--warn)' : 'var(--neg)' }}>{r.intraTeamGap.toFixed(3)}</span> : <span style={{ color: 'var(--text-faint)' }}>—</span>), mono: true, align: "right", hideBelow: 640, sort: (a, b) => (a.intraTeamGap ?? 9) - (b.intraTeamGap ?? 9), title: "Slower driver's median minus faster driver's" },
     { key: "n", label: "Laps", render: r => r.n, mono: true, align: "right", hideBelow: 900 },
   ];
   return (

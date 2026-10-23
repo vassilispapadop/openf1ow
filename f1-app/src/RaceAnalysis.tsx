@@ -25,6 +25,7 @@ import ConstructorsCard from "./components/insights/ConstructorsCard";
 import WhatIfCard from "./components/insights/WhatIfCard";
 import { StartCard, GridFinishCard } from "./components/insights/OverviewCards";
 import DriversCard from "./components/insights/DriversCard";
+import { sty } from "./lib/styles";
 
 export default function RaceAnalysis({ sessionKey, drivers, weather, subTab, onSubTabChange }: {
   sessionKey: string;
@@ -115,7 +116,7 @@ export default function RaceAnalysis({ sessionKey, drivers, weather, subTab, onS
                   <WeatherCorrelation allLaps={allLaps} drivers={drivers} weather={weather} />
                 </Section>
                 <SuperClipping sessionKey={sessionKey} allLaps={allLaps} drivers={drivers} />
-                <div style={'card'}>
+                <div style={sty.card}>
                   <RaceReplay sessionKey={sessionKey} drivers={drivers} />
                 </div>
               </>

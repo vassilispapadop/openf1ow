@@ -1,4 +1,5 @@
 import { ft } from "../../lib/format";
+import { sty, F, M } from "../../lib/styles";
 
 interface DriverInfoCardProps {
   drv: any;
@@ -18,7 +19,7 @@ export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadB
 
   return (
     <div className="fade-in-up" style={{
-      ...'card',
+      ...sty.card,
       padding: 20,
       borderLeft: `3px solid ${team}`,
     }}>
@@ -49,7 +50,7 @@ export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadB
               letterSpacing: "-0.01em",
               color: 'var(--text)',
             }}>
-              <span style={{ color: 'var(--text)'-mute', fontWeight: 500, marginRight: 8 }}>#{drv.driver_number}</span>
+              <span style={{ color: 'var(--text-mute)', fontWeight: 500, marginRight: 8 }}>#{drv.driver_number}</span>
               {drv.full_name}
             </div>
             <div style={{
@@ -85,7 +86,7 @@ function Stat({ label, value, sub, valueColor }: {
 }) {
   return (
     <div style={{ textAlign: "right" }}>
-      <div style={{ fontSize: 11, color: 'var(--text)'-mute', fontWeight: 500, marginBottom: 2 }}>{label}</div>
+      <div style={{ fontSize: 11, color: 'var(--text-mute)', fontWeight: 500, marginBottom: 2 }}>{label}</div>
       <div style={{
         fontSize: 18,
         fontWeight: 700,
@@ -93,7 +94,7 @@ function Stat({ label, value, sub, valueColor }: {
         color: valueColor || 'var(--text)',
         letterSpacing: "-0.01em",
       }}>{value}</div>
-      {sub && <div style={{ fontSize: 10, color: 'var(--text)'-mute', marginTop: 2 }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 10, color: 'var(--text-mute)', marginTop: 2 }}>{sub}</div>}
     </div>
   );
 }
@@ -106,7 +107,7 @@ function GhostBtn({ children, onClick, title }: {
       onClick={onClick}
       title={title}
       style={{
-        background: 'var(--surface)'-alt',
+        background: 'var(--surface-alt)',
         border: "1px solid " + 'var(--border)',
         borderRadius: 8,
         padding: "6px 12px",
@@ -117,7 +118,7 @@ function GhostBtn({ children, onClick, title }: {
         cursor: "pointer",
         transition: "border-color 0.15s ease, background 0.15s ease",
       }}
-      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border)'-strong'; }}
+      onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
       onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
     >
       {children}

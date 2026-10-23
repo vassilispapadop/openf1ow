@@ -9,6 +9,7 @@
 
 import { useMemo } from "react";
 import TrackOutline, { type TrackRun } from "../../charts/TrackOutline";
+import { M } from "../../lib/styles";
 
 interface Trace {
   data: Array<{ date: string; distance?: number; x?: number; y?: number }>;
@@ -94,7 +95,7 @@ export default function DominanceMap({ traces, height = 360, segments = DEFAULT_
   }, [traces, segments]);
 
   if (!computed) {
-    return <div style={{ color: 'var(--text)'-mute', fontSize: 12, padding: 12 }}>Add at least two laps with telemetry to see the dominance map.</div>;
+    return <div style={{ color: 'var(--text-mute)', fontSize: 12, padding: 12 }}>Add at least two laps with telemetry to see the dominance map.</div>;
   }
 
   return (
@@ -107,7 +108,7 @@ export default function DominanceMap({ traces, height = 360, segments = DEFAULT_
         <span key={sh.label} style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12 }}>
           <span style={{ width: 14, height: 4, background: sh.color, borderRadius: 2 }} />
           <span style={{ color: 'var(--text)', fontWeight: 600 }}>{sh.label}</span>
-          <span style={{ color: 'var(--text)'-mute', fontFamily: M }}>{sh.pct}%</span>
+          <span style={{ color: 'var(--text-mute)', fontFamily: M }}>{sh.pct}%</span>
         </span>
       ))}
     />

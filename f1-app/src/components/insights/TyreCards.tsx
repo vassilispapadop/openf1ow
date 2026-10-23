@@ -43,22 +43,22 @@ export function DegradationCard() {
   });
 
   const stintCols: Column<StintRow>[] = [
-    { key: "driver", label: "Driver", render: r => <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (r.driver.team_colour || "666") }} /><b>{r.driver.name_acronym}</b><span style={{ color: 'var(--text)'-mute', fontSize: 11 }}>S{r.stint.stint_number}</span></span> },
-    { key: "compound", label: "Tyre", render: r => <span style={{ color: TC[r.stint.compound] || 'var(--text)'-dim', fontWeight: 700, fontSize: 10, letterSpacing: "0.06em" }}>{r.stint.compound}</span> },
+    { key: "driver", label: "Driver", render: r => <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (r.driver.team_colour || "666") }} /><b>{r.driver.name_acronym}</b><span style={{ color: 'var(--text-mute)', fontSize: 11 }}>S{r.stint.stint_number}</span></span> },
+    { key: "compound", label: "Tyre", render: r => <span style={{ color: TC[r.stint.compound] || 'var(--text-dim)', fontWeight: 700, fontSize: 10, letterSpacing: "0.06em" }}>{r.stint.compound}</span> },
     { key: "laps", label: "Laps", render: r => `L${r.stint.lap_start}–${r.stint.lap_end}`, mono: true, align: "right", hideBelow: 640 },
-    { key: "n", label: "Fit laps", render: r => (r.stint.deg.ok ? r.stint.deg.n : <span style={{ color: 'var(--text)'-faint' }}>{r.stint.fitLaps.length} (min {GATES.DEG_MIN_LAPS})</span>), mono: true, align: "right", hideBelow: 480 },
-    { key: "slope", label: "Deg / lap", render: r => (r.stint.deg.ok ? <span style={{ color: r.stint.deg.value.slope > 0.1 ? 'var(--neg)' : r.stint.deg.value.slope > 0.05 ? 'var(--warn)' : 'var(--pos)' }}>{ms(r.stint.deg.value.slope)}</span> : <span style={{ color: 'var(--text)'-faint' }}>—</span>), mono: true, align: "right", sort: (a, b) => (a.stint.deg.ok ? a.stint.deg.value.slope : Infinity) - (b.stint.deg.ok ? b.stint.deg.value.slope : Infinity) },
+    { key: "n", label: "Fit laps", render: r => (r.stint.deg.ok ? r.stint.deg.n : <span style={{ color: 'var(--text-faint)' }}>{r.stint.fitLaps.length} (min {GATES.DEG_MIN_LAPS})</span>), mono: true, align: "right", hideBelow: 480 },
+    { key: "slope", label: "Deg / lap", render: r => (r.stint.deg.ok ? <span style={{ color: r.stint.deg.value.slope > 0.1 ? 'var(--neg)' : r.stint.deg.value.slope > 0.05 ? 'var(--warn)' : 'var(--pos)' }}>{ms(r.stint.deg.value.slope)}</span> : <span style={{ color: 'var(--text-faint)' }}>—</span>), mono: true, align: "right", sort: (a, b) => (a.stint.deg.ok ? a.stint.deg.value.slope : Infinity) - (b.stint.deg.ok ? b.stint.deg.value.slope : Infinity) },
     { key: "ci", label: "95 %", render: r => (r.stint.deg.ok ? `${ms(r.stint.deg.value.ci95[0])} … ${ms(r.stint.deg.value.ci95[1])}` : "—"), mono: true, align: "right", hideBelow: 900 },
-    { key: "r2", label: "R²", render: r => (r.stint.deg.ok ? <span style={{ color: r.stint.deg.value.r2 < 0.2 ? 'var(--text)'-faint' : undefined }}>{r.stint.deg.value.r2.toFixed(2)}</span> : "—"), mono: true, align: "right", hideBelow: 640 },
+    { key: "r2", label: "R²", render: r => (r.stint.deg.ok ? <span style={{ color: r.stint.deg.value.r2 < 0.2 ? 'var(--text-faint)' : undefined }}>{r.stint.deg.value.r2.toFixed(2)}</span> : "—"), mono: true, align: "right", hideBelow: 640 },
     { key: "cliff", label: "", render: r => (r.stint.cliff.ok ? <Badge tone="neg" size="sm" title={`Slope ${ms(r.stint.cliff.value.slopeBefore)} → ${ms(r.stint.cliff.value.slopeAfter)} per lap`}>cliff at {r.stint.cliff.value.atTyreAge}</Badge> : null) },
   ];
   const driverCols: Column<DriverDegRow>[] = [
     { key: "rank", label: "#", render: (_r, i) => i + 1, mono: true, align: "right", width: 36 },
-    { key: "driver", label: "Driver", render: r => <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (r.driver.team_colour || "666") }} /><b>{r.driver.name_acronym}</b><span style={{ color: 'var(--text)'-mute', fontSize: 11 }} className="hide-narrow">{r.team}</span></span> },
+    { key: "driver", label: "Driver", render: r => <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (r.driver.team_colour || "666") }} /><b>{r.driver.name_acronym}</b><span style={{ color: 'var(--text-mute)', fontSize: 11 }} className="hide-narrow">{r.team}</span></span> },
     { key: "deg", label: "Deg / lap", render: r => <span style={{ color: r.weightedDeg > 0.1 ? 'var(--neg)' : r.weightedDeg > 0.05 ? 'var(--warn)' : 'var(--pos)' }}>{ms(r.weightedDeg)}</span>, mono: true, align: "right", sort: (a, b) => a.weightedDeg - b.weightedDeg, title: "Lap-weighted mean of the fitted stint slopes" },
     { key: "stints", label: "Stints", render: r => r.stints, mono: true, align: "right", hideBelow: 480 },
     { key: "laps", label: "Fit laps", render: r => r.fitLaps, mono: true, align: "right", hideBelow: 480 },
-    { key: "comp", label: "Compounds", render: r => <span style={{ display: "inline-flex", gap: 6 }}>{r.compounds.map(c => <span key={c} style={{ color: TC[c] || 'var(--text)'-dim', fontWeight: 700, fontSize: 10 }}>{c[0]}</span>)}</span>, hideBelow: 640 },
+    { key: "comp", label: "Compounds", render: r => <span style={{ display: "inline-flex", gap: 6 }}>{r.compounds.map(c => <span key={c} style={{ color: TC[c] || 'var(--text-dim)', fontWeight: 700, fontSize: 10 }}>{c[0]}</span>)}</span>, hideBelow: 640 },
     { key: "best", label: "Best stint", render: r => (r.bestStint && r.bestStint.deg.ok ? `S${r.bestStint.stint_number} ${r.bestStint.compound[0]} ${ms(r.bestStint.deg.value.slope)}` : "—"), mono: true, align: "right", hideBelow: 900 },
   ];
   const stintKey = (r: StintRow) => `${r.driver.driver_number}-${r.stint.stint_number}`;
@@ -97,7 +97,7 @@ export function DegradationCard() {
             rankTooltip={false}
             ariaLabel="Fuel-corrected lap time against tyre age for the stints in focus, with fitted lines"
           />
-          <p style={{ fontSize: 11, color: 'var(--text)'-faint', margin: "6px 4px 0" }}>{sel.focusKeys ? "Stints of the selected drivers" : "The six lowest-degradation stints"} — dashed lines are the fits. Select drivers in any table to change the set.</p>
+          <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: "6px 4px 0" }}>{sel.focusKeys ? "Stints of the selected drivers" : "The six lowest-degradation stints"} — dashed lines are the fits. Select drivers in any table to change the set.</p>
         </div>
       )}
       {view === "stints"
@@ -124,16 +124,16 @@ export function CompoundsCard() {
         {v => (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))", gap: 10 }}>
             {v.map(c => (
-              <div key={c.compound} style={{ background: 'var(--surface)'-alt', borderRadius: 10, padding: "12px 14px", border: "1px solid " + 'var(--border)', borderTop: "2px solid " + (TC[c.compound] || "#666") }}>
+              <div key={c.compound} style={{ background: 'var(--surface-alt)', borderRadius: 10, padding: "12px 14px", border: "1px solid " + 'var(--border)', borderTop: "2px solid " + (TC[c.compound] || "#666") }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: TC[c.compound] || 'var(--text)' }}>{c.compound}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text)'-mute' }}>{c.stints} of {c.stintsSeen} stints fitted</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-mute)' }}>{c.stints} of {c.stintsSeen} stints fitted</span>
                 </div>
                 <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "4px 12px", fontSize: 11 }}>
-                  <span style={{ color: 'var(--text)'-mute' }}>Deg / lap</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600, color: c.medianDeg > 0.1 ? 'var(--neg)' : c.medianDeg > 0.05 ? 'var(--warn)' : 'var(--pos)' }}>{ms(c.medianDeg)} <span style={{ color: 'var(--text)'-faint', fontWeight: 400 }}>({ms(c.degIqr[0])}…{ms(c.degIqr[1])})</span></span>
-                  <span style={{ color: 'var(--text)'-mute' }}>Clear-air pace</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600 }}>{c.medianPace != null ? fmt.lapTime(c.medianPace) : "—"}</span>
-                  <span style={{ color: 'var(--text)'-mute' }}>Median stint</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600 }}>{c.medianStintLength.toFixed(0)} laps</span>
-                  <span style={{ color: 'var(--text)'-mute' }}>Cliffs</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600, color: c.cliffs ? 'var(--neg)' : undefined }}>{c.cliffs}</span>
+                  <span style={{ color: 'var(--text-mute)' }}>Deg / lap</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600, color: c.medianDeg > 0.1 ? 'var(--neg)' : c.medianDeg > 0.05 ? 'var(--warn)' : 'var(--pos)' }}>{ms(c.medianDeg)} <span style={{ color: 'var(--text-faint)', fontWeight: 400 }}>({ms(c.degIqr[0])}…{ms(c.degIqr[1])})</span></span>
+                  <span style={{ color: 'var(--text-mute)' }}>Clear-air pace</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600 }}>{c.medianPace != null ? fmt.lapTime(c.medianPace) : "—"}</span>
+                  <span style={{ color: 'var(--text-mute)' }}>Median stint</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600 }}>{c.medianStintLength.toFixed(0)} laps</span>
+                  <span style={{ color: 'var(--text-mute)' }}>Cliffs</span><span style={{ fontFamily: "var(--mono)", fontWeight: 600, color: c.cliffs ? 'var(--neg)' : undefined }}>{c.cliffs}</span>
                 </div>
               </div>
             ))}

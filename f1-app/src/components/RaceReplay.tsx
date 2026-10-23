@@ -3,6 +3,7 @@ import type { Driver } from "../lib/types";
 import { api } from "../lib/api";
 import { drawWatermark } from "../lib/canvas";
 import ShareButton from "./ShareButton";
+import { sty, F, M } from "../lib/styles";
 
 interface LocPoint { x: number; y: number; ts: number; dn: number }
 interface PosEvent { dn: number; pos: number; ts: number }
@@ -491,7 +492,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
           borderRadius: 14, display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: 28,
         }}>&#9654;</div>
-        <div style={'section-head'}>Race Replay</div>
+        <div style={sty.sectionHead}>Race Replay</div>
         <p style={{ color: "#b0b0c0", fontSize: 13, margin: "12px auto 20px", lineHeight: 1.6, maxWidth: 420 }}>
           Watch the race unfold on the actual track layout with a live timing tower. Requires downloading position data for all drivers.
         </p>
@@ -528,7 +529,7 @@ export default function RaceReplay({ sessionKey, drivers }: { sessionKey: string
     // The share captures the whole block — heading and map — minus the
     // transport controls, so the picture says what it is.
     <div ref={shareRef}>
-      <div style={'section-head'}>Race Replay · lap {currentState.lap}/{totalRaceLaps}</div>
+      <div style={sty.sectionHead}>Race Replay · lap {currentState.lap}/{totalRaceLaps}</div>
       <div ref={wrapRef} style={{ position: "relative", marginBottom: 14 }}>
         <div style={{ position: "absolute", top: 8, right: 8, zIndex: 5 }}>
           <ShareButton domRef={shareRef} filename="openf1ow-race-replay" />

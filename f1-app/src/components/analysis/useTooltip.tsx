@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef } from "react";
+import { M } from "../../lib/styles";
 
 export interface ScatterPoint { x: number; y: number; color: string; label: string }
 

@@ -22,7 +22,7 @@ export default function TruePaceCard() {
       <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
         <span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (r.driver.team_colour || "666") }} />
         <span style={{ fontWeight: 700 }}>{r.driver.name_acronym}</span>
-        <span style={{ color: 'var(--text)'-mute', fontSize: 11 }} className="hide-narrow">{r.team}</span>
+        <span style={{ color: 'var(--text-mute)', fontSize: 11 }} className="hide-narrow">{r.team}</span>
       </span>
     ) },
     { key: "median", label: mode === "raw" ? "Median lap" : "Normalised", render: r => fmt.lapTime(mode === "raw" ? r.medianRaw : r.medianPace), align: "right", mono: true, sort: (a, b) => a.medianPace - b.medianPace },
@@ -70,7 +70,7 @@ export default function TruePaceCard() {
               onRowHover={r => sel.setHovered(r ? r.driver.driver_number : null)}
             />
             {v.rows.some(g => !g.ok) && (
-              <p style={{ fontSize: 11, color: 'var(--text)'-faint', margin: "10px 4px 0" }}>
+              <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: "10px 4px 0" }}>
                 Not enough laps: {v.rows.filter(g => !g.ok).map((g, i) => {
                   const d = model.drivers[i];
                   return `${d?.driver.name_acronym ?? "?"} (${g.ok ? "" : g.n})`;

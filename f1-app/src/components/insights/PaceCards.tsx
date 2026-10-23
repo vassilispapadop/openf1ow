@@ -15,7 +15,7 @@ const drv = (d: { name_acronym: string; team_colour: string }, team?: string) =>
   <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
     <span style={{ width: 3, height: 14, borderRadius: 2, background: "#" + (d.team_colour || "666") }} />
     <span style={{ fontWeight: 700 }}>{d.name_acronym}</span>
-    {team && <span style={{ color: 'var(--text)'-mute', fontSize: 11 }} className="hide-narrow">{team}</span>}
+    {team && <span style={{ color: 'var(--text-mute)', fontSize: 11 }} className="hide-narrow">{team}</span>}
   </span>
 );
 
@@ -41,7 +41,7 @@ export function SectorsCard() {
     { key: "theo", label: "Theoretical", render: r => fmt.lapTime(r.theoretical), mono: true, align: "right", hideBelow: 640, sort: (a, b) => a.theoretical - b.theoretical, title: "Own best three sectors summed" },
     { key: "cov", label: "CoV", render: r => (r.cov.reduce((s, v) => s + v, 0) / 3 * 100).toFixed(2) + " %", mono: true, align: "right", hideBelow: 900, sort: (a, b) => a.cov.reduce((s, v) => s + v, 0) - b.cov.reduce((s, v) => s + v, 0), title: "Mean sector coefficient of variation (σ / mean)" },
     { key: "trap", label: "Trap clear", render: r => (r.trapClear != null ? fmt.kph(r.trapClear) : "—"), mono: true, align: "right", hideBelow: 900, sort: (a, b) => (a.trapClear ?? 0) - (b.trapClear ?? 0), title: "Best speed-trap reading with ≥ 1.5 s to the car ahead" },
-    { key: "tow", label: "In tow", render: r => (r.trapTow != null ? fmt.kph(r.trapTow) : <span style={{ color: 'var(--text)'-faint' }}>—</span>), mono: true, align: "right", hideBelow: 900, title: "Best speed-trap reading within 1.0 s of the car ahead" },
+    { key: "tow", label: "In tow", render: r => (r.trapTow != null ? fmt.kph(r.trapTow) : <span style={{ color: 'var(--text-faint)' }}>—</span>), mono: true, align: "right", hideBelow: 900, title: "Best speed-trap reading within 1.0 s of the car ahead" },
     { key: "n", label: "Laps", render: r => r.n, mono: true, align: "right", hideBelow: 480 },
   ];
   return (

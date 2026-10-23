@@ -1,4 +1,5 @@
 import { ft } from "../../lib/format";
+import { sty } from "../../lib/styles";
 
 interface ResultsTabProps {
   results: any[];
@@ -8,16 +9,16 @@ interface ResultsTabProps {
 
 export default function ResultsTab({ results, drivers, dn }: ResultsTabProps) {
   return (
-    <div style={'card'}>
+    <div style={sty.card}>
       <div style={{
-        ...'section-head',
+        ...sty.sectionHead,
         marginBottom: 14,
       }}>Results</div>
       {!results.length ? <div style={{ color: "#5a5a6e", fontSize: 13 }}>No results yet</div> : (
         <div style={{ overflow: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
             <thead><tr>{["Pos", "Driver", "Time", "Gap", "Laps", "Status"].map((h, i) => (
-              <th key={i} style={{ ...'th', textAlign: [0, 5].includes(i) ? "center" : i >= 2 && i <= 4 ? "right" : "left" }}>{h}</th>
+              <th key={i} style={{ ...sty.th, textAlign: [0, 5].includes(i) ? "center" : i >= 2 && i <= 4 ? "right" : "left" }}>{h}</th>
             ))}</tr></thead>
             <tbody>
               {[...results].sort((a, b) => a.position - b.position).map((r, ri) => {
@@ -32,7 +33,7 @@ export default function ResultsTab({ results, drivers, dn }: ResultsTabProps) {
                         : "rgba(255,255,255,0.015)",
                   }}>
                     <td style={{
-                      ...'td',
+                      ...sty.td,
                       textAlign: "center",
                       fontWeight: 800,
                       fontSize: r.position <= 3 ? 18 : 14,
@@ -40,7 +41,7 @@ export default function ResultsTab({ results, drivers, dn }: ResultsTabProps) {
                       fontFamily: "'Inter','SF Pro Display',system-ui,sans-serif",
                     }}>{r.position}</td>
                     <td style={{
-                      ...'td',
+                      ...sty.td,
                       borderLeft: "3px solid #" + (dv ? dv.team_colour : "333"),
                       paddingLeft: 12,
                     }}>
@@ -52,20 +53,20 @@ export default function ResultsTab({ results, drivers, dn }: ResultsTabProps) {
                       }}>#{r.driver_number}</span>
                       <span style={{ fontWeight: 500 }}>{dv ? dv.full_name : "Driver " + r.driver_number}</span>
                     </td>
-                    <td style={{ ...'td', ...'mono', textAlign: "right", color: "#b0b0c0", fontSize: 11 }}>
+                    <td style={{ ...sty.td, ...sty.mono, textAlign: "right", color: "#b0b0c0", fontSize: 11 }}>
                       {Array.isArray(r.duration) ? r.duration.map((x: number | null) => x ? ft(x) : "\u2014").join(" / ") : ft(r.duration)}
                     </td>
                     <td style={{
-                      ...'td',
-                      ...'mono',
+                      ...sty.td,
+                      ...sty.mono,
                       textAlign: "right",
                       color: r.gap_to_leader === 0 ? "#5a5a6e" : "#ef4444",
                       fontSize: 11,
                     }}>
                       {r.gap_to_leader === 0 ? "\u2014" : typeof r.gap_to_leader === "string" ? r.gap_to_leader : "+" + r.gap_to_leader + "s"}
                     </td>
-                    <td style={{ ...'td', textAlign: "right", color: "#b0b0c0" }}>{r.number_of_laps || ""}</td>
-                    <td style={{ ...'td', textAlign: "center" }}>
+                    <td style={{ ...sty.td, textAlign: "right", color: "#b0b0c0" }}>{r.number_of_laps || ""}</td>
+                    <td style={{ ...sty.td, textAlign: "center" }}>
                       {r.dnf ? (
                         <span style={{ fontSize: 10, fontWeight: 700, color: "#ef4444", letterSpacing: "0.5px" }}>DNF</span>
                       ) : r.dns ? (

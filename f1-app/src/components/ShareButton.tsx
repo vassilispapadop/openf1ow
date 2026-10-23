@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { captureCanvas, captureCanvasStack, captureDom, copyToClipboard, downloadPng, uploadShareImage } from "../lib/snapshot";
 import { shareImage, canShareFiles } from "../lib/share";
+import { F } from "../lib/styles";
 
 type Status = "idle" | "copying" | "copied" | "downloaded" | "uploading" | "linked" | "sharing" | "shared" | "error";
 

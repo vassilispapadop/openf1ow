@@ -1,4 +1,5 @@
 import { Pending } from "../../ui";
+import { sty } from "../../lib/styles";
 
 // A 429 from OpenF1 is transient and expected during/after a live session
 // (timing data isn't published or cached yet) — not a real error.
@@ -16,7 +17,7 @@ export function PendingData({ onRetry, checking, exhausted }: {
   exhausted?: boolean;
 }) {
   return (
-    <div style={'card'}>
+    <div style={sty.card}>
       <Pending onRetry={onRetry} checking={checking} exhausted={exhausted} />
     </div>
   );

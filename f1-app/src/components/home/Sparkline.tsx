@@ -1,3 +1,4 @@
+import { F } from "../../lib/styles";
 
 interface Props {
   values: number[];
@@ -24,7 +25,7 @@ export default function Sparkline({
         alignItems: "center",
         justifyContent: "center",
         fontSize: 11,
-        color: 'var(--text)'-faint',
+        color: 'var(--text-faint)',
         fontFamily: F,
       }}>
         no data yet

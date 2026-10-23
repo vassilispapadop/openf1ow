@@ -3,6 +3,7 @@ import { drawWatermark, getCtx } from "../../lib/canvas";
 import { useResponsiveCanvas, adaptiveMargins } from "../../lib/useResponsiveCanvas";
 import useTooltip from "./useTooltip";
 import type { ScatterPoint } from "./useTooltip";
+import { F, M } from "../../lib/styles";
 
 export type { ScatterPoint };
 

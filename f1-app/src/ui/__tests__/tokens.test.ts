@@ -34,8 +34,8 @@ describe("tokens.css mirrors styles.ts", () => {
     expect(norm(cssVar("mono"))).toBe(norm(M));
   });
   it("radii match", () => {
-    expect(cssVar("r-sm")).toBe(`${R.sm}px`);
-    expect(cssVar("r-md")).toBe(`${R.md}px`);
-    expect(cssVar("r-lg")).toBe(`${R.lg}px`);
+    expect(cssVar("radius-sm")).toBe(`${R.sm}px`);
+    expect(cssVar("radius-md")).toBe(`${R.md}px`);
+    expect(cssVar("radius-lg")).toBe(`${R.lg}px`);
   });
 });

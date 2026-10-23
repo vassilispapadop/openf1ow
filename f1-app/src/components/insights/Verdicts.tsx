@@ -10,6 +10,7 @@ import { Section, Badge, StatTile, Segmented } from "../../ui";
 import { podiumColor } from "../../lib/format";
 import type { ViewKey } from "../../lib/constants";
 import { useSelection } from "../../contexts/SelectionContext";
+import { F } from "../../lib/styles";
 
 const AREA_LABEL: Record<VerdictArea, string> = { overview: "Session", pace: "Pace", strategy: "Strategy", battles: "Battles", track: "Track" };
 const CONF_TONE = { high: "pos", medium: "warn", low: "mute" } as const;
@@ -94,7 +95,7 @@ export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictAre
           const open = expanded === v.id;
           return (
             <article key={v.id} style={{
-              border: "1px solid " + 'var(--border)', borderRadius: 10, padding: "12px 14px", background: 'var(--surface)'-alt', fontFamily: F,
+              border: "1px solid " + 'var(--border)', borderRadius: 10, padding: "12px 14px", background: 'var(--surface-alt)', fontFamily: F,
               display: "flex", flexDirection: "column", gap: 8,
             }}>
               <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
@@ -103,12 +104,12 @@ export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictAre
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 14px" }}>
                 {v.numbers.map(n => (
-                  <span key={n.label} style={{ fontSize: 11, color: 'var(--text)'-mute' }}>
+                  <span key={n.label} style={{ fontSize: 11, color: 'var(--text-mute)' }}>
                     {n.label} <span style={{ color: 'var(--text)', fontFamily: "var(--mono)", fontVariantNumeric: "tabular-nums" }}>{n.value}</span>
                   </span>
                 ))}
               </div>
-              {open && <p style={{ margin: 0, fontSize: 12, color: 'var(--text)'-dim', lineHeight: 1.55 }}>{v.detail}</p>}
+              {open && <p style={{ margin: 0, fontSize: 12, color: 'var(--text-dim)', lineHeight: 1.55 }}>{v.detail}</p>}
               <div style={{ display: "flex", gap: 10, fontSize: 11 }}>
                 <button type="button" onClick={() => setExpanded(open ? null : v.id)} style={linkBtn}>{open ? "Less" : "How"}</button>
                 <button type="button" onClick={() => openEvidence(v)} style={linkBtn}>Evidence → {AREA_LABEL[v.evidence.tab]}</button>
@@ -122,5 +123,5 @@ export default function Verdicts({ area, limit, onOpenTab }: { area?: VerdictAre
 }
 
 const linkBtn: React.CSSProperties = {
-  background: "none", border: "none", padding: 0, color: 'var(--text)'-dim', cursor: "pointer", fontFamily: F, fontSize: 11, fontWeight: 600,
+  background: "none", border: "none", padding: 0, color: 'var(--text-dim)', cursor: "pointer", fontFamily: F, fontSize: 11, fontWeight: 600,
 };
