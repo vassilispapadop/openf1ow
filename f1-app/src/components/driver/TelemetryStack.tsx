@@ -1,13 +1,13 @@
-// The telemetry stack: speed, throttle, brake, gear and DRS against
+// The telemetry stack: speed, throttle, brake and gear against
 // distance, one panel each on a shared crosshair, plus the time delta to the
-// fastest lap when two or more laps are compared. Six LineCharts, one axis
+// fastest lap when two or more laps are compared. Five LineCharts, one axis
 // each — never a dual axis — with the legend on the speed panel only.
 
 import { useMemo, useState } from "react";
 import LineChart, { type Series, type Mark } from "../../charts/LineChart";
 import type { Band } from "../../charts/core/Frame";
 import { fmt } from "../../charts/core/scales";
-import { DRS_OPEN, DRS_ELIGIBLE } from "../../lib/constants";
+import { DRS_OPEN } from "../../lib/constants";
 import { deltaToFastest, spansWhere, type LapTrace } from "../../engine/telemetry/compare.ts";
 import type { ClipEvent } from "../../engine/telemetry/clipping.ts";
 
@@ -37,7 +37,6 @@ export default function TelemetryStack({ traces, clippingEvents, hoverX: hoverXI
   const throttle = useMemo(() => mk(s => s.throttle), [usable]);
   const brake = useMemo(() => mk(s => (s.brake ? 1 : 0)), [usable]);
   const gear = useMemo(() => mk(s => s.n_gear), [usable]);
-  const drs = useMemo(() => mk(s => (DRS_OPEN.includes(s.drs as number) ? 1 : s.drs === DRS_ELIGIBLE ? 0.5 : 0)), [usable]);
   const delta = useMemo(() => deltaToFastest(usable), [usable]);
   const deltaSeries: Series[] = useMemo(() => (delta ? delta.perTrace.map(pt => {
     const t = usable.find(x => x.key === pt.key)!;
@@ -66,9 +65,7 @@ export default function TelemetryStack({ traces, clippingEvents, hoverX: hoverXI
       <LineChart {...shared} curve="step" series={brake} height={70} y={{ domain: [0, 1.15], ticks: [{ value: 0, label: "off" }, { value: 1, label: "on" }], format: v => (v >= 1 ? "on" : "off"), label: "Brake" }}
         format={v => (v >= 1 ? "on" : "off")} tipTitle={tipTitle} rankTooltip={false} ariaLabel="Brake against distance" />
       <LineChart {...shared} curve="step" series={gear} height={110} y={{ domain: [0.5, 8.5], ticks: [{ value: 2 }, { value: 4 }, { value: 6 }, { value: 8 }], format: v => String(Math.round(v)), label: "Gear" }}
-        format={v => "gear " + Math.round(v)} tipTitle={tipTitle} rankTooltip={false} ariaLabel="Gear against distance" />
-      <LineChart {...shared} curve="step" series={drs} height={80} y={{ domain: [0, 1.15], ticks: [{ value: 0, label: "off" }, { value: 1, label: "open" }], format: v => (v >= 1 ? "open" : v > 0 ? "elig" : "off"), label: "DRS" }}
-        format={v => (v >= 1 ? "open" : v > 0 ? "eligible" : "off")} tipTitle={tipTitle} rankTooltip={false} ariaLabel="DRS against distance" x={{ ...shared.x, label: delta ? undefined : "Distance" }} />
+        format={v => "gear " + Math.round(v)} tipTitle={tipTitle} rankTooltip={false} ariaLabel="Gear against distance" x={{ ...shared.x, label: delta ? undefined : "Distance" }} />
       {delta && (
         <LineChart {...shared} series={deltaSeries} height={190} y={{ format: v => fmt.signedSec(v, 1), includeZero: true, zeroLine: "reference", zeroLabel: "fastest", targetTicks: 5, label: "Δ s" }}
           format={v => "+" + v.toFixed(3) + " s"} tipTitle={d => `${km(d)} · time behind the fastest lap here (smoothed over ~${Math.round(5 * maxDist / 400)} m)`} x={{ ...shared.x, label: "Distance" }} ariaLabel="Time delta to the fastest lap against distance" />

@@ -184,7 +184,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
         id="comparison"
         kicker={comparisons.length ? `${comparisons.length} lap${comparisons.length === 1 ? "" : "s"}` : undefined}
         title="Lap comparison"
-        hint="Any laps from any drivers in this session, by distance round the lap: speed, throttle, brake, gear and DRS on one crosshair, the time delta to the fastest, who was quickest through each stretch of track, and where the time went — corners, fast curves or straights."
+        hint="Any laps from any drivers in this session, by distance round the lap: speed, throttle, brake and gear on one crosshair, the time delta to the fastest, who was quickest through each stretch of track, and where the time went — corners, fast curves or straights."
         method={{ summary: "Car data (~3.7 Hz) merged with GPS location and aligned by distance from the lap's start; the delta is elapsed time behind the fastest lap at each of 400 points, smoothed over five points to take out sampling jitter. Fast curves are stretches the track turns but a modern car takes at or near full throttle." }}
         actions={comparisons.length ? <Pill size="sm" onClick={() => setComparisons([])}>Clear all</Pill> : undefined}
         share={cmpTraces.length ? { meta: "lap comparison", filename: "openf1ow-comparison" } : undefined}
