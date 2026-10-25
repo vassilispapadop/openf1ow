@@ -4,6 +4,7 @@ import { loadSeasonTrends } from "../lib/seasonClient";
 import type { SeasonTrends } from "../lib/seasonUtils";
 import CornerStraightBalance from "../components/season/CornerStraightBalance";
 import SeasonTrendChart from "../components/season/SeasonTrendChart";
+import TeamFormVsSeason from "../components/season/TeamFormVsSeason";
 import Spinner from "../components/Spinner";
 import { Section } from "../ui";
 import { sty, F } from "../lib/styles";
@@ -12,6 +13,7 @@ import { sty, F } from "../lib/styles";
 export const SEASON_SECTIONS = {
   constructorPace: "constructor-pace",
   constructorQualifying: "constructor-qualifying",
+  teamFormVsSeason: "team-form-vs-season",
   teammateGap: "teammate-gap",
   cornerStraightEvolution: "corner-straight-evolution",
   cornerStraightBalance: "corner-straight-balance",
@@ -119,6 +121,17 @@ export default function SeasonTrendsPage() {
           share={{ meta: `${year} constructor qualifying`, filename: `openf1ow-constructor-qualifying-${year}` }}
         >
           <SeasonTrendChart trends={trends} metric="quali" />
+        </Section>
+      )}
+
+      {trends.constructorPace.length > 1 && (
+        <Section
+          id={SEASON_SECTIONS.teamFormVsSeason}
+          title="Team pace vs season average"
+          hint="Where each team ran at one weekend against where it usually runs. The hollow circle is the team's median gap to the fastest car over the other rounds; the arrow shows how far this weekend moved from it."
+          share={{ meta: `${year} team pace vs season average`, filename: `openf1ow-team-form-${year}` }}
+        >
+          <TeamFormVsSeason trends={trends} />
         </Section>
       )}
 
