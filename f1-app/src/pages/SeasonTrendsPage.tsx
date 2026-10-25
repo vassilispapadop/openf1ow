@@ -76,7 +76,7 @@ export default function SeasonTrendsPage() {
   const hasPaceHistory = trends.constructorPace.length > 1;
 
   // Same conditions as the sections below, in page order.
-  const nav: NavItem[] = [
+  const navCandidates: (NavItem | false)[] = [
     { id: SEASON_SECTIONS.constructorPace, label: "Race pace" },
     hasQuali && { id: SEASON_SECTIONS.constructorQualifying, label: "Qualifying pace" },
     hasPaceHistory && { id: SEASON_SECTIONS.teamFormVsSeason, label: "Pace vs usual" },
@@ -88,7 +88,8 @@ export default function SeasonTrendsPage() {
     !!trends.topSpeed?.length && { id: SEASON_SECTIONS.topSpeed, label: "Top speed" },
     !!trends.superClipping?.length && { id: SEASON_SECTIONS.superClipping, label: "Clipping" },
     !!trends.conversion?.length && { id: SEASON_SECTIONS.conversion, label: "Grid → finish" },
-  ].filter((x): x is NavItem => !!x);
+  ];
+  const nav = navCandidates.filter((x): x is NavItem => !!x);
 
   return (
     <div className="fade-in-up" style={{ fontFamily: F, padding: "clamp(12px, 3vw, 24px) 0" }}>
