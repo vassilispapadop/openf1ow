@@ -11,12 +11,6 @@
   gap: 12px;
   min-width: 0;
 }
-.panel {
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
 .readoutHead {
   display: flex;
   align-items: baseline;
@@ -47,3 +41,24 @@
   .readoutRow { grid-template-columns: 10px minmax(0, 1fr) 54px 40px 36px; }
   .hideNarrow { display: none; }
 }
+
+.root:focus { outline: none; }
+/* Horizontal drags scrub the crosshair; vertical ones still scroll the page. */
+.scrub svg { touch-action: pan-y; }
+.zoomChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-dim);
+  background: var(--surface-hi);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+}
+.zoomChip strong { color: var(--text); }
+.kbd { margin: 8px 2px 0; font-size: 10.5px; color: var(--text-mute); }
+@media (hover: none) { .kbd { display: none; } }

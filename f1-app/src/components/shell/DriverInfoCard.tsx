@@ -1,5 +1,6 @@
 import { ft } from "../../lib/format";
 import { sty, F, M } from "../../lib/styles";
+import { readableOnDark } from "../../lib/teamColor";
 
 interface DriverInfoCardProps {
   drv: any;
@@ -16,6 +17,7 @@ interface DriverInfoCardProps {
 
 export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadBest, onAddBest, topSpeed }: DriverInfoCardProps) {
   const team = "#" + drv.team_colour;
+  const teamText = readableOnDark(team);
 
   return (
     <div className="fade-in-up" style={{
@@ -54,7 +56,7 @@ export default function DriverInfoCard({ drv, best, laps, pits, loading, onLoadB
               {drv.full_name}
             </div>
             <div style={{
-              color: team,
+              color: teamText,
               fontSize: 12,
               fontWeight: 600,
               marginTop: 3,

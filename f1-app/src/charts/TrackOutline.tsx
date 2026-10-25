@@ -32,6 +32,8 @@ export interface TrackOutlineProps {
   onRunClick?: (id: number) => void;
   /** Extra dots in raw position coordinates (e.g. where each lap's car is). */
   markers?: { x: number; y: number; color: string }[];
+  /** Small labelled ticks on the line, in raw position coordinates (sector lines). */
+  pins?: { x: number; y: number; label: string }[];
   /** Pointer position as the nearest original path index, null when it leaves
    *  the circuit — lets the map drive a crosshair elsewhere. */
   onPointerIndex?: (i: number | null) => void;
@@ -40,7 +42,7 @@ export interface TrackOutlineProps {
 /** How near (viewBox units) the pointer must be to the line to count as on it. */
 const POINTER_REACH = 45;
 
-export default function TrackOutline({ path, runs, height = 360, hoverIndex, hoverColor, corner, legend, ariaLabel, onEmpty, onRunHover, onRunClick, markers, onPointerIndex }: TrackOutlineProps) {
+export default function TrackOutline({ path, runs, height = 360, hoverIndex, hoverColor, corner, legend, ariaLabel, onEmpty, onRunHover, onRunClick, markers, pins, onPointerIndex }: TrackOutlineProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const proj = useMemo(() => projectTrack(path), [path]);
   const drawn = useMemo(() => {
@@ -98,6 +100,15 @@ export default function TrackOutline({ path, runs, height = 360, hoverIndex, hov
             onMouseEnter={() => onRunHover?.(r.id!)} onMouseLeave={() => onRunHover?.(null)}
             onClick={() => onRunClick?.(r.id!)} />
         ))}
+        {pins?.map((p, i) => {
+          const q = proj.project(p);
+          return (
+            <g key={"p" + i} pointerEvents="none">
+              <circle cx={q.x} cy={q.y} r={5} fill="var(--bg, #0a0a0d)" stroke="var(--text-dim)" strokeWidth={2} />
+              <text x={q.x} y={q.y - 12} className={s.label} style={{ fill: "var(--text-dim)", fontSize: 14 }} textAnchor="middle">{p.label}</text>
+            </g>
+          );
+        })}
         {markers?.map((m, i) => {
           if (m.x === 0 && m.y === 0) return null;
           const q = proj.project(m);

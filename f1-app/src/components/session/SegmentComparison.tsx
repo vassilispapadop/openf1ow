@@ -10,6 +10,7 @@ import { rowBg } from "../../lib/format";
 import { SECTION_COLORS, SECTION_LABELS } from "../../lib/constants";
 import type { SegmentComparison as Cmp, SegmentTotals, SectionKind, TrackSegment } from "../../lib/lapSegments";
 import { sectionWinner, LEVEL_GAP } from "./SectionMap";
+import { Panel } from "../../ui";
 import { sty, F } from "../../lib/styles";
 
 interface Props {
@@ -72,22 +73,21 @@ function SplitBars({ t, scale }: { t: SegmentTotals; scale: number }) {
 
 /** What happened in one section: every lap's time through it, and who gained. */
 export function SectionDetail({ seg, onClear, pinned }: { seg: TrackSegment | null; onClear: () => void; pinned: boolean }) {
-  const box = { background: 'var(--surface-alt)', border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" } as const;
   if (!seg) {
     return (
-      <div style={{ ...box, color: 'var(--text-mute)', fontSize: 12, lineHeight: 1.6 }}>
+      <Panel style={{ color: 'var(--text-mute)', fontSize: 12, lineHeight: 1.6 }}>
         <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 4 }}>Where each driver gains or loses</div>
         Hover a stretch of the circuit — or a row in the table — to see every lap's time through it.
-        Click to pin it. In <em>Who gained</em> view each stretch takes the colour of the quickest driver
-        through it, stronger the bigger the gap.
-      </div>
+        Click to pin it and zoom the traces to it. In <em>Who gained</em> view each stretch takes the colour
+        of the quickest driver through it, stronger the bigger the gap.
+      </Panel>
     );
   }
   const { best, slowest, spread } = sectionWinner(seg);
   const sorted = seg.timings.slice().sort((a, b) => a.time - b.time);
   const kindLabel = seg.kind === "curve" ? "fast curve" : seg.kind;
   return (
-    <div style={box}>
+    <Panel>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: SECTION_COLORS[seg.kind], background: "rgba(255,255,255,0.06)", borderRadius: 4, padding: "2px 7px" }}>{seg.name}</span>
         <span style={{ fontSize: 12, color: 'var(--text-dim)' }}>{kindLabel} · {Math.round(seg.length).toLocaleString()} m</span>
@@ -116,7 +116,7 @@ export function SectionDetail({ seg, onClear, pinned }: { seg: TrackSegment | nu
             {seg.kind === "corner" && Number.isFinite(best.minSpeed) && Number.isFinite(slowest.minSpeed) && Math.abs(best.minSpeed - slowest.minSpeed) >= 1 &&
               <>, carrying {Math.abs(Math.round(best.minSpeed - slowest.minSpeed))} km/h {best.minSpeed > slowest.minSpeed ? "more" : "less"} at the slowest point</>}.</>}
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -159,13 +159,7 @@ export default function SegmentComparison({ cmp, active, onHover, onSelect }: Pr
         marginBottom: 16,
       }}>
         {others.map(t => (
-          <div key={t.label} style={{
-            background: 'var(--surface-alt)',
-            border: "1px solid " + 'var(--border)',
-            borderLeft: "3px solid #" + t.color,
-            borderRadius: 10,
-            padding: "12px 14px",
-          }}>
+          <Panel key={t.label} accent={"#" + t.color}>
             <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 10 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{t.label}</span>
               <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
@@ -182,7 +176,7 @@ export default function SegmentComparison({ cmp, active, onHover, onSelect }: Pr
               {" · "}
               {t.straightsWon}/{cmp.straightCount} straights
             </div>
-          </div>
+          </Panel>
         ))}
       </div>
 

@@ -22,7 +22,9 @@ export interface LapTrace {
   label: string;
   color: string;             // hex, no leading '#'
   data: TelemetrySample[];   // time-ordered, distance monotone
-  lap?: { dateStart: string; duration: number };
+  /** Timing of the lap this telemetry covers; `sector1` / `sector2` are the
+   *  official S1 and S2 durations (s), when the timing feed has them. */
+  lap?: { dateStart: string; duration: number; sector1?: number; sector2?: number };
 }
 
 /** The samples of one lap, cut exactly at the line.
@@ -89,6 +91,16 @@ export function elapsedByDistance(data: TelemetrySample[]): { dist: number; elap
   if (!data.length) return [];
   const t0 = new Date(data[0].date).getTime();
   return data.map(p => ({ dist: p.distance ?? 0, elapsed: (new Date(p.date).getTime() - t0) / 1000 }));
+}
+
+/** Distance reached after `t` seconds — the inverse of elapsedAt, for placing a
+ *  timed event (an official sector line) on the distance axis. */
+export function distanceAtElapsed(pts: { dist: number; elapsed: number }[], t: number): number | null {
+  if (pts.length < 2 || t < pts[0].elapsed || t > pts[pts.length - 1].elapsed) return null;
+  let lo = 0, hi = pts.length - 1;
+  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (pts[mid].elapsed <= t) lo = mid; else hi = mid; }
+  const span = pts[hi].elapsed - pts[lo].elapsed || 1;
+  return pts[lo].dist + ((t - pts[lo].elapsed) / span) * (pts[hi].dist - pts[lo].dist);
 }
 
 /** Linear interpolation of elapsed time at a distance (clamped at the ends). */

@@ -13,7 +13,9 @@ import { detectClipping, buildDrsZones } from "../lib/clipping";
 import { DEFAULT_DRIVER_TAB, paths } from "../lib/constants";
 import Spinner from "../components/Spinner";
 import Pill from "../components/Pill";
-import { Section, Segmented } from "../ui";
+import { Section, Segmented, Skeleton } from "../ui";
+import { ft } from "../lib/format";
+import { M } from "../lib/styles";
 import DriverInfoCard from "../components/shell/DriverInfoCard";
 import StickyTabBar from "../components/shell/StickyTabBar";
 import ModelGate from "../components/insights/ModelGate";
@@ -110,7 +112,10 @@ function DriverPageInner({ model }: { model: SessionModel }) {
         key: id, driverNumber, lapNumber: lap.lap_number,
         label: "#" + driverNumber + " " + info.name_acronym + " L" + lap.lap_number,
         color: compareColor(info.team_colour, prev.map(c => c.color), prev.length),
-        lap: { dateStart: lap.date_start, duration: lap.lap_duration as number },
+        lap: {
+          dateStart: lap.date_start, duration: lap.lap_duration as number,
+          sector1: lap.duration_sector_1 ?? undefined, sector2: lap.duration_sector_2 ?? undefined,
+        },
         data: [], loading: true,
       }];
     });
@@ -164,6 +169,10 @@ function DriverPageInner({ model }: { model: SessionModel }) {
   const cmpTraces = useMemo(() => anchorToLap(comparisons.filter(c => c.data.length > 0)), [comparisons]);
   const cmpDrsZones = useMemo(() => buildDrsZones(cmpTraces.map(t => t.data)), [cmpTraces]);
   const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data, cmpDrsZones).map(e => ({ ...e, color: t.color }))), [cmpTraces, cmpDrsZones]);
+  const fastest = useMemo(() => {
+    const d = comparisons.filter(c => c.lap).map(c => c.lap!.duration);
+    return d.length ? Math.min(...d) : null;
+  }, [comparisons]);
   const cmpIds = useMemo(() => new Set(comparisons.map(c => c.key)), [comparisons]);
 
   if (!d || !sk) return <div style={{ color: 'var(--text-mute)', fontSize: 13, padding: 24 }}>Driver #{dn} did not take part in this session.</div>;
@@ -190,14 +199,32 @@ function DriverPageInner({ model }: { model: SessionModel }) {
         <CompareBuilder model={model} currentDn={dnNum} existing={cmpIds} onAdd={addComparison} />
         {comparisons.length > 0 && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0 14px" }}>
-            {comparisons.map(c => (
-              <span key={c.key} style={{ background: 'var(--surface-alt)', borderLeft: "3px solid #" + c.color, border: "1px solid " + 'var(--border)', borderLeftWidth: 3, borderLeftColor: "#" + c.color, borderRadius: 8, padding: "6px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 8 }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#" + c.color, flexShrink: 0 }} />
-                <span style={{ fontWeight: 600, color: "var(--text)" }}>{c.label}</span>
-                {c.loading && <span style={{ color: 'var(--text-mute)', fontSize: 10 }}>loading…</span>}
-                <button onClick={() => removeComparison(c.key)} aria-label={`Remove ${c.label}`} style={{ background: "rgba(255,255,255,0.06)", border: "none", color: 'var(--text-mute)', cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1, width: 20, height: 20, borderRadius: "50%" }}>×</button>
-              </span>
-            ))}
+            {comparisons.map(c => {
+              const lap = model.byDriver[c.driverNumber]?.laps.find(l => l.lap_number === c.lapNumber);
+              const gap = c.lap && fastest != null ? c.lap.duration - fastest : null;
+              return (
+                <span key={c.key} style={{ background: 'var(--surface-alt)', border: "1px solid var(--border)", borderLeft: "3px solid #" + c.color, borderRadius: 8, padding: "6px 10px", fontSize: 12, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#" + c.color, flexShrink: 0 }} />
+                  <span style={{ fontWeight: 600, color: "var(--text)" }}>{c.label}</span>
+                  {c.loading
+                    ? <span style={{ color: 'var(--text-mute)', fontSize: 10 }}>loading…</span>
+                    : (
+                      <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6, fontFamily: M, fontSize: 11 }}>
+                        {c.lap && <span style={{ color: 'var(--text-dim)' }}>{ft(c.lap.duration)}</span>}
+                        {lap?.compound && <span style={{ color: 'var(--text-mute)' }}>{lap.compound[0]}</span>}
+                        {gap != null && <span style={{ color: gap < 5e-4 ? 'var(--pos)' : 'var(--text-mute)' }}>{gap < 5e-4 ? "fastest" : "+" + gap.toFixed(3)}</span>}
+                      </span>
+                    )}
+                  <button onClick={() => removeComparison(c.key)} aria-label={`Remove ${c.label}`} style={{ background: "rgba(255,255,255,0.06)", border: "none", color: 'var(--text-mute)', cursor: "pointer", padding: 0, fontSize: 12, lineHeight: 1, width: 20, height: 20, borderRadius: "50%" }}>×</button>
+                </span>
+              );
+            })}
+          </div>
+        )}
+        {cmpTraces.length < comparisons.length && (
+          <div style={{ display: "grid", gap: 12, marginBottom: 12 }} role="status" aria-busy="true" aria-label="Loading telemetry">
+            <Skeleton height={230} radius={10} />
+            <Skeleton height={110} radius={10} />
           </div>
         )}
         {cmpTraces.length > 0 && <LapComparison traces={cmpTraces} clippingEvents={cmpClipEvents} />}

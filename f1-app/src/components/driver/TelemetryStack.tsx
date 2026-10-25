@@ -13,9 +13,13 @@ import type { ClipEvent } from "../../engine/telemetry/clipping.ts";
 
 const km = (d: number) => (d >= 1000 ? (d / 1000).toFixed(1) + " km" : Math.round(d) + " m");
 
-export default function TelemetryStack({ traces, clippingEvents, hoverX: hoverXIn, onHoverX }: {
+export default function TelemetryStack({ traces, clippingEvents, sectorMarks, range, hoverX: hoverXIn, onHoverX }: {
   traces: LapTrace[];
   clippingEvents?: ClipEvent[];
+  /** Official sector lines, drawn on the speed and delta panels. */
+  sectorMarks?: Mark[];
+  /** Zoom the shared distance axis to [from, to] metres. */
+  range?: [number, number] | null;
   hoverX?: number | null;
   onHoverX?: (x: number | null) => void;
 }) {
@@ -49,16 +53,23 @@ export default function TelemetryStack({ traces, clippingEvents, hoverX: hoverXI
     : []), [usable]);
   const clipMarks: Mark[] = useMemo(() => (clippingEvents ?? []).map(e => ({ x: e.distance, label: "clip", kind: "flag" as const, color: (e as ClipEvent & { color?: string }).color ? "#" + (e as ClipEvent & { color?: string }).color : "var(--warn)" })), [clippingEvents]);
 
+  // Marks aren't clipped to the plot, so drop the ones a zoom has scrolled out of range.
+  const inRange = (m: Mark) => !range || (m.x >= range[0] && m.x <= range[1]);
+  const visSectorMarks = useMemo(() => (sectorMarks ?? []).filter(inRange), [sectorMarks, range]); // eslint-disable-line react-hooks/exhaustive-deps
+  const allMarks = useMemo(() => [...visSectorMarks, ...clipMarks.filter(inRange)], [visSectorMarks, clipMarks, range]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (!usable.length) return null;
   const shared = {
     curve: "linear" as const, endDots: false, hoverX, onHoverX: setHoverX, hovered, onHover: setHovered, hidden, onHiddenChange: setHidden,
-    legend: false as const, x: { domain: [0, maxDist] as [number, number], format: km, targetTicks: 8 },
+    legend: false as const, x: { domain: (range ?? [0, maxDist]) as [number, number], format: km, targetTicks: 8 },
+    // The readout beside the circuit map reports every lap at the cursor, so the floating tooltip would only repeat it.
+    rankTooltip: false,
   };
   const tipTitle = (d: number) => `${km(d)} into the lap`;
 
   return (
     <div style={{ display: "grid", gap: 2 }}>
-      <LineChart {...shared} series={speed} height={230} y={{ format: v => String(Math.round(v)), targetTicks: 5, label: "km/h" }} bands={drsBands} marks={clipMarks}
+      <LineChart {...shared} series={speed} height={230} y={{ format: v => String(Math.round(v)), targetTicks: 5, label: "km/h" }} bands={drsBands} marks={allMarks}
         format={v => Math.round(v) + " km/h"} tipTitle={tipTitle} legend={{ columns: Math.min(3, usable.length), compact: true, hint: usable.length > 1 }} ariaLabel="Speed against distance" />
       <LineChart {...shared} series={throttle} height={110} y={{ domain: [0, 100], ticks: [{ value: 0 }, { value: 50 }, { value: 100 }], format: v => String(v), label: "Thr %" }}
         format={v => Math.round(v) + " %"} tipTitle={tipTitle} rankTooltip={false} ariaLabel="Throttle against distance" />
@@ -67,7 +78,7 @@ export default function TelemetryStack({ traces, clippingEvents, hoverX: hoverXI
       <LineChart {...shared} curve="step" series={gear} height={110} y={{ domain: [0.5, 8.5], ticks: [{ value: 2 }, { value: 4 }, { value: 6 }, { value: 8 }], format: v => String(Math.round(v)), label: "Gear" }}
         format={v => "gear " + Math.round(v)} tipTitle={tipTitle} rankTooltip={false} ariaLabel="Gear against distance" x={{ ...shared.x, label: delta ? undefined : "Distance" }} />
       {delta && (
-        <LineChart {...shared} series={deltaSeries} height={190} y={{ format: v => fmt.signedSec(v, 1), includeZero: true, zeroLine: "reference", zeroLabel: "fastest", targetTicks: 5, label: "Δ s" }}
+        <LineChart {...shared} series={deltaSeries} height={190} marks={visSectorMarks} y={{ format: v => fmt.signedSec(v, 1), includeZero: true, zeroLine: "reference", zeroLabel: "fastest", targetTicks: 5, label: "Δ s" }}
           format={v => "+" + v.toFixed(3) + " s"} tipTitle={d => `${km(d)} · time behind the fastest lap here (smoothed over ~${Math.round(5 * maxDist / 400)} m)`} x={{ ...shared.x, label: "Distance" }} ariaLabel="Time delta to the fastest lap against distance" />
       )}
     </div>

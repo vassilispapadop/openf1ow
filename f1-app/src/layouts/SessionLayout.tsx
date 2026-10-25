@@ -6,6 +6,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { paths } from "../lib/constants";
 import { SessionProvider, useSession } from "../contexts/SessionContext";
 import { recordLastRace } from "../lib/retention";
+import { isLiveGateMessage } from "../lib/api";
 import Header from "../components/shell/Header";
 import LiveSessionBanner from "../components/LiveSessionBanner";
 import { SkeletonAnalysis } from "../components/Skeleton";
@@ -55,7 +56,8 @@ function LayoutInner({ children }: { children?: ReactNode }) {
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px 0" }}>
         <LiveSessionBanner />
 
-        {error && (
+        {/* The live-session banner above already explains the paywall; only real errors get a box. */}
+        {error && !isLiveGateMessage(error) && (
           <div role="alert" style={{
             display: "flex", alignItems: "center", gap: 12, marginBottom: 16,
             padding: "10px 14px", borderRadius: 8, fontSize: 13,

@@ -8,3 +8,5 @@ export { default as Disclosure } from "./Disclosure.tsx";
 export { default as EmptyState, Pending, Gate, type EmptyKind } from "./EmptyState.tsx";
 export { useTooltip, TipTitle, TipRow, type TipAnchor } from "./Tooltip.tsx";
 export { default as Table, type Column, type TableProps } from "./Table.tsx";
+export { default as Skeleton, ChartSkeleton } from "./Skeleton.tsx";
+export { default as Panel } from "./Panel.tsx";

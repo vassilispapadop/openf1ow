@@ -1,0 +1,15 @@
+.strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.link { text-decoration: none; color: inherit; display: block; }
+.card { height: 100%; transition: transform 0.12s ease, border-color 0.12s ease; }
+.link:hover .card, .link:focus-visible .card { transform: translateY(-2px); border-color: var(--border-strong); }
+.link:focus-visible { outline: 2px solid var(--text-dim); outline-offset: 2px; border-radius: 10px; }
+.label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-mute); }
+.team { font-size: 16px; font-weight: 800; margin-top: 6px; letter-spacing: -0.01em; }
+.value { font-size: 20px; font-weight: 700; margin-top: 2px; }
+.caption { font-size: 11px; line-height: 1.45; color: var(--text-dim); margin-top: 6px; }
+@media (prefers-reduced-motion: reduce) { .card { transition: none; } }

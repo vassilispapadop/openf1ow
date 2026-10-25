@@ -9,15 +9,14 @@
 import { useMemo, useState } from "react";
 import { TEAM_COLORS, TEAM_FALLBACK_COLORS } from "../../lib/constants";
 import type { SeasonTrends } from "../../lib/seasonUtils";
+import { medianOf as median, paceWeekends as weekends, type PaceMetric } from "../../lib/seasonHighlights";
 import { F, M } from "../../lib/styles";
 
 interface Props {
   trends: SeasonTrends;
 }
 
-type Metric = "race" | "quali";
-
-interface Weekend { round: number; meetingName: string; gaps: Record<string, number> }
+type Metric = PaceMetric;
 
 interface Row {
   team: string;
@@ -30,27 +29,6 @@ interface Row {
 const DOT_THRESHOLD = 0.12;
 /** A move this big gets a star. */
 const STAR_THRESHOLD = 0.3;
-
-function median(xs: number[]): number {
-  const s = [...xs].sort((a, b) => a - b);
-  const m = Math.floor(s.length / 2);
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-}
-
-function weekends(trends: SeasonTrends, metric: Metric): Weekend[] {
-  if (metric === "race") {
-    return trends.constructorPace.map(r => ({
-      round: r.round,
-      meetingName: r.meetingName,
-      gaps: Object.fromEntries(r.teams.map(t => [t.team, (t.gapToFastest / r.fastestTeamMedian) * 100])),
-    }));
-  }
-  return (trends.constructorQualifying ?? []).map(r => ({
-    round: r.round,
-    meetingName: r.meetingName,
-    gaps: Object.fromEntries(r.teams.map(t => [t.team, (t.gapToFastest / r.fastestTeamBest) * 100])),
-  }));
-}
 
 export default function TeamFormVsSeason({ trends }: Props) {
   const [metric, setMetric] = useState<Metric>("race");

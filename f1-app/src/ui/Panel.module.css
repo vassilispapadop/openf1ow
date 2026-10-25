@@ -1,0 +1,8 @@
+.panel {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 0;
+}
+.padded { padding: 12px 14px; }
+.accent { border-left-width: 3px; }

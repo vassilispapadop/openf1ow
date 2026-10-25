@@ -8,6 +8,7 @@ import type { SessionModel } from "../../engine/index.ts";
 import { sty } from "../../lib/styles";
 import { useSession } from "../../contexts/SessionContext";
 import EmptyState from "../../ui/EmptyState";
+import { isLiveGateMessage } from "../../lib/api";
 
 export default function ModelGate({ children, loading = "Loading session data…" }: {
   children: (model: SessionModel) => ReactNode;
@@ -33,6 +34,18 @@ export default function ModelGate({ children, loading = "Loading session data…
     );
   }
   if (status === "pending") return <PendingData onRetry={retry} checking={false} exhausted={pendingCount > 4} />;
+  if (status === "error" && isLiveGateMessage(error)) {
+    return (
+      <div style={sty.card}>
+        <EmptyState
+          kind="pending"
+          title="Live session in progress"
+          detail="OpenF1 pauses public data until the chequered flag. This page fills in once the session is over."
+          action={{ label: "Try again", onClick: retry }}
+        />
+      </div>
+    );
+  }
   if (status === "error") {
     return (
       <div style={sty.err}>

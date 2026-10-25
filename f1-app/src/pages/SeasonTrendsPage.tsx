@@ -5,8 +5,9 @@ import type { SeasonTrends } from "../lib/seasonUtils";
 import CornerStraightBalance from "../components/season/CornerStraightBalance";
 import SeasonTrendChart from "../components/season/SeasonTrendChart";
 import TeamFormVsSeason from "../components/season/TeamFormVsSeason";
-import Spinner from "../components/Spinner";
-import { Section } from "../ui";
+import SeasonSummary from "../components/season/SeasonSummary";
+import SeasonNav, { type NavItem } from "../components/season/SeasonNav";
+import { Section, Skeleton, ChartSkeleton } from "../ui";
 import { sty, F } from "../lib/styles";
 
 /** Section ids are evidence anchors (deep-linkable) — keep them stable. */
@@ -41,8 +42,16 @@ export default function SeasonTrendsPage() {
 
   if (trends === null) {
     return (
-      <div className="fade-in" style={{ padding: 40 }}>
-        <Spinner label={`Loading ${year} season trends…`} />
+      <div className="fade-in" style={{ padding: "clamp(12px, 3vw, 24px) 0" }} role="status" aria-busy="true" aria-label={`Loading ${year} season trends`}>
+        <Skeleton width={180} height={11} style={{ marginBottom: 12 }} />
+        <Skeleton width="min(520px, 80%)" height={40} radius={8} style={{ marginBottom: 24 }} />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 24 }}>
+          {[0, 1, 2, 3].map(i => <Skeleton key={i} height={112} radius={10} />)}
+        </div>
+        <div style={{ display: "grid", gap: 28 }}>
+          <ChartSkeleton height={300} />
+          <ChartSkeleton height={300} />
+        </div>
       </div>
     );
   }
@@ -63,6 +72,23 @@ export default function SeasonTrendsPage() {
   }
 
   const hasCorners = !!trends.cornerStraight && trends.cornerStraight.length > 0;
+  const hasQuali = !!trends.constructorQualifying && trends.constructorQualifying.length > 0;
+  const hasPaceHistory = trends.constructorPace.length > 1;
+
+  // Same conditions as the sections below, in page order.
+  const nav: NavItem[] = [
+    { id: SEASON_SECTIONS.constructorPace, label: "Race pace" },
+    hasQuali && { id: SEASON_SECTIONS.constructorQualifying, label: "Qualifying pace" },
+    hasPaceHistory && { id: SEASON_SECTIONS.teamFormVsSeason, label: "Pace vs usual" },
+    { id: SEASON_SECTIONS.teammateGap, label: "Teammates" },
+    hasCorners && { id: SEASON_SECTIONS.cornerStraightEvolution, label: "Corner evolution" },
+    hasCorners && { id: SEASON_SECTIONS.cornerStraightBalance, label: "Corners vs straights" },
+    { id: SEASON_SECTIONS.tyreDeg, label: "Tyre deg" },
+    !!trends.tyreLife?.length && { id: SEASON_SECTIONS.tyreLife, label: "Tyre life" },
+    !!trends.topSpeed?.length && { id: SEASON_SECTIONS.topSpeed, label: "Top speed" },
+    !!trends.superClipping?.length && { id: SEASON_SECTIONS.superClipping, label: "Clipping" },
+    !!trends.conversion?.length && { id: SEASON_SECTIONS.conversion, label: "Grid → finish" },
+  ].filter((x): x is NavItem => !!x);
 
   return (
     <div className="fade-in-up" style={{ fontFamily: F, padding: "clamp(12px, 3vw, 24px) 0" }}>
@@ -91,6 +117,9 @@ export default function SeasonTrendsPage() {
         </p>
       </header>
 
+      <SeasonSummary trends={trends} />
+      <SeasonNav items={nav} />
+
       <Section
         id={SEASON_SECTIONS.constructorPace}
         title="Constructor pace evolution"
@@ -109,7 +138,7 @@ export default function SeasonTrendsPage() {
         <SeasonTrendChart trends={trends} metric="race" />
       </Section>
 
-      {trends.constructorQualifying && trends.constructorQualifying.length > 0 && (
+      {hasQuali && (
         <Section
           id={SEASON_SECTIONS.constructorQualifying}
           title="Constructor qualifying evolution"
@@ -124,7 +153,7 @@ export default function SeasonTrendsPage() {
         </Section>
       )}
 
-      {trends.constructorPace.length > 1 && (
+      {hasPaceHistory && (
         <Section
           id={SEASON_SECTIONS.teamFormVsSeason}
           title="Team pace vs season average"
