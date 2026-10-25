@@ -3,7 +3,7 @@
 // quickest there. One drawing for the speed map, the dominance map and the
 // section map — the projection, ghost outline and label halo are shared.
 
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useRef, type ReactNode, type PointerEvent } from "react";
 import { projectTrack, pathFrom, slicePath, type XY } from "./core/trackProjection.ts";
 import s from "./TrackOutline.module.css";
 
@@ -30,9 +30,18 @@ export interface TrackOutlineProps {
   onEmpty?: ReactNode;
   onRunHover?: (id: number | null) => void;   // pointer over / off a run that has an id
   onRunClick?: (id: number) => void;
+  /** Extra dots in raw position coordinates (e.g. where each lap's car is). */
+  markers?: { x: number; y: number; color: string }[];
+  /** Pointer position as the nearest original path index, null when it leaves
+   *  the circuit — lets the map drive a crosshair elsewhere. */
+  onPointerIndex?: (i: number | null) => void;
 }
 
-export default function TrackOutline({ path, runs, height = 360, hoverIndex, hoverColor, corner, legend, ariaLabel, onEmpty, onRunHover, onRunClick }: TrackOutlineProps) {
+/** How near (viewBox units) the pointer must be to the line to count as on it. */
+const POINTER_REACH = 45;
+
+export default function TrackOutline({ path, runs, height = 360, hoverIndex, hoverColor, corner, legend, ariaLabel, onEmpty, onRunHover, onRunClick, markers, onPointerIndex }: TrackOutlineProps) {
+  const svgRef = useRef<SVGSVGElement>(null);
   const proj = useMemo(() => projectTrack(path), [path]);
   const drawn = useMemo(() => {
     if (!proj) return [];
@@ -44,12 +53,30 @@ export default function TrackOutline({ path, runs, height = 360, hoverIndex, hov
 
   if (!proj) return <>{onEmpty ?? <div className={s.empty}>Not enough location data for this lap.</div>}</>;
 
+  const pointerMove = (e: PointerEvent<SVGSVGElement>) => {
+    const svg = svgRef.current, ctm = svg?.getScreenCTM();
+    if (!onPointerIndex || !svg || !ctm) return;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX; pt.y = e.clientY;
+    const q = pt.matrixTransform(ctm.inverse());
+    let best = -1, bestD2 = Infinity;
+    for (let i = 0; i < proj.points.length; i++) {
+      const dx = proj.points[i].x - q.x, dy = proj.points[i].y - q.y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < bestD2) { bestD2 = d2; best = i; }
+    }
+    onPointerIndex(best >= 0 && bestD2 <= POINTER_REACH * POINTER_REACH ? proj.indexMap[best] : null);
+  };
+
   const hover = hoverIndex != null && path[hoverIndex] && (path[hoverIndex].x !== 0 || path[hoverIndex].y !== 0)
     ? proj.project(path[hoverIndex]) : null;
 
   return (
     <div className={s.wrap}>
       <svg
+        ref={svgRef}
+        onPointerMove={onPointerIndex ? pointerMove : undefined}
+        onPointerLeave={onPointerIndex ? () => onPointerIndex(null) : undefined}
         viewBox={`-24 -24 ${proj.viewW + 48} ${proj.viewH + 48}`}
         className={s.svg}
         style={{ maxHeight: height }}
@@ -71,6 +98,11 @@ export default function TrackOutline({ path, runs, height = 360, hoverIndex, hov
             onMouseEnter={() => onRunHover?.(r.id!)} onMouseLeave={() => onRunHover?.(null)}
             onClick={() => onRunClick?.(r.id!)} />
         ))}
+        {markers?.map((m, i) => {
+          if (m.x === 0 && m.y === 0) return null;
+          const q = proj.project(m);
+          return <circle key={"m" + i} data-export="hide" cx={q.x} cy={q.y} r={8} fill={m.color} stroke="var(--chart-halo)" strokeWidth={3} pointerEvents="none" />;
+        })}
         {hover && (
           <circle data-export="hide" cx={hover.x} cy={hover.y} r={9} fill={hoverColor ?? "var(--text)"} stroke="var(--chart-halo)" strokeWidth={3} />
         )}

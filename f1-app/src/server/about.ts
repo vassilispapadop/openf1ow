@@ -52,7 +52,7 @@ footer.site { margin-top: 60px; padding: 20px 0; border-top: 1px solid rgba(255,
     <li><strong>A race recap</strong> with classification, top race pace, biggest gainers, prose summary.</li>
     <li><strong>Full session analysis</strong> — race pace ranking, sector deltas, tyre degradation per stint, teammate gaps, dirty-air time loss, pit stop efficiency.</li>
     <li><strong>Engine-computed race verdicts</strong> — data-driven assessments built from the structured analysis. Not a recap regurgitation; an opinionated read of what actually happened.</li>
-    <li><strong>Driver telemetry</strong> with multi-driver comparison, dominance maps, corner-by-corner breakdown.</li>
+    <li><strong>Driver telemetry</strong> with multi-driver comparison, a circuit map that follows the traces, corner-by-corner breakdown.</li>
     <li><strong>Season trends</strong> — constructor pace evolution, teammate gap shifts, tyre-deg by compound across the year.</li>
   </ul>
 
@@ -71,7 +71,7 @@ footer.site { margin-top: 60px; padding: 20px 0; border-top: 1px solid rgba(255,
     <li><strong>Neutralisations, starts, overtakes</strong>: safety-car, VSC and red-flag windows from race control; grid from the starting-grid feed (else qualifying, else the position feed before the start); overtakes from the overtakes feed classified as on-track, pit-cycle, lapping or under safety car.</li>
     <li><strong>Qualifying and practice</strong>: segments (Q1/Q2/Q3) from race control&rsquo;s green light and chequered flag for each, or from gaps in running when those are missing; push laps within 3 % of a driver&rsquo;s own best; track evolution as a regression of push-lap time on session time with a fixed effect per driver.</li>
     <li><strong>Cornering analysis</strong>: corner apexes detected as local minima in the speed trace. For each corner: brake-on point, brake-off point, time-to-full-throttle (&ge;90 %) from apex.</li>
-    <li><strong>Driver dominance map</strong>: lap binned into 120 distance segments. Per-driver time-through-segment computed via interpolation. The fastest driver wins each segment; segment is rendered in their colour.</li>
+    <li><strong>Who-gained map</strong>: the lap is cut into corner, fast-curve and straight sections from the circuit geometry, and each lap is timed through every section. The quickest lap takes the section's colour, stronger the bigger the gap. Hovering the traces moves a dot per lap on the map, and hovering the map moves the crosshair.</li>
   </ul>
 
   <p>Every figure on the site &mdash; race page, recap, share card, home page &mdash; is produced by one open-source analytics engine (<code>src/engine</code>) run on the same session data, so the numbers agree everywhere. Each card has a &ldquo;How this is computed&rdquo; note with its method, sample and caveats.</p>

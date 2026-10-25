@@ -26,6 +26,8 @@ interface Props {
   drivers?: { label: string; color: string }[];
   /** Gap (s) at which a section counts as fully "won". */
   maxSpread?: number;
+  markers?: { x: number; y: number; color: string }[];
+  onPointerIndex?: (i: number | null) => void;
 }
 
 export const LEVEL_GAP = 5e-3;
@@ -36,7 +38,7 @@ export function sectionWinner(seg: TrackSegment) {
   return { best, slowest, spread: slowest.time - best.time };
 }
 
-export default function SectionMap({ path, segments, height = 340, hoverIndex, mode = "kind", active = null, onHover, onSelect, drivers = [], maxSpread = 0.1 }: Props) {
+export default function SectionMap({ path, segments, height = 340, hoverIndex, mode = "kind", active = null, onHover, onSelect, drivers = [], maxSpread = 0.1, markers, onPointerIndex }: Props) {
   const runs = useMemo<TrackRun[]>(() => segments.flatMap((seg, i) => {
     const { best, spread } = sectionWinner(seg);
     const level = spread < LEVEL_GAP;
@@ -76,6 +78,8 @@ export default function SectionMap({ path, segments, height = 340, hoverIndex, m
       onEmpty={null}
       onRunHover={onHover}
       onRunClick={onSelect}
+      markers={markers}
+      onPointerIndex={onPointerIndex}
       legend={mode === "gain" ? (
         <>
           {drivers.map(d => (

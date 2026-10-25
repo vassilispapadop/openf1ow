@@ -1,0 +1,49 @@
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 38%);
+  gap: 20px;
+  align-items: start;
+}
+.side {
+  position: sticky;
+  top: 70px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.panel {
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.readoutHead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.readoutRow {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr) 62px 44px 40px 44px 64px;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 12px;
+  padding: 3px 0;
+}
+.cols {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+@media (max-width: 960px) {
+  .workspace { grid-template-columns: minmax(0, 1fr); }
+  /* The map stays in view while the traces are scrubbed underneath it. */
+  .side { position: sticky; top: 56px; order: -1; z-index: 2; background: var(--bg, var(--surface)); padding-bottom: 6px; }
+  .readoutRow { grid-template-columns: 10px minmax(0, 1fr) 54px 40px 36px; }
+  .hideNarrow { display: none; }
+}

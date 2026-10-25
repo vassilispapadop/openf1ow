@@ -14,12 +14,10 @@ import { DEFAULT_DRIVER_TAB, paths } from "../lib/constants";
 import Spinner from "../components/Spinner";
 import Pill from "../components/Pill";
 import { Section, Segmented } from "../ui";
-import DominanceMap from "../components/session/DominanceMap";
-import SegmentComparison from "../components/session/SegmentComparison";
 import DriverInfoCard from "../components/shell/DriverInfoCard";
 import StickyTabBar from "../components/shell/StickyTabBar";
 import ModelGate from "../components/insights/ModelGate";
-import TelemetryStack from "../components/driver/TelemetryStack";
+import LapComparison from "../components/driver/LapComparison";
 import { compareColor } from "../lib/compareColor";
 import CompareBuilder from "../components/driver/CompareBuilder";
 import LapsTab from "../components/driver/LapsTab";
@@ -202,29 +200,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
             ))}
           </div>
         )}
-        {cmpTraces.length > 0 && (
-          <>
-            <TelemetryStack traces={cmpTraces} clippingEvents={cmpClipEvents} />
-            {cmpTraces.length >= 2 && (
-              <div style={{ marginTop: 18, display: "grid", gap: 18 }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Dominance map</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-mute)' }}>who was faster <em>through</em> each stretch</span>
-                  </div>
-                  <DominanceMap traces={cmpTraces} height={420} />
-                </div>
-                <div>
-                  <div style={{ display: "flex", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>Corners, curves and straights</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-mute)' }}>where the lap time was won and lost</span>
-                  </div>
-                  <SegmentComparison traces={cmpTraces} />
-                </div>
-              </div>
-            )}
-          </>
-        )}
+        {cmpTraces.length > 0 && <LapComparison traces={cmpTraces} clippingEvents={cmpClipEvents} />}
       </Section>
 
       <div style={{ minHeight: 360 }}>

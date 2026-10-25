@@ -6,16 +6,18 @@
 // database, so T-numbers are a running count of detected apexes rather than
 // the official turn numbering.
 
-import { useMemo, useState } from "react";
 import { rowBg } from "../../lib/format";
 import { SECTION_COLORS, SECTION_LABELS } from "../../lib/constants";
-import { compareLapSegments, type SegmentTrace, type SegmentTotals, type SectionKind, type TrackSegment } from "../../lib/lapSegments";
-import SectionMap, { sectionWinner, LEVEL_GAP, type MapMode } from "./SectionMap";
-import Segmented from "../../ui/Segmented";
+import type { SegmentComparison as Cmp, SegmentTotals, SectionKind, TrackSegment } from "../../lib/lapSegments";
+import { sectionWinner, LEVEL_GAP } from "./SectionMap";
 import { sty, F } from "../../lib/styles";
 
 interface Props {
-  traces: SegmentTrace[];
+  cmp: Cmp;
+  /** Section being hovered or pinned, shared with the circuit map. */
+  active: number | null;
+  onHover: (i: number | null) => void;
+  onSelect: (i: number) => void;
 }
 
 /** Signed seconds, always with a sign so gains and losses read at a glance. */
@@ -69,7 +71,7 @@ function SplitBars({ t, scale }: { t: SegmentTotals; scale: number }) {
 
 
 /** What happened in one section: every lap's time through it, and who gained. */
-function SectionDetail({ seg, onClear, pinned }: { seg: TrackSegment | null; onClear: () => void; pinned: boolean }) {
+export function SectionDetail({ seg, onClear, pinned }: { seg: TrackSegment | null; onClear: () => void; pinned: boolean }) {
   const box = { background: 'var(--surface-alt)', border: "1px solid var(--border)", borderRadius: 10, padding: "12px 14px" } as const;
   if (!seg) {
     return (
@@ -118,21 +120,7 @@ function SectionDetail({ seg, onClear, pinned }: { seg: TrackSegment | null; onC
   );
 }
 
-export default function SegmentComparison({ traces }: Props) {
-  const cmp = useMemo(() => compareLapSegments(traces), [traces]);
-  const [mode, setMode] = useState<MapMode>("gain");
-  const [hover, setHover] = useState<number | null>(null);
-  const [pinned, setPinned] = useState<number | null>(null);
-
-  if (!cmp) {
-    return (
-      <div style={{ color: 'var(--text-mute)', fontSize: 12, padding: 12 }}>
-        Not enough telemetry to split these laps into corners and straights — the laps
-        need location data and at least one detectable braking zone.
-      </div>
-    );
-  }
-
+export default function SegmentComparison({ cmp, active, onHover, onSelect }: Props) {
   const { segments, totals, baselineLabel } = cmp;
   const others = totals.filter(t => !t.isBaseline);
   // Each card is scaled to its own driver. A shared scale sounds fairer, but
@@ -140,7 +128,6 @@ export default function SegmentComparison({ traces }: Props) {
   // the comparison that matters inside a card is corners against straights.
   const cardScale = (t: SegmentTotals) =>
     Math.max(0.05, Math.abs(t.cornerDelta), Math.abs(t.straightDelta));
-  const active = hover ?? pinned;
   const maxSpread = Math.max(0.02, ...segments.map(s => {
     const times = s.timings.map(t => t.time);
     return Math.max(...times) - Math.min(...times);
@@ -163,41 +150,6 @@ export default function SegmentComparison({ traces }: Props) {
           </span>
         )}
       </div>
-
-      {/* The circuit, interactive: hover or click a stretch to see who gained
-          or lost there. "Kind" is the classification itself, kept so it can be
-          checked against a track map rather than taken on trust. */}
-      {cmp.path.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ marginBottom: 10 }}>
-            <Segmented
-              size="sm"
-              variant="inverted"
-              options={[{ key: "gain", label: "Who gained" }, { key: "kind", label: "Corner / straight" }]}
-              value={mode}
-              onChange={(k: string) => setMode(k as MapMode)}
-            />
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16, alignItems: "start" }}>
-            <div style={{ gridColumn: "span 2", minWidth: 0 }}>
-              <SectionMap
-                path={cmp.path}
-                segments={segments}
-                mode={mode}
-                height={460}
-                active={active}
-                onHover={setHover}
-                onSelect={i => setPinned(p => (p === i ? null : i))}
-                drivers={totals.map(t => ({ label: t.label, color: t.color }))}
-                maxSpread={maxSpread}
-              />
-            </div>
-            <div style={{ position: "sticky", top: 70 }}>
-              <SectionDetail seg={active != null ? segments[active] : null} pinned={pinned != null && pinned === active} onClear={() => setPinned(null)} />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Attribution: how much of each driver's gap came from corners vs straights */}
       <div style={{
@@ -260,8 +212,8 @@ export default function SegmentComparison({ traces }: Props) {
               return (
                 <tr key={s.name + i}
                   style={{ ...rowBg(i), cursor: "pointer", ...(active === i ? { background: "rgba(255,255,255,0.09)", boxShadow: "inset 3px 0 0 " + SECTION_COLORS[s.kind] } : null) }}
-                  onMouseEnter={() => setHover(i)} onMouseLeave={() => setHover(null)}
-                  onClick={() => setPinned(p => (p === i ? null : i))}>
+                  onMouseEnter={() => onHover(i)} onMouseLeave={() => onHover(null)}
+                  onClick={() => onSelect(i)}>
                   <td style={{ ...sty.td }}>
                     <span style={{
                       display: "inline-block",
