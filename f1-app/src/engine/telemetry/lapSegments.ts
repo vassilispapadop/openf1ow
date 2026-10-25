@@ -59,6 +59,7 @@
 // fast corners taken flat sit above that line, which is the point.
 
 import { frozenCarDataMask } from "./telemetry.ts";
+import { clipToLap } from "./compare.ts";
 
 interface Sample {
   date: string;
@@ -313,7 +314,13 @@ function elapsedAtDist(pts: Point[], d: number): number {
 }
 
 function prepare(trace: SegmentTrace): Prepared | null {
-  const data = trace.data;
+  // Cut the window to the lap itself. The fetch runs a couple of seconds past
+  // the line, and everything downstream — the reference line, the projection
+  // onto it, the time scale — treated that tail as part of the lap: the last
+  // two percent of the "lap" was the next lap's first 120 m, the elapsed axis
+  // was squeezed by lapTime / (lapTime + 2 s), and a car that lifted after the
+  // flag lost or gained its tenths in whichever section the tail landed in.
+  const data = trace.lap ? clipToLap(trace.data, trace.lap) : trace.data;
   if (data.length < 20) return null;
 
   const t0 = new Date(data[0].date).getTime();

@@ -25,6 +25,65 @@ export interface LapTrace {
   lap?: { dateStart: string; duration: number };
 }
 
+/** The samples of one lap, cut exactly at the line.
+ *
+ *  A lap's telemetry is fetched from its start time to a couple of seconds past
+ *  its end, so the first sample lands a fraction of a sample interval *after*
+ *  the line (the lead differs from lap to lap) and the tail runs on into the
+ *  next lap — an in-lap lift, a pit entry. Aligning laps by raw distance from
+ *  the first sample puts each lap's zero at a different spot on the track, and
+ *  the lead alone reads as a phantom ~0.1–0.2 s between two cars that were level.
+ *  Boundary samples are interpolated (extrapolated for the line crossing
+ *  before the first sample) so the first one sits exactly at `dateStart` and
+ *  the last exactly `duration` later; numeric channels are interpolated, the
+ *  step-like ones (throttle, brake, gear, DRS, rpm) take the sample before.
+ *  Data that doesn't actually cover the lap is returned untouched. */
+export function clipToLap(data: TelemetrySample[], lap: { dateStart: string; duration: number }): TelemetrySample[] {
+  const t0 = new Date(lap.dateStart).getTime();
+  const t1 = t0 + lap.duration * 1000;
+  if (data.length < 2 || !(lap.duration > 0) || !Number.isFinite(t0)) return data;
+  const times = data.map(d => new Date(d.date).getTime());
+  if (times[0] - t0 > 1000 || times[times.length - 1] < t1 - 1000) return data;
+
+  const at = (t: number): TelemetrySample => {
+    let i = 0;
+    while (i < times.length - 2 && times[i + 1] <= t) i++;
+    const a = data[i], b = data[i + 1];
+    const f = (t - times[i]) / (times[i + 1] - times[i] || 1);
+    const lerp = (u?: number, v?: number) => (u != null && v != null ? u + f * (v - u) : u);
+    return {
+      ...a,
+      date: new Date(t).toISOString(),
+      distance: lerp(a.distance, b.distance),
+      speed: lerp(a.speed, b.speed),
+      x: lerp(a.x, b.x),
+      y: lerp(a.y, b.y),
+    };
+  };
+  const inner = data.filter((_, i) => times[i] > t0 && times[i] < t1);
+  return [at(t0), ...inner, at(t1)];
+}
+
+/** Put laps on a common axis: each clipped to its own lap (see clipToLap),
+ *  distance measured from the line, and stretched so every lap spans the same
+ *  length — the mean — which cancels the small scale error in each lap's
+ *  integrated distance and makes the final delta exactly the lap-time gap.
+ *  Traces without lap timing pass through unchanged. */
+export function anchorToLap<T extends LapTrace>(traces: T[]): T[] {
+  const clipped = traces.map(t => (t.lap ? clipToLap(t.data, t.lap) : t.data));
+  const spans = clipped.map((d, i) => (traces[i].lap && d !== traces[i].data
+    ? (d[d.length - 1].distance ?? 0) - (d[0].distance ?? 0)
+    : 0));
+  const live = spans.filter(s => s > 0);
+  if (!live.length) return traces;
+  const mean = live.reduce((a, b) => a + b, 0) / live.length;
+  return traces.map((t, i) => {
+    if (!(spans[i] > 0)) return t;
+    const d0 = clipped[i][0].distance ?? 0, k = mean / spans[i];
+    return { ...t, data: clipped[i].map(s => ({ ...s, distance: ((s.distance ?? 0) - d0) * k })) };
+  });
+}
+
 /** Cumulative elapsed seconds against distance for one trace. */
 export function elapsedByDistance(data: TelemetrySample[]): { dist: number; elapsed: number }[] {
   if (!data.length) return [];

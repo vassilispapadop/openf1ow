@@ -32,7 +32,7 @@ import ResultsTab from "../components/driver/ResultsTab";
 import { SessionModelProvider, useSessionModel } from "../lib/useSessionModel";
 import { SelectionProvider } from "../contexts/SelectionContext";
 import { bestLapFor, topSpeeds, type SessionModel, type EnrichedLap } from "../engine/index.ts";
-import type { LapTrace } from "../engine/telemetry/compare.ts";
+import { anchorToLap, type LapTrace } from "../engine/telemetry/compare.ts";
 
 const TABS = [
   ["laps", "Laps & Sectors"], ["telemetry", "Telemetry"], ["stints", "Stints & Pits"], ["position", "Positions"],
@@ -163,7 +163,7 @@ function DriverPageInner({ model }: { model: SessionModel }) {
     loadTel(best);
   }, [currentTab, best, carData.length, telLoading, sk, dn, loadTel]);
 
-  const cmpTraces = useMemo(() => comparisons.filter(c => c.data.length > 0), [comparisons]);
+  const cmpTraces = useMemo(() => anchorToLap(comparisons.filter(c => c.data.length > 0)), [comparisons]);
   const cmpDrsZones = useMemo(() => buildDrsZones(cmpTraces.map(t => t.data)), [cmpTraces]);
   const cmpClipEvents = useMemo(() => cmpTraces.flatMap(t => detectClipping(t.data, cmpDrsZones).map(e => ({ ...e, color: t.color }))), [cmpTraces, cmpDrsZones]);
   const cmpIds = useMemo(() => new Set(comparisons.map(c => c.key)), [comparisons]);

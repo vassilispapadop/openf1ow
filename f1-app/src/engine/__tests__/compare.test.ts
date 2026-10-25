@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deltaToFastest, elapsedByDistance, spansWhere, movingAverage } from "../telemetry/compare.ts";
+import { deltaToFastest, elapsedByDistance, spansWhere, movingAverage, clipToLap, anchorToLap, type LapTrace } from "../telemetry/compare.ts";
 
 const lap = (key: string, speedKph: number, n = 300, dist = 5000) => ({
   key, label: key, color: "ff0000",
@@ -38,5 +38,59 @@ describe("lap comparison math", () => {
     const xs = [0, 1, 0, 1, 0, 1, 0, 1];
     const m = movingAverage(xs, 3);
     expect(m.reduce((a, b) => a + b, 0) / m.length).toBeCloseTo(0.5, 1);
+  });
+});
+
+// OpenF1 telemetry is fetched from the lap's start to two seconds past its end:
+// the first sample falls a little after the line, by a different amount each
+// lap, and the tail runs into the next lap.
+const DT = 0.27;
+const LINE = 1_700_000_000_000;
+function windowed(key: string, speedKph: number, leadS: number, tailKph = speedKph, dist = 5000): LapTrace {
+  const v = speedKph / 3.6;
+  const duration = dist / v;
+  const data = [];
+  for (let t = leadS; t <= duration + 2; t += DT) {
+    // After the line the car may lift (tailKph); distance counts from the first sample.
+    const past = Math.max(0, t - duration);
+    const d = v * (t - past) + (tailKph / 3.6) * past - v * leadS;
+    data.push({ date: new Date(LINE + t * 1000).toISOString(), distance: d, speed: t > duration ? tailKph : speedKph, throttle: t > duration && tailKph < speedKph ? 0 : 100 });
+  }
+  return { key, label: key, color: "00ff00", data, lap: { dateStart: new Date(LINE).toISOString(), duration } };
+}
+
+describe("lap anchoring", () => {
+  it("clipToLap cuts exactly at the line and at the lap's end", () => {
+    const t = windowed("a", 250, 0.26);
+    const c = clipToLap(t.data, t.lap!);
+    expect(new Date(c[0].date).getTime()).toBe(LINE);
+    expect(new Date(c[c.length - 1].date).getTime()).toBeCloseTo(LINE + t.lap!.duration * 1000, -1);
+    // The first sample was 0.26 s past the line at 250 km/h = ~18 m, so the line is that far back.
+    expect(c[0].distance!).toBeCloseTo(-0.26 * 250 / 3.6, 0);
+    expect(c[c.length - 1].distance! - c[0].distance!).toBeCloseTo(5000, 0);
+  });
+
+  it("leaves data that doesn't cover the lap alone", () => {
+    const t = windowed("a", 250, 0.26);
+    const short = t.data.slice(0, 50);
+    expect(clipToLap(short, t.lap!)).toBe(short);
+  });
+
+  it("two cars at the same pace read level whatever their window lead or tail", () => {
+    // Raw distance-from-first-sample put the lap with the later first sample ~0.1–0.2 s ahead.
+    const a = windowed("a", 250, 0.0), b = windowed("b", 250, 0.26, 150);
+    const raw = deltaToFastest([a, b], 400, 1)!;
+    expect(Math.max(...raw.perTrace.flatMap(p => p.values))).toBeGreaterThan(0.1);
+    const d = deltaToFastest(anchorToLap([a, b]), 400, 1)!;
+    expect(Math.max(...d.perTrace.flatMap(p => p.values))).toBeLessThan(0.03);
+  });
+
+  it("the delta at the line is the lap-time gap, and a lift after the line doesn't leak in", () => {
+    const fast = windowed("fast", 250, 0.05, 250), slow = windowed("slow", 245, 0.26, 120);
+    const d = deltaToFastest(anchorToLap([fast, slow]), 400, 1)!;
+    const gap = slow.lap!.duration - fast.lap!.duration;
+    const end = d.perTrace.find(p => p.key === "slow")!.values;
+    expect(end[end.length - 1]).toBeCloseTo(gap, 2);
+    expect(Math.abs(d.maxDist - 5000)).toBeLessThan(2);
   });
 });

@@ -161,3 +161,42 @@ describe("frozenCarDataMask", () => {
     ]);
   });
 });
+
+// Real windows run two seconds past the line. The tail must not be part of the lap.
+function withTail(t: SegmentTrace, seconds: number, speedKph: number): SegmentTrace {
+  const d = t.data, a = d[d.length - 2], b = d[d.length - 1];
+  const len = Math.hypot(b.x! - a.x!, b.y! - a.y!) || 1;
+  const ux = (b.x! - a.x!) / len, uy = (b.y! - a.y!) / len;
+  const out = [...d];
+  let { x, y, distance } = { x: b.x!, y: b.y!, distance: b.distance! };
+  let time = new Date(b.date).getTime();
+  for (let s = DT; s <= seconds + 1e-9; s += DT) {
+    const step = speedKph / 3.6 * DT;
+    x += ux * step * 10; y += uy * step * 10; distance += step; time += DT * 1000;
+    out.push({ date: new Date(time).toISOString(), distance, speed: speedKph, throttle: 0, brake: 0, rpm: 9000, x: Math.round(x), y: Math.round(y) });
+  }
+  return { ...t, data: out };
+}
+
+describe("lap window", () => {
+  // The lap ends on its last sample, so the tail is unambiguously the next lap.
+  const exact = (t: SegmentTrace): SegmentTrace => ({
+    ...t,
+    lap: { dateStart: t.data[0].date, duration: (new Date(t.data[t.data.length - 1].date).getTime() - new Date(t.data[0].date).getTime()) / 1000 },
+  });
+  const clean = [trace("A", 1), trace("B", 0.985), trace("C", 0.99)].map(exact);
+  const base = compareLapSegments(clean)!;
+
+  it("ignores telemetry past the end of the lap", () => {
+    // B lifts hard after the line, A carries on flat out; neither may change a section time.
+    const tailed = compareLapSegments([withTail(clean[0], 2, 300), withTail(clean[1], 2, 120), withTail(clean[2], 2, 200)])!;
+    expect(tailed.segments.map(s => s.kind)).toEqual(base.segments.map(s => s.kind));
+    base.segments.forEach((seg, i) => seg.timings.forEach((tm, j) => {
+      expect(tailed.segments[i].timings[j].time).toBeCloseTo(tm.time, 2);
+    }));
+    for (const t of tailed.totals) {
+      const lap = clean.find(c => c.label === t.label)!.lap!.duration;
+      expect(t.cornerTime + t.curveTime + t.straightTime).toBeCloseTo(lap, 6);
+    }
+  });
+});
