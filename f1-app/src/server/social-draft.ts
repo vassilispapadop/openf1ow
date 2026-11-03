@@ -15,7 +15,7 @@ export interface DraftInput {
   verdicts: DraftVerdict[];
 }
 export interface Draft { id: string; verdictId: string; text: string; url: string; weightedLength: number }
-export interface DraftSet { sessionKey: number; meetingKey?: number; generatedAt: string; handle: string; drafts: Draft[] }
+export interface DraftSet { sessionKey: number; meetingKey?: number; sessionDate?: string; generatedAt: string; handle: string; drafts: Draft[] }
 
 /** The race's share card (1200x630 PNG) — the image to attach to a post. It is
  *  per race weekend, so qualifying and sprint drafts use it too. */
@@ -24,7 +24,7 @@ export const shareCardUrl = (origin: string, year: number, slug: string) => `${o
 export const HANDLE = "@openf1ow";
 const MAX = 280;
 const URL_WEIGHT = 23; // X counts every link as 23 characters
-const MAX_DRAFTS = 3;
+const MAX_DRAFTS = 4;
 
 const weighted = (text: string) => text.length + 2 + URL_WEIGHT; // "\n\n" + link
 
@@ -35,7 +35,7 @@ function fit(s: string, room: number): string {
   return cut.slice(0, Math.max(cut.lastIndexOf(" "), room >> 1)).replace(/[\s,;:.]+$/, "") + "…";
 }
 
-export function buildDrafts(input: DraftInput, mk: number, origin: string, now = new Date()): DraftSet {
+export function buildDrafts(input: DraftInput, mk: number, origin: string, now = new Date(), sessionDate?: string): DraftSet {
   const { session } = input;
   const label = `${session.year} ${session.meeting} ${session.name}`;
   const tag = "#F1";
@@ -56,7 +56,7 @@ export function buildDrafts(input: DraftInput, mk: number, origin: string, now =
     const text = `${head}${fit(v.headline, room)}${tail}`;
     return { id: `${session.key}-${i + 1}`, verdictId: v.id, text, url, weightedLength: weighted(text) };
   });
-  return { sessionKey: session.key, meetingKey: mk, generatedAt: now.toISOString(), handle: HANDLE, drafts };
+  return { sessionKey: session.key, meetingKey: mk, sessionDate, generatedAt: now.toISOString(), handle: HANDLE, drafts };
 }
 
 /** What to paste into X: text, blank line, link. */

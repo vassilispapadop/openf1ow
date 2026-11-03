@@ -6,6 +6,7 @@
 //   POST /api/admin/cron?session_key=SK      process that session now, whatever its age
 //   GET  /api/admin/social?session_key=SK   draft X posts for a session (add &format=text to paste)
 //   POST /api/admin/social-post?session_key=SK[&draft=N]   post a stored draft to X now (once per session)
+//   POST /api/admin/social-build?session_key=SK   (re)build the X drafts from the stored insights (backfill)
 //   POST /api/admin/insights?session_key=SK  recompute and store the insights artifact only
 //                                            (after an engine change; the full tick's
 //                                            intervals parse is what trips the CPU limit)
@@ -93,6 +94,19 @@ export async function handleAdminRequest(request: Request, env: AdminEnv, ctx: E
     const { runScheduledTick } = await import("./cron");
     const report = await runScheduledTick(env, ctx, { force: Number.isFinite(sk) && sk > 0 ? sk : undefined });
     return json(report);
+  }
+  if (action === "social-build") {
+    if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);
+    const { computeInsights } = await import("./insights");
+    const { buildDrafts } = await import("./social-draft");
+    const ins = await computeInsights(sk, env, ctx); // stored artifact when there is one
+    if (ins.status !== 200) return json({ error: `insights ${ins.status}` }, 502);
+    const rs = await resolveResource(`/sessions?session_key=${sk}`, env, ctx);
+    const row = rs.status === 200 ? (JSON.parse(rs.body) as { meeting_key: number; date_start: string }[])[0] : null;
+    if (!row) return json({ error: "session not found" }, 404);
+    const set = buildDrafts(JSON.parse(ins.body), row.meeting_key, "https://www.openf1ow.com", new Date(), row.date_start);
+    await env.F1_DATA.put(`social/${sk}.json`, JSON.stringify(set), { httpMetadata: { contentType: "application/json" } });
+    return json({ action, session_key: sk, state: ins.state, drafts: set.drafts.length });
   }
   if (action === "social-post") {
     if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);

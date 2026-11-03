@@ -58,9 +58,10 @@ async function listProposals(env: AdminUiEnv) {
   for (const k of keys) {
     try { const o = await env.F1_DATA.get(k); if (o) sets.push(JSON.parse(await o.text())); } catch { /* skip */ }
   }
-  sets.sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+  // Newest session first (by when it ran, not when its drafts were last rebuilt).
+  sets.sort((a, b) => (b.sessionDate ?? "").localeCompare(a.sessionDate ?? "") || b.sessionKey - a.sessionKey);
   const out = [];
-  for (const s of sets.slice(0, 30)) {
+  for (const s of sets.slice(0, 40)) {
     const drafts = [];
     for (let i = 0; i < s.drafts.length; i++) {
       const m = await env.F1_DATA.get(`social/${s.sessionKey}.posted.${i + 1}.json`);
@@ -70,7 +71,7 @@ async function listProposals(env: AdminUiEnv) {
       // The post is "<text>\n\n<link>"; the page edits the text part only.
       drafts.push({ n: i + 1, text: d.text, url: d.url, posted });
     }
-    out.push({ sessionKey: s.sessionKey, title: (s.drafts[0]?.text || "").split("\n")[0] || `Session ${s.sessionKey}`, generatedAt: s.generatedAt, drafts });
+    out.push({ sessionKey: s.sessionKey, title: (s.drafts[0]?.text || "").split("\n")[0] || `Session ${s.sessionKey}`, generatedAt: s.sessionDate ?? s.generatedAt, drafts });
   }
   return out;
 }

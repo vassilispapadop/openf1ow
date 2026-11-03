@@ -123,7 +123,7 @@ export async function runScheduledTick(env: CacheEnv & Partial<XEnv>, ctx: Execu
   // Draft X posts from the stored insights for a human to review and post. Best
   // effort, and rewritten on the second pass so the text follows the settled result.
   try {
-    const set = buildDrafts(JSON.parse(ins.body), row.meeting_key, "https://www.openf1ow.com");
+    const set = buildDrafts(JSON.parse(ins.body), row.meeting_key, "https://www.openf1ow.com", new Date(), row.date_start);
     await env.F1_DATA.put(`social/${sk}.json`, JSON.stringify(set), { httpMetadata: { contentType: "application/json" } });
     report.social = `${set.drafts.length} drafts`;
     // Opt-in auto-post of the lead draft, once per session, on the first pass only
