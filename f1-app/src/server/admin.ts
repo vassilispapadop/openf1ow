@@ -5,6 +5,7 @@
 //   POST /api/admin/cron                     run one scheduled tick now (see cron.ts)
 //   POST /api/admin/cron?session_key=SK      process that session now, whatever its age
 //   GET  /api/admin/social?session_key=SK   draft X posts for a session (add &format=text to paste)
+//   POST /api/admin/social-post?session_key=SK[&draft=N]   post a stored draft to X now (once per session)
 //   POST /api/admin/insights?session_key=SK  recompute and store the insights artifact only
 //                                            (after an engine change; the full tick's
 //                                            intervals parse is what trips the CPU limit)
@@ -19,6 +20,7 @@ import { resolveResource, type CacheEnv } from "./r2-cache";
 export interface AdminEnv extends CacheEnv {
   ADMIN_TOKEN?: string;
   ASSETS?: { fetch: (req: Request | string) => Promise<Response> };
+  X_API_KEY?: string; X_API_SECRET?: string; X_ACCESS_TOKEN?: string; X_ACCESS_SECRET?: string; X_AUTOPOST?: string;
 }
 
 export const STANDARD_ENDPOINTS = [
@@ -91,6 +93,12 @@ export async function handleAdminRequest(request: Request, env: AdminEnv, ctx: E
     const { runScheduledTick } = await import("./cron");
     const report = await runScheduledTick(env, ctx, { force: Number.isFinite(sk) && sk > 0 ? sk : undefined });
     return json(report);
+  }
+  if (action === "social-post") {
+    if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);
+    const { postDraft } = await import("./x-post");
+    const r = await postDraft(sk, env, { n: Number(url.searchParams.get("draft")) || 1, origin: url.origin });
+    return json({ action, session_key: sk, ...r }, r.status === "error" ? 502 : 200);
   }
   if (action === "insights") {
     if (!Number.isFinite(sk) || sk <= 0) return json({ error: "session_key required" }, 400);

@@ -11,6 +11,7 @@ import { purgeSession, warmSession, STANDARD_ENDPOINTS } from "./admin";
 import { windowIntervals } from "./bundle";
 import { computeInsights } from "./insights";
 import { buildDrafts } from "./social-draft";
+import { postDraft, type XEnv } from "./x-post";
 
 export { pickSession, FIRST_PASS_DELAY_MS, SECOND_PASS_DELAY_MS, HORIZON_MS, type SessionRow, type DoneMarker } from "./cron-pick";
 import { pickSession, FIRST_PASS_DELAY_MS, HORIZON_MS, type SessionRow, type DoneMarker } from "./cron-pick";
@@ -48,7 +49,7 @@ async function deriveIntervals(sk: number, env: CacheEnv, ctx: ExecutionContext)
   return `${intervals.length} → ${reduced.length} rows`;
 }
 
-export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opts: { now?: number; force?: number } = {}): Promise<TickReport> {
+export async function runScheduledTick(env: CacheEnv & Partial<XEnv>, ctx: ExecutionContext, opts: { now?: number; force?: number } = {}): Promise<TickReport> {
   const now = opts.now ?? Date.now();
   const report: TickReport = { ranAt: new Date(now).toISOString(), picked: null };
 
@@ -125,6 +126,12 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
     const set = buildDrafts(JSON.parse(ins.body), row.meeting_key, "https://www.openf1ow.com");
     await env.F1_DATA.put(`social/${sk}.json`, JSON.stringify(set), { httpMetadata: { contentType: "application/json" } });
     report.social = `${set.drafts.length} drafts`;
+    // Opt-in auto-post of the lead draft, once per session, on the first pass only
+    // (that is when interest is highest; pass 2 only refreshes the stored drafts).
+    if (pass === 1 && env.X_AUTOPOST === "1" && set.drafts.length) {
+      const r = await postDraft(sk, env as XEnv, { n: 1 });
+      report.social += `; X ${r.status}${r.error ? ` (${r.error})` : ""}`;
+    }
   } catch (e) { report.social = "error " + (e instanceof Error ? e.message : String(e)); }
 
   if (isRace) {
