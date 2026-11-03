@@ -441,6 +441,7 @@ export function renderRecapHtml(d: RecapData, origin: string, gaId?: string): st
 <meta property="og:image:height" content="630" />
 <meta property="og:site_name" content="OpenF1ow" />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@openf1ow" />
 <meta name="twitter:title" content="${escHtml(title)}" />
 <meta name="twitter:description" content="${escHtml(description)}" />
 <meta name="twitter:image" content="${escHtml(ogImage)}" />
@@ -683,6 +684,7 @@ export async function handleInsightsRequest(opts: {
 <meta property="og:image" content="${url.origin}/og-image" />
 <meta property="og:site_name" content="OpenF1ow" />
 <meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:site" content="@openf1ow" />
 <meta name="twitter:title" content="${escHtml(title)}" />
 <meta name="twitter:description" content="${escHtml(description)}" />
 ${gaSnippet(gaId)}

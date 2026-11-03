@@ -4,6 +4,7 @@
 //   POST /api/admin/refresh?session_key=SK   purge, then warm the standard endpoint set
 //   POST /api/admin/cron                     run one scheduled tick now (see cron.ts)
 //   POST /api/admin/cron?session_key=SK      process that session now, whatever its age
+//   GET  /api/admin/social?session_key=SK   draft X posts for a session (add &format=text to paste)
 //   POST /api/admin/insights?session_key=SK  recompute and store the insights artifact only
 //                                            (after an engine change; the full tick's
 //                                            intervals parse is what trips the CPU limit)
@@ -57,6 +58,17 @@ export async function handleAdminRequest(request: Request, env: AdminEnv, ctx: E
   const url = new URL(request.url);
   if (!url.pathname.startsWith("/api/admin/")) return null;
   if (!authorised(request, env)) return new Response("Not found", { status: 404 });
+  if (url.pathname === "/api/admin/social" && request.method === "GET") {
+    const skq = Number(url.searchParams.get("session_key"));
+    if (!Number.isFinite(skq) || skq <= 0) return json({ error: "session_key required" }, 400);
+    const o = await env.F1_DATA.get(`social/${skq}.json`);
+    if (!o) return json({ error: "no drafts for this session" }, 404);
+    if (url.searchParams.get("format") !== "text") return new Response(await o.text(), { headers: { "Content-Type": "application/json" } });
+    const { postBody } = await import("./social-draft");
+    const set = JSON.parse(await o.text());
+    const body = set.drafts.map((d: any, i: number) => `--- ${i + 1}/${set.drafts.length} (${d.weightedLength}/280) ---\n${postBody(d)}`).join("\n\n");
+    return new Response(body + "\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+  }
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
   const action = url.pathname.replace("/api/admin/", "");

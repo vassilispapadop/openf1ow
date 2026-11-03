@@ -10,6 +10,7 @@ import { resolveResource, type CacheEnv } from "./r2-cache";
 import { purgeSession, warmSession, STANDARD_ENDPOINTS } from "./admin";
 import { windowIntervals } from "./bundle";
 import { computeInsights } from "./insights";
+import { buildDrafts } from "./social-draft";
 
 export { pickSession, FIRST_PASS_DELAY_MS, SECOND_PASS_DELAY_MS, HORIZON_MS, type SessionRow, type DoneMarker } from "./cron-pick";
 import { pickSession, FIRST_PASS_DELAY_MS, HORIZON_MS, type SessionRow, type DoneMarker } from "./cron-pick";
@@ -21,6 +22,7 @@ export interface TickReport {
   intervals?: string;
   insights?: string;
   championship?: Record<string, string>;
+  social?: string;
   skipped?: string;
 }
 
@@ -116,6 +118,14 @@ export async function runScheduledTick(env: CacheEnv, ctx: ExecutionContext, opt
   // Throttled or failed while building the model: no marker, so the next
   // tick comes back to this session.
   if (ins.status !== 200) { report.skipped = `insights ${ins.status} — will retry`; return report; }
+
+  // Draft X posts from the stored insights for a human to review and post. Best
+  // effort, and rewritten on the second pass so the text follows the settled result.
+  try {
+    const set = buildDrafts(JSON.parse(ins.body), row.meeting_key, "https://www.openf1ow.com");
+    await env.F1_DATA.put(`social/${sk}.json`, JSON.stringify(set), { httpMetadata: { contentType: "application/json" } });
+    report.social = `${set.drafts.length} drafts`;
+  } catch (e) { report.social = "error " + (e instanceof Error ? e.message : String(e)); }
 
   if (isRace) {
     report.championship = {};
