@@ -15,6 +15,9 @@ interface Env {
   GROQ_MODEL?: string;
   // Bearer secret for /api/admin/* (purge / refresh a session's cache).
   ADMIN_TOKEN?: string;
+  // Login for the /admin page (secrets).
+  ADMIN_USER?: string;
+  ADMIN_PASSWORD?: string;
   ASSETS: { fetch: (req: Request | string) => Promise<Response> };
   F1_DATA: R2Bucket;
   // Google Analytics 4 measurement ID (G-XXXXXXXXXX). Optional — when unset,
@@ -473,6 +476,11 @@ export default {
       if (r) return r;
     }
     // Operator endpoints (bearer secret; 404 when unauthorised).
+    if (url.pathname === "/admin" || url.pathname === "/admin/" || url.pathname.startsWith("/api/adminui/")) {
+      const { handleAdminUi } = await import("./admin-ui");
+      const r = await handleAdminUi(request, env);
+      if (r) return r;
+    }
     if (url.pathname.startsWith("/api/admin/")) {
       const r = await handleAdminRequest(request, env, ctx);
       if (r) return r;

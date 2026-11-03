@@ -18,6 +18,9 @@
       "/insights/*",
       "/about",
       "/about/",
+      // Operator page (login + post-to-X); the API it calls lives under /api/*.
+      "/admin",
+      "/admin/",
       "/og-image",
       "/og-image/*",
       "/share/*",

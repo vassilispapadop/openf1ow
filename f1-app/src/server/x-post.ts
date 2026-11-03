@@ -1,6 +1,6 @@
 // Post a stored draft to X (OAuth 1.0a user context, signed with WebCrypto).
 // Off unless all four X_* secrets exist; the cron only calls it when X_AUTOPOST=1.
-// A marker at social/{sk}.posted.json makes it idempotent — a session is posted once.
+// A marker at social/{sk}.posted.{n}.json makes it idempotent — each draft is posted once.
 
 import { loadRaceIndex } from "./recap";
 import { postBody, shareCardUrl, type DraftSet } from "./social-draft";
@@ -45,10 +45,11 @@ async function uploadImage(png: ArrayBuffer, e: XEnv): Promise<string> {
 
 export interface PostResult { status: "posted" | "already-posted" | "no-keys" | "no-drafts" | "error"; tweetId?: string; imaged?: boolean; error?: string }
 
-/** Post draft `n` (1-based) of a session. Never posts twice for one session. */
-export async function postDraft(sk: number, e: XEnv, opts: { n?: number; origin?: string } = {}): Promise<PostResult> {
+/** Post draft `n` (1-based) of a session, optionally with edited `text` (the link is appended).
+ *  Never posts the same draft twice. */
+export async function postDraft(sk: number, e: XEnv, opts: { n?: number; text?: string; origin?: string } = {}): Promise<PostResult> {
   if (!xConfigured(e)) return { status: "no-keys" };
-  const markerKey = `social/${sk}.posted.json`;
+  const markerKey = `social/${sk}.posted.${opts.n ?? 1}.json`;
   if (await e.F1_DATA.head(markerKey)) return { status: "already-posted" };
   const o = await e.F1_DATA.get(`social/${sk}.json`);
   if (!o) return { status: "no-drafts" };
@@ -56,6 +57,9 @@ export async function postDraft(sk: number, e: XEnv, opts: { n?: number; origin?
   const draft = set.drafts[(opts.n ?? 1) - 1];
   if (!draft) return { status: "no-drafts" };
   const origin = opts.origin ?? "https://www.openf1ow.com";
+  const body = opts.text != null ? `${opts.text.trim()}\n\n${draft.url}` : postBody(draft);
+  if (!opts.text?.trim() && opts.text != null) return { status: "error", error: "empty text" };
+  if (opts.text != null && opts.text.trim().length + 2 + 23 > 280) return { status: "error", error: "over 280 characters" };
 
   try {
     // Image is best effort: a missing card must not stop the post.
@@ -76,7 +80,7 @@ export async function postDraft(sk: number, e: XEnv, opts: { n?: number; origin?
     const r = await fetch(url, {
       method: "POST",
       headers: { Authorization: await oauthHeader("POST", url, e), "Content-Type": "application/json" },
-      body: JSON.stringify({ text: postBody(draft), ...(mediaId ? { media: { media_ids: [mediaId] } } : {}) }),
+      body: JSON.stringify({ text: body, ...(mediaId ? { media: { media_ids: [mediaId] } } : {}) }),
     });
     const j: any = await r.json().catch(() => ({}));
     if (!r.ok || !j?.data?.id) return { status: "error", error: `post ${r.status}: ${JSON.stringify(j).slice(0, 300)}` };
