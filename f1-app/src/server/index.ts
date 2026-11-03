@@ -447,10 +447,12 @@ export default {
       });
     }
 
-    // Sitemap endpoint — static XML index
+    // Sitemap — the static public/sitemap.xml asset. ASSETS.fetch bypasses the Worker, so no loop.
+    // (It used to ask for a non-existent /sitemap-index.xml, which hit the SPA fallback and
+    // served index.html — Search Console reported "Sitemap is HTML".)
     if (url.pathname === "/sitemap.xml" && request.method === "GET") {
-      const staticIdx = env.ASSETS ? await env.ASSETS.fetch(new Request(url.origin + "/sitemap-index.xml")) : null;
-      if (staticIdx?.ok) return staticIdx;
+      const sm = env.ASSETS ? await env.ASSETS.fetch(request) : null;
+      if (sm?.ok && (sm.headers.get("content-type") || "").includes("xml")) return sm;
       return new Response(null, { status: 404 });
     }
 
