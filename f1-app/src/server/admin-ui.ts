@@ -48,17 +48,19 @@ async function tooManyFails(env: AdminUiEnv, ip: string): Promise<{ key: string;
 }
 
 async function listProposals(env: AdminUiEnv, origin: string) {
-  const keys: string[] = [];
+  // One listing gives both the draft files and which drafts are already posted.
+  const keys = new Set<string>();
   let cursor: string | undefined;
   do {
     const l = await env.F1_DATA.list({ prefix: "social/", cursor });
-    for (const o of l.objects) if (/^social\/\d+\.json$/.test(o.key)) keys.push(o.key);
+    for (const o of l.objects) keys.add(o.key);
     cursor = l.truncated ? l.cursor : undefined;
   } while (cursor);
-  const sets: DraftSet[] = [];
-  for (const k of keys) {
-    try { const o = await env.F1_DATA.get(k); if (o) sets.push(JSON.parse(await o.text())); } catch { /* skip */ }
-  }
+  const draftKeys = [...keys].filter(k => /^social\/\d+\.json$/.test(k));
+  const read = async <T,>(k: string): Promise<T | null> => {
+    try { const o = await env.F1_DATA.get(k); return o ? (JSON.parse(await o.text()) as T) : null; } catch { return null; }
+  };
+  const sets = (await Promise.all(draftKeys.map(k => read<DraftSet>(k)))).filter((x): x is DraftSet => !!x);
   // Newest session first (by when it ran, not when its drafts were last rebuilt).
   sets.sort((a, b) => (b.sessionDate ?? "").localeCompare(a.sessionDate ?? "") || b.sessionKey - a.sessionKey);
   // The share card each post carries, by meeting (slug lives in race-index.json).
@@ -72,15 +74,12 @@ async function listProposals(env: AdminUiEnv, origin: string) {
   };
   const out = [];
   for (const s of sets.slice(0, 40)) {
-    const drafts = [];
-    for (let i = 0; i < s.drafts.length; i++) {
-      const m = await env.F1_DATA.get(`social/${s.sessionKey}.posted.${i + 1}.json`);
-      let posted: { tweetId?: string; at?: string } | null = null;
-      if (m) { try { posted = JSON.parse(await m.text()); } catch { posted = {}; } }
-      const d = s.drafts[i];
+    const drafts = await Promise.all(s.drafts.map(async (d, i) => {
+      const mk = `social/${s.sessionKey}.posted.${i + 1}.json`;
+      const posted = keys.has(mk) ? ((await read<{ tweetId?: string; at?: string }>(mk)) ?? {}) : null;
       // The post is "<text>\n\n<link>"; the page edits the text part only.
-      drafts.push({ n: i + 1, text: d.text, url: d.url, posted });
-    }
+      return { n: i + 1, text: d.text, url: d.url, posted };
+    }));
     out.push({ sessionKey: s.sessionKey, title: (s.drafts[0]?.text || "").split("\n")[0] || `Session ${s.sessionKey}`, generatedAt: s.sessionDate ?? s.generatedAt, image: imageFor(s.meetingKey ?? Number(/\/\d{4}\/(\d+)\//.exec(s.drafts[0]?.url ?? "")?.[1])), drafts });
   }
   return out;
@@ -152,7 +151,7 @@ button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)
 .ok{color:var(--ok)}.err{color:var(--accent)}.hdr{display:flex;justify-content:space-between;align-items:center}
 </style></head><body><main id="app"></main>
 <script>
-const $=document.getElementById('app');
+const $=document.getElementById('app');$.textContent='Loading…';
 const api=async(p,o)=>{const r=await fetch('/api/adminui/'+p,Object.assign({headers:{'Content-Type':'application/json'}},o));let j={};try{j=await r.json()}catch(e){}return {r,j}};
 const el=(t,a={},...c)=>{const e=document.createElement(t);for(const[k,v]of Object.entries(a))k==='class'?e.className=v:k.startsWith('on')?e.addEventListener(k.slice(2),v):e.setAttribute(k,v);for(const x of c)e.append(x);return e};
 function login(msg){
