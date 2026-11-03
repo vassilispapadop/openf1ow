@@ -15,7 +15,11 @@ export interface DraftInput {
   verdicts: DraftVerdict[];
 }
 export interface Draft { id: string; verdictId: string; text: string; url: string; weightedLength: number }
-export interface DraftSet { sessionKey: number; generatedAt: string; handle: string; drafts: Draft[] }
+export interface DraftSet { sessionKey: number; meetingKey?: number; generatedAt: string; handle: string; drafts: Draft[] }
+
+/** The race's share card (1200x630 PNG) — the image to attach to a post. It is
+ *  per race weekend, so qualifying and sprint drafts use it too. */
+export const shareCardUrl = (origin: string, year: number, slug: string) => `${origin}/share/race/${year}/${slug}.png`;
 
 export const HANDLE = "@openf1ow";
 const MAX = 280;
@@ -52,7 +56,7 @@ export function buildDrafts(input: DraftInput, mk: number, origin: string, now =
     const text = `${head}${fit(v.headline, room)}${tail}`;
     return { id: `${session.key}-${i + 1}`, verdictId: v.id, text, url, weightedLength: weighted(text) };
   });
-  return { sessionKey: session.key, generatedAt: now.toISOString(), handle: HANDLE, drafts };
+  return { sessionKey: session.key, meetingKey: mk, generatedAt: now.toISOString(), handle: HANDLE, drafts };
 }
 
 /** What to paste into X: text, blank line, link. */

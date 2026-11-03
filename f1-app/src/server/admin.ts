@@ -18,6 +18,7 @@ import { resolveResource, type CacheEnv } from "./r2-cache";
 
 export interface AdminEnv extends CacheEnv {
   ADMIN_TOKEN?: string;
+  ASSETS?: { fetch: (req: Request | string) => Promise<Response> };
 }
 
 export const STANDARD_ENDPOINTS = [
@@ -63,11 +64,24 @@ export async function handleAdminRequest(request: Request, env: AdminEnv, ctx: E
     if (!Number.isFinite(skq) || skq <= 0) return json({ error: "session_key required" }, 400);
     const o = await env.F1_DATA.get(`social/${skq}.json`);
     if (!o) return json({ error: "no drafts for this session" }, 404);
-    if (url.searchParams.get("format") !== "text") return new Response(await o.text(), { headers: { "Content-Type": "application/json" } });
-    const { postBody } = await import("./social-draft");
     const set = JSON.parse(await o.text());
+    // Resolve the race's share card by meeting key (the slug lives in race-index.json).
+    let image: string | null = null;
+    // Drafts stored before meetingKey existed carry it only inside their links.
+    const mkey = set.meetingKey ?? Number(/\/\d{4}\/(\d+)\//.exec(set.drafts?.[0]?.url ?? "")?.[1]);
+    if (env.ASSETS && mkey) {
+      const { loadRaceIndex } = await import("./recap");
+      const { shareCardUrl } = await import("./social-draft");
+      const idx = await loadRaceIndex(env.ASSETS, url.origin);
+      for (const [year, races] of Object.entries(idx?.byYear ?? {})) {
+        const hit = (races as { slug: string; meetingKey: number }[]).find(r => r.meetingKey === mkey);
+        if (hit) { image = shareCardUrl("https://www.openf1ow.com", Number(year), hit.slug); break; }
+      }
+    }
+    if (url.searchParams.get("format") !== "text") return json({ ...set, image });
+    const { postBody } = await import("./social-draft");
     const body = set.drafts.map((d: any, i: number) => `--- ${i + 1}/${set.drafts.length} (${d.weightedLength}/280) ---\n${postBody(d)}`).join("\n\n");
-    return new Response(body + "\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
+    return new Response((image ? `Image to attach: ${image}\n\n` : "") + body + "\n", { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   }
   if (request.method !== "POST") return new Response("Method not allowed", { status: 405 });
 
