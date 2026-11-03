@@ -2,7 +2,7 @@
 /**
  * Reads public/race-index.json and writes public/sitemap.xml.
  *
- * Phase 1 emits the current numeric URLs (matching App.tsx routes):
+ * Emits the canonical numeric URLs (matching App.tsx routes):
  *   /
  *   /:year/:mk
  *   /:year/:mk/:sk/analysis/overview         (race)
@@ -54,17 +54,23 @@ for (const [year, races] of Object.entries(idx.byYear)) {
       priority: isPast ? "0.8" : "0.7",
     });
 
-    // Slug analysis URLs — canonical, redirect to numeric via Worker.
+    // Numeric analysis URLs — these are the canonical, indexed pages (the slug
+    // forms redirect to them), so list them directly. Race/sprint also get the
+    // pace tab, which is the best-converting landing page in Search Console.
     const indexable = ["race", "qualifying", "sprint"];
     for (const key of indexable) {
       const sk = r.sessions[key];
       if (!sk) continue;
-      urls.push({
-        loc: `${ORIGIN}/${year}/${r.slug}/${key}`,
-        lastmod: r.dateStart || undefined,
-        changefreq: isPast ? "yearly" : "weekly",
-        priority: key === "race" ? "0.8" : "0.6",
-      });
+      const base = `${ORIGIN}/${year}/${r.meetingKey}/${sk}/analysis`;
+      const tabs = key === "qualifying" ? ["overview"] : ["overview", "pace"];
+      for (const tab of tabs) {
+        urls.push({
+          loc: `${base}/${tab}`,
+          lastmod: r.dateStart || undefined,
+          changefreq: isPast ? "yearly" : "weekly",
+          priority: key === "race" ? (tab === "pace" ? "0.8" : "0.7") : "0.6",
+        });
+      }
     }
   }
 }

@@ -62,13 +62,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/bahrain/race</loc>
+    <loc>https://www.openf1ow.com/2023/1141/7953/analysis/overview</loc>
+    <lastmod>2023-03-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1141/7953/analysis/pace</loc>
     <lastmod>2023-03-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/bahrain/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1141/7768/analysis/overview</loc>
     <lastmod>2023-03-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -80,13 +86,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/jeddah/race</loc>
+    <loc>https://www.openf1ow.com/2023/1142/7779/analysis/overview</loc>
+    <lastmod>2023-03-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1142/7779/analysis/pace</loc>
     <lastmod>2023-03-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/jeddah/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1142/7775/analysis/overview</loc>
     <lastmod>2023-03-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -98,13 +110,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/melbourne/race</loc>
+    <loc>https://www.openf1ow.com/2023/1143/7787/analysis/overview</loc>
+    <lastmod>2023-03-31</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1143/7787/analysis/pace</loc>
     <lastmod>2023-03-31</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/melbourne/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1143/7783/analysis/overview</loc>
     <lastmod>2023-03-31</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -116,19 +134,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/baku/race</loc>
+    <loc>https://www.openf1ow.com/2023/1207/9070/analysis/overview</loc>
+    <lastmod>2023-04-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1207/9070/analysis/pace</loc>
     <lastmod>2023-04-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/baku/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1207/9064/analysis/overview</loc>
     <lastmod>2023-04-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/baku/sprint</loc>
+    <loc>https://www.openf1ow.com/2023/1207/9069/analysis/overview</loc>
+    <lastmod>2023-04-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1207/9069/analysis/pace</loc>
     <lastmod>2023-04-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -140,13 +170,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/miami/race</loc>
+    <loc>https://www.openf1ow.com/2023/1208/9078/analysis/overview</loc>
+    <lastmod>2023-05-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1208/9078/analysis/pace</loc>
     <lastmod>2023-05-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/miami/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1208/9074/analysis/overview</loc>
     <lastmod>2023-05-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -158,13 +194,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/imola/race</loc>
+    <loc>https://www.openf1ow.com/2023/1209/9086/analysis/overview</loc>
+    <lastmod>2023-05-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1209/9086/analysis/pace</loc>
     <lastmod>2023-05-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/imola/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1209/9082/analysis/overview</loc>
     <lastmod>2023-05-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -176,13 +218,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/monaco/race</loc>
+    <loc>https://www.openf1ow.com/2023/1210/9094/analysis/overview</loc>
+    <lastmod>2023-05-26</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1210/9094/analysis/pace</loc>
     <lastmod>2023-05-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/monaco/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1210/9090/analysis/overview</loc>
     <lastmod>2023-05-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -194,13 +242,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/barcelona/race</loc>
+    <loc>https://www.openf1ow.com/2023/1211/9102/analysis/overview</loc>
+    <lastmod>2023-06-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1211/9102/analysis/pace</loc>
     <lastmod>2023-06-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/barcelona/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1211/9098/analysis/overview</loc>
     <lastmod>2023-06-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -212,13 +266,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/montreal/race</loc>
+    <loc>https://www.openf1ow.com/2023/1212/9110/analysis/overview</loc>
+    <lastmod>2023-06-16</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1212/9110/analysis/pace</loc>
     <lastmod>2023-06-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/montreal/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1212/9106/analysis/overview</loc>
     <lastmod>2023-06-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -230,19 +290,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/spielberg/race</loc>
+    <loc>https://www.openf1ow.com/2023/1213/9118/analysis/overview</loc>
+    <lastmod>2023-06-30</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1213/9118/analysis/pace</loc>
     <lastmod>2023-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/spielberg/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1213/9112/analysis/overview</loc>
     <lastmod>2023-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/spielberg/sprint</loc>
+    <loc>https://www.openf1ow.com/2023/1213/9117/analysis/overview</loc>
+    <lastmod>2023-06-30</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1213/9117/analysis/pace</loc>
     <lastmod>2023-06-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -254,13 +326,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/silverstone/race</loc>
+    <loc>https://www.openf1ow.com/2023/1214/9126/analysis/overview</loc>
+    <lastmod>2023-07-07</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1214/9126/analysis/pace</loc>
     <lastmod>2023-07-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/silverstone/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1214/9122/analysis/overview</loc>
     <lastmod>2023-07-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -272,13 +350,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/budapest/race</loc>
+    <loc>https://www.openf1ow.com/2023/1215/9133/analysis/overview</loc>
+    <lastmod>2023-07-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1215/9133/analysis/pace</loc>
     <lastmod>2023-07-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/budapest/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1215/9129/analysis/overview</loc>
     <lastmod>2023-07-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -290,19 +374,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/spa-francorchamps/race</loc>
+    <loc>https://www.openf1ow.com/2023/1216/9141/analysis/overview</loc>
+    <lastmod>2023-07-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1216/9141/analysis/pace</loc>
     <lastmod>2023-07-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/spa-francorchamps/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1216/9135/analysis/overview</loc>
     <lastmod>2023-07-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/spa-francorchamps/sprint</loc>
+    <loc>https://www.openf1ow.com/2023/1216/9140/analysis/overview</loc>
+    <lastmod>2023-07-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1216/9140/analysis/pace</loc>
     <lastmod>2023-07-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -314,13 +410,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/zandvoort/race</loc>
+    <loc>https://www.openf1ow.com/2023/1217/9149/analysis/overview</loc>
+    <lastmod>2023-08-25</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1217/9149/analysis/pace</loc>
     <lastmod>2023-08-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/zandvoort/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1217/9145/analysis/overview</loc>
     <lastmod>2023-08-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -332,13 +434,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/monza/race</loc>
+    <loc>https://www.openf1ow.com/2023/1218/9157/analysis/overview</loc>
+    <lastmod>2023-09-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1218/9157/analysis/pace</loc>
     <lastmod>2023-09-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/monza/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1218/9153/analysis/overview</loc>
     <lastmod>2023-09-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -350,13 +458,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/marina-bay/race</loc>
+    <loc>https://www.openf1ow.com/2023/1219/9165/analysis/overview</loc>
+    <lastmod>2023-09-15</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1219/9165/analysis/pace</loc>
     <lastmod>2023-09-15</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/marina-bay/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1219/9161/analysis/overview</loc>
     <lastmod>2023-09-15</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -368,13 +482,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/suzuka/race</loc>
+    <loc>https://www.openf1ow.com/2023/1220/9173/analysis/overview</loc>
+    <lastmod>2023-09-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1220/9173/analysis/pace</loc>
     <lastmod>2023-09-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/suzuka/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1220/9169/analysis/overview</loc>
     <lastmod>2023-09-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -386,19 +506,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/lusail/race</loc>
+    <loc>https://www.openf1ow.com/2023/1221/9221/analysis/overview</loc>
+    <lastmod>2023-10-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1221/9221/analysis/pace</loc>
     <lastmod>2023-10-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/lusail/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1221/9215/analysis/overview</loc>
     <lastmod>2023-10-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/lusail/sprint</loc>
+    <loc>https://www.openf1ow.com/2023/1221/9220/analysis/overview</loc>
+    <lastmod>2023-10-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1221/9220/analysis/pace</loc>
     <lastmod>2023-10-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -410,19 +542,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/austin/race</loc>
+    <loc>https://www.openf1ow.com/2023/1222/9213/analysis/overview</loc>
+    <lastmod>2023-10-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1222/9213/analysis/pace</loc>
     <lastmod>2023-10-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/austin/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1222/9207/analysis/overview</loc>
     <lastmod>2023-10-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/austin/sprint</loc>
+    <loc>https://www.openf1ow.com/2023/1222/9212/analysis/overview</loc>
+    <lastmod>2023-10-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1222/9212/analysis/pace</loc>
     <lastmod>2023-10-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -434,13 +578,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/mexico-city/race</loc>
+    <loc>https://www.openf1ow.com/2023/1223/9181/analysis/overview</loc>
+    <lastmod>2023-10-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1223/9181/analysis/pace</loc>
     <lastmod>2023-10-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/mexico-city/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1223/9177/analysis/overview</loc>
     <lastmod>2023-10-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -452,19 +602,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/sao-paulo/race</loc>
+    <loc>https://www.openf1ow.com/2023/1224/9205/analysis/overview</loc>
+    <lastmod>2023-11-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1224/9205/analysis/pace</loc>
     <lastmod>2023-11-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/sao-paulo/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1224/9304/analysis/overview</loc>
     <lastmod>2023-11-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/sao-paulo/sprint</loc>
+    <loc>https://www.openf1ow.com/2023/1224/9204/analysis/overview</loc>
+    <lastmod>2023-11-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1224/9204/analysis/pace</loc>
     <lastmod>2023-11-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -476,13 +638,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/las-vegas/race</loc>
+    <loc>https://www.openf1ow.com/2023/1225/9189/analysis/overview</loc>
+    <lastmod>2023-11-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1225/9189/analysis/pace</loc>
     <lastmod>2023-11-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/las-vegas/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1225/9314/analysis/overview</loc>
     <lastmod>2023-11-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -494,13 +662,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/yas-island/race</loc>
+    <loc>https://www.openf1ow.com/2023/1226/9197/analysis/overview</loc>
+    <lastmod>2023-11-24</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2023/1226/9197/analysis/pace</loc>
     <lastmod>2023-11-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2023/yas-island/qualifying</loc>
+    <loc>https://www.openf1ow.com/2023/1226/9193/analysis/overview</loc>
     <lastmod>2023-11-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -512,13 +686,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/bahrain/race</loc>
+    <loc>https://www.openf1ow.com/2024/1229/9472/analysis/overview</loc>
+    <lastmod>2024-02-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1229/9472/analysis/pace</loc>
     <lastmod>2024-02-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/bahrain/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1229/9468/analysis/overview</loc>
     <lastmod>2024-02-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -530,13 +710,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/jeddah/race</loc>
+    <loc>https://www.openf1ow.com/2024/1230/9480/analysis/overview</loc>
+    <lastmod>2024-03-07</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1230/9480/analysis/pace</loc>
     <lastmod>2024-03-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/jeddah/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1230/9476/analysis/overview</loc>
     <lastmod>2024-03-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -548,13 +734,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/melbourne/race</loc>
+    <loc>https://www.openf1ow.com/2024/1231/9488/analysis/overview</loc>
+    <lastmod>2024-03-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1231/9488/analysis/pace</loc>
     <lastmod>2024-03-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/melbourne/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1231/9484/analysis/overview</loc>
     <lastmod>2024-03-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -566,13 +758,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/suzuka/race</loc>
+    <loc>https://www.openf1ow.com/2024/1232/9496/analysis/overview</loc>
+    <lastmod>2024-04-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1232/9496/analysis/pace</loc>
     <lastmod>2024-04-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/suzuka/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1232/9492/analysis/overview</loc>
     <lastmod>2024-04-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -584,19 +782,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/shanghai/race</loc>
+    <loc>https://www.openf1ow.com/2024/1233/9673/analysis/overview</loc>
+    <lastmod>2024-04-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1233/9673/analysis/pace</loc>
     <lastmod>2024-04-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/shanghai/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1233/9664/analysis/overview</loc>
     <lastmod>2024-04-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/shanghai/sprint</loc>
+    <loc>https://www.openf1ow.com/2024/1233/9672/analysis/overview</loc>
+    <lastmod>2024-04-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1233/9672/analysis/pace</loc>
     <lastmod>2024-04-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -608,19 +818,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/miami/race</loc>
+    <loc>https://www.openf1ow.com/2024/1234/9507/analysis/overview</loc>
+    <lastmod>2024-05-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1234/9507/analysis/pace</loc>
     <lastmod>2024-05-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/miami/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1234/9498/analysis/overview</loc>
     <lastmod>2024-05-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/miami/sprint</loc>
+    <loc>https://www.openf1ow.com/2024/1234/9506/analysis/overview</loc>
+    <lastmod>2024-05-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1234/9506/analysis/pace</loc>
     <lastmod>2024-05-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -632,13 +854,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/imola/race</loc>
+    <loc>https://www.openf1ow.com/2024/1235/9515/analysis/overview</loc>
+    <lastmod>2024-05-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1235/9515/analysis/pace</loc>
     <lastmod>2024-05-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/imola/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1235/9511/analysis/overview</loc>
     <lastmod>2024-05-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -650,13 +878,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/monaco/race</loc>
+    <loc>https://www.openf1ow.com/2024/1236/9523/analysis/overview</loc>
+    <lastmod>2024-05-24</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1236/9523/analysis/pace</loc>
     <lastmod>2024-05-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/monaco/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1236/9519/analysis/overview</loc>
     <lastmod>2024-05-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -668,13 +902,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/montreal/race</loc>
+    <loc>https://www.openf1ow.com/2024/1237/9531/analysis/overview</loc>
+    <lastmod>2024-06-07</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1237/9531/analysis/pace</loc>
     <lastmod>2024-06-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/montreal/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1237/9527/analysis/overview</loc>
     <lastmod>2024-06-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -686,13 +926,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/barcelona/race</loc>
+    <loc>https://www.openf1ow.com/2024/1238/9539/analysis/overview</loc>
+    <lastmod>2024-06-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1238/9539/analysis/pace</loc>
     <lastmod>2024-06-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/barcelona/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1238/9535/analysis/overview</loc>
     <lastmod>2024-06-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -704,19 +950,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/spielberg/race</loc>
+    <loc>https://www.openf1ow.com/2024/1239/9550/analysis/overview</loc>
+    <lastmod>2024-06-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1239/9550/analysis/pace</loc>
     <lastmod>2024-06-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/spielberg/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1239/9541/analysis/overview</loc>
     <lastmod>2024-06-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/spielberg/sprint</loc>
+    <loc>https://www.openf1ow.com/2024/1239/9549/analysis/overview</loc>
+    <lastmod>2024-06-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1239/9549/analysis/pace</loc>
     <lastmod>2024-06-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -728,13 +986,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/silverstone/race</loc>
+    <loc>https://www.openf1ow.com/2024/1240/9558/analysis/overview</loc>
+    <lastmod>2024-07-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1240/9558/analysis/pace</loc>
     <lastmod>2024-07-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/silverstone/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1240/9554/analysis/overview</loc>
     <lastmod>2024-07-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -746,13 +1010,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/budapest/race</loc>
+    <loc>https://www.openf1ow.com/2024/1241/9566/analysis/overview</loc>
+    <lastmod>2024-07-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1241/9566/analysis/pace</loc>
     <lastmod>2024-07-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/budapest/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1241/9562/analysis/overview</loc>
     <lastmod>2024-07-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -764,13 +1034,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/spa-francorchamps/race</loc>
+    <loc>https://www.openf1ow.com/2024/1242/9574/analysis/overview</loc>
+    <lastmod>2024-07-26</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1242/9574/analysis/pace</loc>
     <lastmod>2024-07-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/spa-francorchamps/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1242/9570/analysis/overview</loc>
     <lastmod>2024-07-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -782,13 +1058,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/zandvoort/race</loc>
+    <loc>https://www.openf1ow.com/2024/1243/9582/analysis/overview</loc>
+    <lastmod>2024-08-23</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1243/9582/analysis/pace</loc>
     <lastmod>2024-08-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/zandvoort/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1243/9578/analysis/overview</loc>
     <lastmod>2024-08-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -800,13 +1082,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/monza/race</loc>
+    <loc>https://www.openf1ow.com/2024/1244/9590/analysis/overview</loc>
+    <lastmod>2024-08-30</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1244/9590/analysis/pace</loc>
     <lastmod>2024-08-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/monza/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1244/9586/analysis/overview</loc>
     <lastmod>2024-08-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -818,13 +1106,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/baku/race</loc>
+    <loc>https://www.openf1ow.com/2024/1245/9598/analysis/overview</loc>
+    <lastmod>2024-09-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1245/9598/analysis/pace</loc>
     <lastmod>2024-09-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/baku/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1245/9594/analysis/overview</loc>
     <lastmod>2024-09-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -836,13 +1130,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/marina-bay/race</loc>
+    <loc>https://www.openf1ow.com/2024/1246/9606/analysis/overview</loc>
+    <lastmod>2024-09-20</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1246/9606/analysis/pace</loc>
     <lastmod>2024-09-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/marina-bay/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1246/9602/analysis/overview</loc>
     <lastmod>2024-09-20</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -854,19 +1154,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/austin/race</loc>
+    <loc>https://www.openf1ow.com/2024/1247/9617/analysis/overview</loc>
+    <lastmod>2024-10-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1247/9617/analysis/pace</loc>
     <lastmod>2024-10-18</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/austin/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1247/9608/analysis/overview</loc>
     <lastmod>2024-10-18</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/austin/sprint</loc>
+    <loc>https://www.openf1ow.com/2024/1247/9616/analysis/overview</loc>
+    <lastmod>2024-10-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1247/9616/analysis/pace</loc>
     <lastmod>2024-10-18</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -878,13 +1190,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/mexico-city/race</loc>
+    <loc>https://www.openf1ow.com/2024/1248/9625/analysis/overview</loc>
+    <lastmod>2024-10-25</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1248/9625/analysis/pace</loc>
     <lastmod>2024-10-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/mexico-city/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1248/9621/analysis/overview</loc>
     <lastmod>2024-10-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -896,19 +1214,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/sao-paulo/race</loc>
+    <loc>https://www.openf1ow.com/2024/1249/9636/analysis/overview</loc>
+    <lastmod>2024-11-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1249/9636/analysis/pace</loc>
     <lastmod>2024-11-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/sao-paulo/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1249/9627/analysis/overview</loc>
     <lastmod>2024-11-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/sao-paulo/sprint</loc>
+    <loc>https://www.openf1ow.com/2024/1249/9635/analysis/overview</loc>
+    <lastmod>2024-11-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1249/9635/analysis/pace</loc>
     <lastmod>2024-11-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -920,13 +1250,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/las-vegas/race</loc>
+    <loc>https://www.openf1ow.com/2024/1250/9644/analysis/overview</loc>
+    <lastmod>2024-11-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1250/9644/analysis/pace</loc>
     <lastmod>2024-11-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/las-vegas/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1250/9640/analysis/overview</loc>
     <lastmod>2024-11-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -938,19 +1274,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/lusail/race</loc>
+    <loc>https://www.openf1ow.com/2024/1251/9655/analysis/overview</loc>
+    <lastmod>2024-11-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1251/9655/analysis/pace</loc>
     <lastmod>2024-11-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/lusail/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1251/9646/analysis/overview</loc>
     <lastmod>2024-11-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/lusail/sprint</loc>
+    <loc>https://www.openf1ow.com/2024/1251/9654/analysis/overview</loc>
+    <lastmod>2024-11-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1251/9654/analysis/pace</loc>
     <lastmod>2024-11-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -962,13 +1310,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/yas-island/race</loc>
+    <loc>https://www.openf1ow.com/2024/1252/9662/analysis/overview</loc>
+    <lastmod>2024-12-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2024/1252/9662/analysis/pace</loc>
     <lastmod>2024-12-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2024/yas-island/qualifying</loc>
+    <loc>https://www.openf1ow.com/2024/1252/9658/analysis/overview</loc>
     <lastmod>2024-12-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -980,13 +1334,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/melbourne/race</loc>
+    <loc>https://www.openf1ow.com/2025/1254/9693/analysis/overview</loc>
+    <lastmod>2025-03-14</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1254/9693/analysis/pace</loc>
     <lastmod>2025-03-14</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/melbourne/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1254/9689/analysis/overview</loc>
     <lastmod>2025-03-14</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -998,19 +1358,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/shanghai/race</loc>
+    <loc>https://www.openf1ow.com/2025/1255/9998/analysis/overview</loc>
+    <lastmod>2025-03-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1255/9998/analysis/pace</loc>
     <lastmod>2025-03-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/shanghai/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1255/9994/analysis/overview</loc>
     <lastmod>2025-03-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/shanghai/sprint</loc>
+    <loc>https://www.openf1ow.com/2025/1255/9993/analysis/overview</loc>
+    <lastmod>2025-03-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1255/9993/analysis/pace</loc>
     <lastmod>2025-03-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1022,13 +1394,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/suzuka/race</loc>
+    <loc>https://www.openf1ow.com/2025/1256/10006/analysis/overview</loc>
+    <lastmod>2025-04-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1256/10006/analysis/pace</loc>
     <lastmod>2025-04-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/suzuka/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1256/10002/analysis/overview</loc>
     <lastmod>2025-04-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1040,13 +1418,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/bahrain/race</loc>
+    <loc>https://www.openf1ow.com/2025/1257/10014/analysis/overview</loc>
+    <lastmod>2025-04-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1257/10014/analysis/pace</loc>
     <lastmod>2025-04-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/bahrain/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1257/10010/analysis/overview</loc>
     <lastmod>2025-04-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1058,13 +1442,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/jeddah/race</loc>
+    <loc>https://www.openf1ow.com/2025/1258/10022/analysis/overview</loc>
+    <lastmod>2025-04-18</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1258/10022/analysis/pace</loc>
     <lastmod>2025-04-18</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/jeddah/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1258/10018/analysis/overview</loc>
     <lastmod>2025-04-18</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1076,19 +1466,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/miami-gardens/race</loc>
+    <loc>https://www.openf1ow.com/2025/1259/10033/analysis/overview</loc>
+    <lastmod>2025-05-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1259/10033/analysis/pace</loc>
     <lastmod>2025-05-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/miami-gardens/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1259/10029/analysis/overview</loc>
     <lastmod>2025-05-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/miami-gardens/sprint</loc>
+    <loc>https://www.openf1ow.com/2025/1259/10028/analysis/overview</loc>
+    <lastmod>2025-05-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1259/10028/analysis/pace</loc>
     <lastmod>2025-05-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1100,13 +1502,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/imola/race</loc>
+    <loc>https://www.openf1ow.com/2025/1260/9987/analysis/overview</loc>
+    <lastmod>2025-05-16</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1260/9987/analysis/pace</loc>
     <lastmod>2025-05-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/imola/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1260/9983/analysis/overview</loc>
     <lastmod>2025-05-16</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1118,13 +1526,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/monaco/race</loc>
+    <loc>https://www.openf1ow.com/2025/1261/9979/analysis/overview</loc>
+    <lastmod>2025-05-23</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1261/9979/analysis/pace</loc>
     <lastmod>2025-05-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/monaco/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1261/9975/analysis/overview</loc>
     <lastmod>2025-05-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1136,13 +1550,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/barcelona/race</loc>
+    <loc>https://www.openf1ow.com/2025/1262/9971/analysis/overview</loc>
+    <lastmod>2025-05-30</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1262/9971/analysis/pace</loc>
     <lastmod>2025-05-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/barcelona/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1262/9967/analysis/overview</loc>
     <lastmod>2025-05-30</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1154,13 +1574,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/montreal/race</loc>
+    <loc>https://www.openf1ow.com/2025/1263/9963/analysis/overview</loc>
+    <lastmod>2025-06-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1263/9963/analysis/pace</loc>
     <lastmod>2025-06-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/montreal/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1263/9959/analysis/overview</loc>
     <lastmod>2025-06-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1172,13 +1598,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/spielberg/race</loc>
+    <loc>https://www.openf1ow.com/2025/1264/9955/analysis/overview</loc>
+    <lastmod>2025-06-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1264/9955/analysis/pace</loc>
     <lastmod>2025-06-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/spielberg/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1264/9951/analysis/overview</loc>
     <lastmod>2025-06-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1190,13 +1622,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/silverstone/race</loc>
+    <loc>https://www.openf1ow.com/2025/1277/9947/analysis/overview</loc>
+    <lastmod>2025-07-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1277/9947/analysis/pace</loc>
     <lastmod>2025-07-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/silverstone/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1277/9943/analysis/overview</loc>
     <lastmod>2025-07-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1208,19 +1646,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/spa-francorchamps/race</loc>
+    <loc>https://www.openf1ow.com/2025/1265/9939/analysis/overview</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1265/9939/analysis/pace</loc>
     <lastmod>2025-07-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/spa-francorchamps/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1265/9935/analysis/overview</loc>
     <lastmod>2025-07-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/spa-francorchamps/sprint</loc>
+    <loc>https://www.openf1ow.com/2025/1265/9934/analysis/overview</loc>
+    <lastmod>2025-07-25</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1265/9934/analysis/pace</loc>
     <lastmod>2025-07-25</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1232,13 +1682,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/budapest/race</loc>
+    <loc>https://www.openf1ow.com/2025/1266/9928/analysis/overview</loc>
+    <lastmod>2025-08-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1266/9928/analysis/pace</loc>
     <lastmod>2025-08-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/budapest/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1266/9924/analysis/overview</loc>
     <lastmod>2025-08-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1250,13 +1706,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/zandvoort/race</loc>
+    <loc>https://www.openf1ow.com/2025/1267/9920/analysis/overview</loc>
+    <lastmod>2025-08-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1267/9920/analysis/pace</loc>
     <lastmod>2025-08-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/zandvoort/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1267/9916/analysis/overview</loc>
     <lastmod>2025-08-29</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1268,13 +1730,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/monza/race</loc>
+    <loc>https://www.openf1ow.com/2025/1268/9912/analysis/overview</loc>
+    <lastmod>2025-09-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1268/9912/analysis/pace</loc>
     <lastmod>2025-09-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/monza/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1268/9908/analysis/overview</loc>
     <lastmod>2025-09-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1286,13 +1754,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/baku/race</loc>
+    <loc>https://www.openf1ow.com/2025/1269/9904/analysis/overview</loc>
+    <lastmod>2025-09-19</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1269/9904/analysis/pace</loc>
     <lastmod>2025-09-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/baku/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1269/9900/analysis/overview</loc>
     <lastmod>2025-09-19</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1304,13 +1778,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/marina-bay/race</loc>
+    <loc>https://www.openf1ow.com/2025/1270/9896/analysis/overview</loc>
+    <lastmod>2025-10-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1270/9896/analysis/pace</loc>
     <lastmod>2025-10-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/marina-bay/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1270/9892/analysis/overview</loc>
     <lastmod>2025-10-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1322,19 +1802,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/austin/race</loc>
+    <loc>https://www.openf1ow.com/2025/1271/9888/analysis/overview</loc>
+    <lastmod>2025-10-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1271/9888/analysis/pace</loc>
     <lastmod>2025-10-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/austin/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1271/9884/analysis/overview</loc>
     <lastmod>2025-10-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/austin/sprint</loc>
+    <loc>https://www.openf1ow.com/2025/1271/9883/analysis/overview</loc>
+    <lastmod>2025-10-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1271/9883/analysis/pace</loc>
     <lastmod>2025-10-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1346,13 +1838,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/mexico-city/race</loc>
+    <loc>https://www.openf1ow.com/2025/1272/9877/analysis/overview</loc>
+    <lastmod>2025-10-24</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1272/9877/analysis/pace</loc>
     <lastmod>2025-10-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/mexico-city/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1272/9873/analysis/overview</loc>
     <lastmod>2025-10-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1364,19 +1862,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/sao-paulo/race</loc>
+    <loc>https://www.openf1ow.com/2025/1273/9869/analysis/overview</loc>
+    <lastmod>2025-11-07</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1273/9869/analysis/pace</loc>
     <lastmod>2025-11-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/sao-paulo/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1273/9865/analysis/overview</loc>
     <lastmod>2025-11-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/sao-paulo/sprint</loc>
+    <loc>https://www.openf1ow.com/2025/1273/9864/analysis/overview</loc>
+    <lastmod>2025-11-07</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1273/9864/analysis/pace</loc>
     <lastmod>2025-11-07</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1388,13 +1898,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/las-vegas/race</loc>
+    <loc>https://www.openf1ow.com/2025/1274/9858/analysis/overview</loc>
+    <lastmod>2025-11-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1274/9858/analysis/pace</loc>
     <lastmod>2025-11-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/las-vegas/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1274/9854/analysis/overview</loc>
     <lastmod>2025-11-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1406,19 +1922,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/lusail/race</loc>
+    <loc>https://www.openf1ow.com/2025/1275/9850/analysis/overview</loc>
+    <lastmod>2025-11-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1275/9850/analysis/pace</loc>
     <lastmod>2025-11-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/lusail/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1275/9846/analysis/overview</loc>
     <lastmod>2025-11-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/lusail/sprint</loc>
+    <loc>https://www.openf1ow.com/2025/1275/9845/analysis/overview</loc>
+    <lastmod>2025-11-28</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1275/9845/analysis/pace</loc>
     <lastmod>2025-11-28</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1430,13 +1958,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/yas-island/race</loc>
+    <loc>https://www.openf1ow.com/2025/1276/9839/analysis/overview</loc>
+    <lastmod>2025-12-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2025/1276/9839/analysis/pace</loc>
     <lastmod>2025-12-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2025/yas-island/qualifying</loc>
+    <loc>https://www.openf1ow.com/2025/1276/9835/analysis/overview</loc>
     <lastmod>2025-12-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1448,13 +1982,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/melbourne/race</loc>
+    <loc>https://www.openf1ow.com/2026/1279/11234/analysis/overview</loc>
+    <lastmod>2026-03-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1279/11234/analysis/pace</loc>
     <lastmod>2026-03-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/melbourne/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1279/11230/analysis/overview</loc>
     <lastmod>2026-03-06</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1466,19 +2006,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/shanghai/race</loc>
+    <loc>https://www.openf1ow.com/2026/1280/11245/analysis/overview</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1280/11245/analysis/pace</loc>
     <lastmod>2026-03-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/shanghai/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1280/11241/analysis/overview</loc>
     <lastmod>2026-03-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/shanghai/sprint</loc>
+    <loc>https://www.openf1ow.com/2026/1280/11240/analysis/overview</loc>
+    <lastmod>2026-03-13</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1280/11240/analysis/pace</loc>
     <lastmod>2026-03-13</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1490,13 +2042,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/suzuka/race</loc>
+    <loc>https://www.openf1ow.com/2026/1281/11253/analysis/overview</loc>
+    <lastmod>2026-03-27</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1281/11253/analysis/pace</loc>
     <lastmod>2026-03-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/suzuka/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1281/11249/analysis/overview</loc>
     <lastmod>2026-03-27</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1508,19 +2066,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/miami-gardens/race</loc>
+    <loc>https://www.openf1ow.com/2026/1284/11280/analysis/overview</loc>
+    <lastmod>2026-05-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1284/11280/analysis/pace</loc>
     <lastmod>2026-05-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/miami-gardens/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1284/11276/analysis/overview</loc>
     <lastmod>2026-05-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/miami-gardens/sprint</loc>
+    <loc>https://www.openf1ow.com/2026/1284/11275/analysis/overview</loc>
+    <lastmod>2026-05-01</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1284/11275/analysis/pace</loc>
     <lastmod>2026-05-01</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1532,19 +2102,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/montreal/race</loc>
+    <loc>https://www.openf1ow.com/2026/1285/11291/analysis/overview</loc>
+    <lastmod>2026-05-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1285/11291/analysis/pace</loc>
     <lastmod>2026-05-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/montreal/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1285/11287/analysis/overview</loc>
     <lastmod>2026-05-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/montreal/sprint</loc>
+    <loc>https://www.openf1ow.com/2026/1285/11286/analysis/overview</loc>
+    <lastmod>2026-05-22</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1285/11286/analysis/pace</loc>
     <lastmod>2026-05-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1556,13 +2138,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/monte-carlo/race</loc>
+    <loc>https://www.openf1ow.com/2026/1286/11299/analysis/overview</loc>
+    <lastmod>2026-06-05</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1286/11299/analysis/pace</loc>
     <lastmod>2026-06-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/monte-carlo/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1286/11295/analysis/overview</loc>
     <lastmod>2026-06-05</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1574,13 +2162,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/barcelona/race</loc>
+    <loc>https://www.openf1ow.com/2026/1287/11307/analysis/overview</loc>
+    <lastmod>2026-06-12</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1287/11307/analysis/pace</loc>
     <lastmod>2026-06-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/barcelona/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1287/11303/analysis/overview</loc>
     <lastmod>2026-06-12</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1592,13 +2186,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/spielberg/race</loc>
+    <loc>https://www.openf1ow.com/2026/1288/11315/analysis/overview</loc>
+    <lastmod>2026-06-26</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1288/11315/analysis/pace</loc>
     <lastmod>2026-06-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/spielberg/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1288/11311/analysis/overview</loc>
     <lastmod>2026-06-26</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1610,19 +2210,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/silverstone/race</loc>
+    <loc>https://www.openf1ow.com/2026/1289/11326/analysis/overview</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1289/11326/analysis/pace</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/silverstone/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1289/11322/analysis/overview</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/silverstone/sprint</loc>
+    <loc>https://www.openf1ow.com/2026/1289/11321/analysis/overview</loc>
+    <lastmod>2026-07-03</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1289/11321/analysis/pace</loc>
     <lastmod>2026-07-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1634,13 +2246,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/spa-francorchamps/race</loc>
+    <loc>https://www.openf1ow.com/2026/1290/11334/analysis/overview</loc>
+    <lastmod>2026-07-17</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1290/11334/analysis/pace</loc>
     <lastmod>2026-07-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/spa-francorchamps/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1290/11330/analysis/overview</loc>
     <lastmod>2026-07-17</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1652,13 +2270,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/budapest/race</loc>
+    <loc>https://www.openf1ow.com/2026/1291/11342/analysis/overview</loc>
+    <lastmod>2026-07-24</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1291/11342/analysis/pace</loc>
     <lastmod>2026-07-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/budapest/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1291/11338/analysis/overview</loc>
     <lastmod>2026-07-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1670,19 +2294,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/zandvoort/race</loc>
+    <loc>https://www.openf1ow.com/2026/1292/11353/analysis/overview</loc>
+    <lastmod>2026-08-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1292/11353/analysis/pace</loc>
     <lastmod>2026-08-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/zandvoort/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1292/11349/analysis/overview</loc>
     <lastmod>2026-08-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/zandvoort/sprint</loc>
+    <loc>https://www.openf1ow.com/2026/1292/11348/analysis/overview</loc>
+    <lastmod>2026-08-21</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1292/11348/analysis/pace</loc>
     <lastmod>2026-08-21</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1694,13 +2330,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/monza/race</loc>
+    <loc>https://www.openf1ow.com/2026/1293/11361/analysis/overview</loc>
+    <lastmod>2026-09-04</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1293/11361/analysis/pace</loc>
     <lastmod>2026-09-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/monza/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1293/11357/analysis/overview</loc>
     <lastmod>2026-09-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1712,13 +2354,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/madrid/race</loc>
+    <loc>https://www.openf1ow.com/2026/1294/11369/analysis/overview</loc>
+    <lastmod>2026-09-11</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1294/11369/analysis/pace</loc>
     <lastmod>2026-09-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/madrid/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1294/11365/analysis/overview</loc>
     <lastmod>2026-09-11</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1730,13 +2378,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/baku/race</loc>
+    <loc>https://www.openf1ow.com/2026/1295/11377/analysis/overview</loc>
+    <lastmod>2026-09-24</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1295/11377/analysis/pace</loc>
     <lastmod>2026-09-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/baku/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1295/11373/analysis/overview</loc>
     <lastmod>2026-09-24</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1748,13 +2402,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/kuala-lumpur/race</loc>
+    <loc>https://www.openf1ow.com/2026/1308/11731/analysis/overview</loc>
+    <lastmod>2026-10-02</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1308/11731/analysis/pace</loc>
     <lastmod>2026-10-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/kuala-lumpur/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1308/11730/analysis/overview</loc>
     <lastmod>2026-10-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1766,19 +2426,31 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/marina-bay/race</loc>
+    <loc>https://www.openf1ow.com/2026/1296/11388/analysis/overview</loc>
+    <lastmod>2026-10-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1296/11388/analysis/pace</loc>
     <lastmod>2026-10-09</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/marina-bay/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1296/11384/analysis/overview</loc>
     <lastmod>2026-10-09</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/marina-bay/sprint</loc>
+    <loc>https://www.openf1ow.com/2026/1296/11383/analysis/overview</loc>
+    <lastmod>2026-10-09</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1296/11383/analysis/pace</loc>
     <lastmod>2026-10-09</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1790,13 +2462,19 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/austin/race</loc>
+    <loc>https://www.openf1ow.com/2026/1297/11396/analysis/overview</loc>
+    <lastmod>2026-10-23</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1297/11396/analysis/pace</loc>
     <lastmod>2026-10-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/austin/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1297/11392/analysis/overview</loc>
     <lastmod>2026-10-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.6</priority>
@@ -1804,19 +2482,25 @@
   <url>
     <loc>https://www.openf1ow.com/recap/2026/mexico-city</loc>
     <lastmod>2026-10-30</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://www.openf1ow.com/2026/mexico-city/race</loc>
-    <lastmod>2026-10-30</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>yearly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/mexico-city/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1298/11404/analysis/overview</loc>
     <lastmod>2026-10-30</lastmod>
-    <changefreq>weekly</changefreq>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1298/11404/analysis/pace</loc>
+    <lastmod>2026-10-30</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1298/11400/analysis/overview</loc>
+    <lastmod>2026-10-30</lastmod>
+    <changefreq>yearly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
@@ -1826,13 +2510,19 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/sao-paulo/race</loc>
+    <loc>https://www.openf1ow.com/2026/1299/11412/analysis/overview</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1299/11412/analysis/pace</loc>
     <lastmod>2026-11-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/sao-paulo/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1299/11408/analysis/overview</loc>
     <lastmod>2026-11-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1844,13 +2534,19 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/las-vegas/race</loc>
+    <loc>https://www.openf1ow.com/2026/1300/11420/analysis/overview</loc>
+    <lastmod>2026-11-20</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1300/11420/analysis/pace</loc>
     <lastmod>2026-11-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/las-vegas/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1300/11416/analysis/overview</loc>
     <lastmod>2026-11-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1862,13 +2558,19 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/lusail/race</loc>
+    <loc>https://www.openf1ow.com/2026/1301/11428/analysis/overview</loc>
+    <lastmod>2026-11-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1301/11428/analysis/pace</loc>
     <lastmod>2026-11-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/lusail/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1301/11424/analysis/overview</loc>
     <lastmod>2026-11-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
@@ -1880,13 +2582,19 @@
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/yas-marina/race</loc>
+    <loc>https://www.openf1ow.com/2026/1302/11436/analysis/overview</loc>
+    <lastmod>2026-12-04</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.openf1ow.com/2026/1302/11436/analysis/pace</loc>
     <lastmod>2026-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://www.openf1ow.com/2026/yas-marina/qualifying</loc>
+    <loc>https://www.openf1ow.com/2026/1302/11432/analysis/overview</loc>
     <lastmod>2026-12-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>

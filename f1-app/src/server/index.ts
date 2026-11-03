@@ -224,10 +224,17 @@ async function buildOgTags(url: URL, r2?: R2Bucket): Promise<{ title: string; de
 
   parts.push(`${year} ${raceName}`);
 
-  const title = parts.join(" — ") + " | OpenF1ow";
+  let title = parts.join(" — ") + " | OpenF1ow";
+  // Pace pages convert well in search: name the race + session and say what the page shows.
+  const isPace = view === "analysis" && subTab === "pace" && !driver;
+  if (isPace) {
+    const sess = session?.session_name && session.session_name !== "Race" ? ` ${session.session_name}` : "";
+    title = `${year} ${raceName}${sess} Race Pace — lap times, stint pace & gaps | OpenF1ow`;
+  }
   const driverInfo = driver ? ` — ${driver.full_name || driver.name_acronym}` : "";
   const sessionInfo = session?.session_name ? ` | ${session.session_name}` : "";
-  const description = `Deep F1 telemetry analysis: ${driverInfo}${sessionInfo} — lap-by-lap timing, speed traces, sector splits, tire degradation, pit strategies and engine-computed race analysis for the ${year} ${raceName}.`;
+  let description = `Deep F1 telemetry analysis: ${driverInfo}${sessionInfo} — lap-by-lap timing, speed traces, sector splits, tire degradation, pit strategies and engine-computed race analysis for the ${year} ${raceName}.`;
+  if (isPace) description = `${year} ${raceName} race pace: every driver's lap times, stint-by-stint pace, tyre compounds and the gaps between teams, computed from F1 timing data.`;
   const ogUrl = url.origin + url.pathname + url.search;
 
   // Build the og:image URL the same way injectOgTags does, so JSON-LD `image` matches.

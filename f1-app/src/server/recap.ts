@@ -323,9 +323,9 @@ export function renderRecapHtml(d: RecapData, origin: string, gaId?: string): st
   const slug = race.slug;
   const canonical = `${origin}/recap/${year}/${slug}`;
   const ogImage = `${origin}/share/race/${year}/${slug}.png`;
-  const title = `${year} ${race.meetingName} — Race Recap | OpenF1ow`;
+  const title = `${year} ${race.meetingName} Race Recap: pace, strategy & gaps | OpenF1ow`;
   const description = d.hasRaceData
-    ? `${year} ${race.meetingName} race recap: top pace, biggest gainers, and full classification at ${race.circuit}.`
+    ? `${year} ${race.meetingName} race recap: pace, tyre strategy, biggest gainers, gaps and full classification at ${race.circuit}.`
     : `${year} ${race.meetingName} preview at ${race.circuit}, ${race.country}. Telemetry and analysis on OpenF1ow.`;
 
   const drvByNum: Record<number, Driver> = {};
