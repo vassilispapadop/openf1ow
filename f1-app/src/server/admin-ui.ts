@@ -4,7 +4,8 @@
 // changing the password logs everyone out. Failed logins are rate-limited per IP.
 
 import { postDraft, xConfigured, type XEnv } from "./x-post";
-import type { DraftSet } from "./social-draft";
+import { shareCardUrl, type DraftSet } from "./social-draft";
+import { loadRaceIndex } from "./recap";
 
 export interface AdminUiEnv extends XEnv {
   ADMIN_USER?: string;
@@ -46,7 +47,7 @@ async function tooManyFails(env: AdminUiEnv, ip: string): Promise<{ key: string;
   return { key, fails: fails.filter(t => Date.now() - t < FAIL_WINDOW_MS) };
 }
 
-async function listProposals(env: AdminUiEnv) {
+async function listProposals(env: AdminUiEnv, origin: string) {
   const keys: string[] = [];
   let cursor: string | undefined;
   do {
@@ -60,6 +61,15 @@ async function listProposals(env: AdminUiEnv) {
   }
   // Newest session first (by when it ran, not when its drafts were last rebuilt).
   sets.sort((a, b) => (b.sessionDate ?? "").localeCompare(a.sessionDate ?? "") || b.sessionKey - a.sessionKey);
+  // The share card each post carries, by meeting (slug lives in race-index.json).
+  const idx = env.ASSETS ? await loadRaceIndex(env.ASSETS, origin) : null;
+  const imageFor = (mk?: number) => {
+    for (const [year, races] of Object.entries(idx?.byYear ?? {})) {
+      const hit = (races as { slug: string; meetingKey: number }[]).find(r => r.meetingKey === mk);
+      if (hit) return shareCardUrl("https://www.openf1ow.com", Number(year), hit.slug);
+    }
+    return null;
+  };
   const out = [];
   for (const s of sets.slice(0, 40)) {
     const drafts = [];
@@ -71,7 +81,7 @@ async function listProposals(env: AdminUiEnv) {
       // The post is "<text>\n\n<link>"; the page edits the text part only.
       drafts.push({ n: i + 1, text: d.text, url: d.url, posted });
     }
-    out.push({ sessionKey: s.sessionKey, title: (s.drafts[0]?.text || "").split("\n")[0] || `Session ${s.sessionKey}`, generatedAt: s.sessionDate ?? s.generatedAt, drafts });
+    out.push({ sessionKey: s.sessionKey, title: (s.drafts[0]?.text || "").split("\n")[0] || `Session ${s.sessionKey}`, generatedAt: s.sessionDate ?? s.generatedAt, image: imageFor(s.meetingKey ?? Number(/\/\d{4}\/(\d+)\//.exec(s.drafts[0]?.url ?? "")?.[1])), drafts });
   }
   return out;
 }
@@ -106,7 +116,7 @@ export async function handleAdminUi(request: Request, env: AdminUiEnv): Promise<
   if (!(await signedIn(request, env))) return json({ error: "not signed in" }, 401);
 
   if (route === "proposals" && request.method === "GET") {
-    return json({ xReady: xConfigured(env), sessions: await listProposals(env) });
+    return json({ xReady: xConfigured(env), sessions: await listProposals(env, url.origin) });
   }
   if (route === "post" && request.method === "POST") {
     if (!(request.headers.get("Content-Type") || "").includes("application/json")) return json({ error: "json only" }, 415);
@@ -133,6 +143,12 @@ textarea{min-height:96px;resize:vertical}
 button{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer}
 button.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}button:disabled{opacity:.5;cursor:default}
 .row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:8px}
+.tw{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px;background:var(--bg)}
+.tw .who{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.tw .av{width:34px;height:34px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px}
+.tw .body{white-space:pre-wrap;word-break:break-word}.tw .lnk{color:#1d9bf0}
+.tw img{width:100%;border-radius:12px;border:1px solid var(--line);margin-top:8px;display:block}
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:12px}
 .ok{color:var(--ok)}.err{color:var(--accent)}.hdr{display:flex;justify-content:space-between;align-items:center}
 </style></head><body><main id="app"></main>
 <script>
@@ -156,11 +172,14 @@ async function load(){
     for(const d of s.drafts){
       const ta=el('textarea',{});ta.value=d.text;const cnt=el('span',{class:'muted'});const msg=el('div',{class:'muted'});
       const upd=()=>{const w=weighted(ta.value);cnt.textContent=w+'/280';cnt.className=w>280?'err':'muted'};ta.addEventListener('input',upd);upd();
-      const link=el('div',{class:'muted'},'+ link: '+d.url);
+      const lnk=el('span',{class:'lnk'},d.url.replace('https://',''));const bodyEl=el('div',{class:'body'});
+      const tw=el('div',{class:'tw'},el('div',{class:'who'},el('div',{class:'av'},'F1'),el('div',{},el('strong',{},'OpenF1ow'),el('div',{class:'muted'},'@openf1ow'))),bodyEl);
+      if(s.image){const im=el('img',{src:s.image,alt:'',loading:'lazy'});im.addEventListener('error',()=>im.remove());tw.append(im)}
+      const render=()=>{bodyEl.replaceChildren(ta.value.trim()+'\\n\\n',lnk)};ta.addEventListener('input',render);render();
       const row=el('div',{class:'row'},cnt);
       if(d.posted){ta.disabled=true;msg.className='ok';msg.textContent='Posted '+(d.posted.at||'').slice(0,16).replace('T',' ');if(d.posted.tweetId)msg.append(' · ',el('a',{href:'https://x.com/openf1ow/status/'+d.posted.tweetId,target:'_blank',rel:'noopener'},'view'))}
       else{const b=el('button',{onclick:async()=>{if(!confirm('Post this to @openf1ow now?'))return;b.disabled=true;msg.className='muted';msg.textContent='Posting…';const{j:rj}=await api('post',{method:'POST',body:JSON.stringify({sessionKey:s.sessionKey,n:d.n,text:ta.value})});if(rj.status==='posted'){load()}else{b.disabled=false;msg.className='err';msg.textContent=rj.error||rj.status}}},'Post to X');row.append(b)}
-      card.append(el('div',{style:'height:10px'}),ta,link,row,msg);
+      card.append(el('div',{class:'lbl'},'Proposal '+d.n),ta,el('div',{class:'lbl'},'Preview'),tw,row,msg);
     }
     out.push(card);
   }
