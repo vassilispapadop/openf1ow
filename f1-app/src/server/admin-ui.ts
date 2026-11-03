@@ -14,6 +14,7 @@ export interface AdminUiEnv extends XEnv {
 
 const COOKIE = "adm";
 const TTL_S = 12 * 3600;
+const RECENT_DAYS = 14; // the page lists sessions that ran in the last two weeks
 const MAX_FAILS = 5;
 const FAIL_WINDOW_MS = 15 * 60_000;
 
@@ -60,7 +61,10 @@ async function listProposals(env: AdminUiEnv, origin: string) {
   const read = async <T,>(k: string): Promise<T | null> => {
     try { const o = await env.F1_DATA.get(k); return o ? (JSON.parse(await o.text()) as T) : null; } catch { return null; }
   };
-  const sets = (await Promise.all(draftKeys.map(k => read<DraftSet>(k)))).filter((x): x is DraftSet => !!x);
+  const cutoff = Date.now() - RECENT_DAYS * 86_400_000;
+  // Drafts without a session date predate it and are old test runs — left out.
+  const sets = (await Promise.all(draftKeys.map(k => read<DraftSet>(k))))
+    .filter((x): x is DraftSet => !!x && !!x.sessionDate && Date.parse(x.sessionDate) >= cutoff);
   // Newest session first (by when it ran, not when its drafts were last rebuilt).
   sets.sort((a, b) => (b.sessionDate ?? "").localeCompare(a.sessionDate ?? "") || b.sessionKey - a.sessionKey);
   // The share card each post carries, by meeting (slug lives in race-index.json).
@@ -165,7 +169,7 @@ async function load(){
   const{r,j}=await api('proposals');if(r.status===401)return login();
   const head=el('div',{class:'hdr'},el('div',{},el('h1',{},'Proposed X posts'),el('div',{class:'muted'},j.xReady?'X keys configured':'X keys missing — posting will fail until they are set')),el('button',{class:'ghost',onclick:async()=>{await api('logout',{method:'POST'});login()}},'Sign out'));
   const out=[head];
-  if(!j.sessions.length)out.push(el('div',{class:'card muted'},'No proposals yet. They appear after each session is processed.'));
+  if(!j.sessions.length)out.push(el('div',{class:'card muted'},'No proposals from the last 14 days yet. They appear after each session is processed.'));
   for(const s of j.sessions){
     const card=el('div',{class:'card'},el('strong',{},s.title),el('div',{class:'muted'},'session '+s.sessionKey+' · '+s.generatedAt.slice(0,16).replace('T',' ')));
     for(const d of s.drafts){
