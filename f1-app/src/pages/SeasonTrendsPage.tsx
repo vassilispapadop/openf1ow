@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { loadSeasonTrends } from "../lib/seasonClient";
 import type { SeasonTrends } from "../lib/seasonUtils";
@@ -25,10 +25,32 @@ export const SEASON_SECTIONS = {
   superClipping: "super-clipping",
 } as const;
 
+type Range = "all" | 5 | 10;
+const RANGES: { id: Range; label: string }[] = [
+  { id: 5, label: "Last 5 races" },
+  { id: 10, label: "Last 10 races" },
+  { id: "all", label: "Entire season" },
+];
+
+/** Keep only the last `n` rounds in every per-race series. */
+function sliceTrends(t: SeasonTrends, range: Range): SeasonTrends {
+  if (range === "all") return t;
+  const rounds = [...new Set(t.constructorPace.map(r => r.round))].sort((a, b) => a - b);
+  const keep = new Set(rounds.slice(-range));
+  const out: Record<string, unknown> = { ...t };
+  for (const [k, v] of Object.entries(t)) {
+    if (Array.isArray(v)) out[k] = v.filter(r => typeof r?.round !== "number" || keep.has(r.round));
+  }
+  return out as unknown as SeasonTrends;
+}
+
 export default function SeasonTrendsPage() {
   const params = useParams<{ year?: string }>();
   const year = Number(params.year) || new Date().getFullYear();
   const [trends, setTrends] = useState<SeasonTrends | null | "missing">(null);
+  const [range, setRange] = useState<Range>("all");
+  const full = trends && trends !== "missing" ? trends : null;
+  const view = useMemo(() => (full ? sliceTrends(full, range) : null), [full, range]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,6 +93,7 @@ export default function SeasonTrendsPage() {
     );
   }
 
+  const v = view!; // range-filtered series; `trends` stays the full season
   const hasCorners = !!trends.cornerStraight && trends.cornerStraight.length > 0;
   const hasQuali = !!trends.constructorQualifying && trends.constructorQualifying.length > 0;
   const hasPaceHistory = trends.constructorPace.length > 1;
@@ -119,6 +142,19 @@ export default function SeasonTrendsPage() {
       </header>
 
       <SeasonSummary trends={trends} />
+      <div role="group" aria-label="Chart range" style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 12px" }}>
+        {RANGES.map(r => {
+          const on = r.id === range;
+          return (
+            <button key={String(r.id)} type="button" aria-pressed={on} onClick={() => setRange(r.id)}
+              style={{ fontFamily: F, fontSize: 12, fontWeight: 600, padding: "6px 12px", borderRadius: 999, cursor: "pointer",
+                border: "1px solid var(--border)", background: on ? "var(--surface-2, var(--surface))" : "transparent",
+                color: on ? "var(--text)" : "var(--text-dim)" }}>
+              {r.label}
+            </button>
+          );
+        })}
+      </div>
       <SeasonNav items={nav} />
 
       <Section
@@ -136,7 +172,7 @@ export default function SeasonTrendsPage() {
         }}
         share={{ meta: `${year} constructor pace`, filename: `openf1ow-constructor-pace-${year}` }}
       >
-        <SeasonTrendChart trends={trends} metric="race" />
+        <SeasonTrendChart trends={v} metric="race" />
       </Section>
 
       {hasQuali && (
@@ -150,7 +186,7 @@ export default function SeasonTrendsPage() {
           }}
           share={{ meta: `${year} constructor qualifying`, filename: `openf1ow-constructor-qualifying-${year}` }}
         >
-          <SeasonTrendChart trends={trends} metric="quali" />
+          <SeasonTrendChart trends={v} metric="quali" />
         </Section>
       )}
 
@@ -161,7 +197,7 @@ export default function SeasonTrendsPage() {
           hint="Where each team ran at one weekend against where it usually runs. The hollow circle is the team's median gap to the fastest car over the other rounds; the arrow shows how far this weekend moved from it."
           share={{ meta: `${year} team pace vs season average`, filename: `openf1ow-team-form-${year}` }}
         >
-          <TeamFormVsSeason trends={trends} />
+          <TeamFormVsSeason trends={v} />
         </Section>
       )}
 
@@ -175,7 +211,7 @@ export default function SeasonTrendsPage() {
         }}
         share={{ meta: `${year} teammate gaps`, filename: `openf1ow-teammate-gap-${year}` }}
       >
-        <SeasonTrendChart trends={trends} metric="teammate" />
+        <SeasonTrendChart trends={v} metric="teammate" />
       </Section>
 
       {hasCorners && (
@@ -185,7 +221,7 @@ export default function SeasonTrendsPage() {
           hint="The same chart shape as constructor qualifying, but on one part of the lap at a time. Switch between corners, fast curves and straights to see which way a team's development went — the axis is signed, so a line can sit above the reference. Resolution is a few tenths per round, so the trend is the story; circuits without a real fast-curve share sit out of the curve view."
           share={{ meta: `${year} corner & straight evolution`, filename: `openf1ow-corner-straight-evolution-${year}` }}
         >
-          <SeasonTrendChart trends={trends} metric="corners" />
+          <SeasonTrendChart trends={v} metric="corners" />
         </Section>
       )}
 
@@ -196,7 +232,7 @@ export default function SeasonTrendsPage() {
           hint="Which part of the lap each team's deficit comes from. The gaps are a decomposition of the same qualifying lap, so they sum to the team's lap-time gap — a car can be quicker through the corners and still lose the lap on the straights. Each part is good to a few tenths at one round; the season view averages that out."
           share={{ meta: `${year} corners vs straights`, filename: `openf1ow-corners-straights-${year}` }}
         >
-          <CornerStraightBalance races={trends.cornerStraight!} />
+          <CornerStraightBalance races={v.cornerStraight!} />
         </Section>
       )}
 
@@ -210,7 +246,7 @@ export default function SeasonTrendsPage() {
         }}
         share={{ meta: `${year} tyre degradation`, filename: `openf1ow-tyre-deg-${year}` }}
       >
-        <SeasonTrendChart trends={trends} metric="tyre" />
+        <SeasonTrendChart trends={v} metric="tyre" />
       </Section>
 
       {trends.tyreLife && trends.tyreLife.length > 0 && (
@@ -224,7 +260,7 @@ export default function SeasonTrendsPage() {
           }}
           share={{ meta: `${year} tyre life`, filename: `openf1ow-tyre-life-${year}` }}
         >
-          <SeasonTrendChart trends={trends} metric="tyreLife" />
+          <SeasonTrendChart trends={v} metric="tyreLife" />
         </Section>
       )}
 
@@ -238,7 +274,7 @@ export default function SeasonTrendsPage() {
           }}
           share={{ meta: `${year} top speeds`, filename: `openf1ow-top-speed-${year}` }}
         >
-          <SeasonTrendChart trends={trends} metric="topSpeed" />
+          <SeasonTrendChart trends={v} metric="topSpeed" />
         </Section>
       )}
 
@@ -253,7 +289,7 @@ export default function SeasonTrendsPage() {
           }}
           share={{ meta: `${year} super clipping`, filename: `openf1ow-super-clipping-${year}` }}
         >
-          <SeasonTrendChart trends={trends} metric="clipping" />
+          <SeasonTrendChart trends={v} metric="clipping" />
         </Section>
       )}
 
@@ -267,7 +303,7 @@ export default function SeasonTrendsPage() {
           }}
           share={{ meta: `${year} grid to finish`, filename: `openf1ow-conversion-${year}` }}
         >
-          <SeasonTrendChart trends={trends} metric="conversion" />
+          <SeasonTrendChart trends={v} metric="conversion" />
         </Section>
       )}
 
