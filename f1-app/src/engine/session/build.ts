@@ -2,7 +2,7 @@
 // the LLM prompt, the recap and the trends script know about a session is
 // derived here, once.
 
-import type { SessionInputs, Pit } from "../types/raw.ts";
+import type { SessionInputs, Pit, Driver } from "../types/raw.ts";
 import type {
   SessionModel, DriverSummary, EnrichedLap, EnrichedPit, TeamSummary, Coverage,
 } from "../types/model.ts";
@@ -19,7 +19,8 @@ import { lastIndexLE } from "../stats.ts";
 
 export function buildSessionModel(inputs: SessionInputs): SessionModel {
   const warnings: string[] = [];
-  const { session, drivers, laps } = inputs;
+  const { session, laps } = inputs;
+  const drivers = fillMissingTeams(inputs.drivers);
   const stints = inputs.stints ?? [];
   const pits = inputs.pits ?? [];
   const kind = classifySession(session.session_type, session.session_name);
@@ -177,4 +178,21 @@ export function buildSessionModel(inputs: SessionInputs): SessionModel {
     coverage,
     warnings,
   };
+}
+
+
+/**
+ * OpenF1 sometimes lists a stand-in driver (e.g. a reserve called up for a
+ * race) with team_name null. When exactly one driver is nameless and exactly
+ * one team is running a single car, that driver is the missing second car.
+ */
+function fillMissingTeams(drivers: Driver[]): Driver[] {
+  const nameless = drivers.filter(d => !d.team_name);
+  if (nameless.length !== 1) return drivers;
+  const counts = new Map<string, Driver[]>();
+  for (const d of drivers) if (d.team_name) (counts.get(d.team_name) ?? counts.set(d.team_name, []).get(d.team_name)!).push(d);
+  const lone = [...counts.values()].filter(a => a.length === 1);
+  if (lone.length !== 1) return drivers;
+  const { team_name, team_colour } = lone[0][0];
+  return drivers.map(d => (d === nameless[0] ? { ...d, team_name, team_colour } : d));
 }
